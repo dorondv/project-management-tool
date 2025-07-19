@@ -2,6 +2,10 @@
 
 A **modern, full-stack project management web app** built with **React.js**, **Node.js**, and **MongoDB/PostgreSQL**. Designed with a clean UI, responsive design, and rich functionality like dashboard analytics, team collaboration, task tracking, authentication, and more.
 
+
+<img width="1357" height="634" alt="{FB51EE6F-5064-47FA-88FF-54FF1F643A53}" src="https://github.com/user-attachments/assets/49472f78-ea9c-47cb-a8b9-250091b38733" />
+
+
 > Built with ❤️ by [Ajay Dhangar](https://github.com/ajay-dhangar)
 
 ---
