@@ -1,7 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { useApp } from '../../context/AppContext';
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+const COLORS = ['#FF0083', '#FF3D9A', '#FF66AF', '#FF8FC3', '#FFB8D7'];
 
 export function ProjectChart() {
   const { state } = useApp();

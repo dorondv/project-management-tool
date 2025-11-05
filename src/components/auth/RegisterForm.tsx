@@ -50,7 +50,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
       };
 
       dispatch({ type: 'SET_USER', payload: newUser });
-      toast.success(`Welcome to ProjectFlow, ${newUser.name}!`);
+      toast.success(`Welcome to SOLO, ${newUser.name}!`);
     } catch (error) {
       toast.error('Registration failed. Please try again.');
     } finally {
@@ -72,7 +72,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           Create Account
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Join ProjectFlow and start managing your projects
+          Join SOLO and start managing your projects
         </p>
       </div>
 

@@ -6,11 +6,12 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  titleIcon?: ReactNode;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, titleIcon, children, size = 'md' }: ModalProps) {
   const sizeClasses = {
     sm: 'max-w-md',
     md: 'max-w-lg',
@@ -54,9 +55,12 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           >
             {title && (
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {title}
-                </h3>
+                <div className="flex items-center gap-2">
+                  {titleIcon && <div className="text-gray-600 dark:text-gray-400">{titleIcon}</div>}
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {title}
+                  </h3>
+                </div>
                 <button
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
