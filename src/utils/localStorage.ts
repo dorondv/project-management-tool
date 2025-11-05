@@ -4,7 +4,9 @@ export interface StorageData {
   tasks: any[];
   notifications: any[];
   activities: any[];
+  customers: any[];
   theme: 'light' | 'dark';
+  locale: 'en' | 'he';
   settings: any;
 }
 
@@ -71,7 +73,9 @@ export const initializeStorage = (): void => {
       tasks: [],
       notifications: [],
       activities: [],
+      customers: [],
       theme: 'light',
+      locale: 'en',
       settings: {
         notifications: true,
         emailUpdates: true,

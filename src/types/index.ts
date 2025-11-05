@@ -79,3 +79,101 @@ export interface Activity {
   taskId?: string;
   createdAt: Date;
 }
+
+export type Locale = 'en' | 'he';
+
+export type CustomerStatus = 'active' | 'trial' | 'paused' | 'churned';
+
+export type PaymentMethod = 'bank-transfer' | 'credit-card' | 'direct-debit' | 'cash';
+
+export type PaymentFrequency = 'monthly' | 'quarterly' | 'annual';
+
+export type BillingModel = 'retainer' | 'hourly' | 'project';
+
+export interface Customer {
+  id: string;
+  name: string;
+  status: CustomerStatus;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  country: string;
+  taxId: string;
+  joinDate: Date;
+  industry?: string;
+  paymentMethod: PaymentMethod;
+  billingCycle: PaymentFrequency;
+  billingModel: BillingModel;
+  currency: string;
+  monthlyRetainer: number;
+  annualFee: number;
+  hoursPerMonth: number;
+  customerScore: number;
+  notes?: string;
+  referralSource?: string;
+  tags: string[];
+}
+
+export interface TimeEntry {
+  id: string;
+  customerId: string;
+  projectId: string;
+  taskId?: string;
+  description: string;
+  startTime: Date;
+  endTime: Date;
+  duration: number; // in seconds
+  hourlyRate: number;
+  income: number; // calculated based on duration and hourly rate
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Income {
+  id: string;
+  customerId: string;
+  customerName: string;
+  incomeDate: Date;
+  invoiceNumber?: string;
+  vatRate: number; // e.g., 0.18 for 18%
+  amountBeforeVat: number;
+  vatAmount: number; // calculated
+  finalAmount: number; // calculated
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type SubscriptionPlan = 'monthly' | 'annual' | 'trial';
+export type SubscriptionStatus = 'active' | 'trial' | 'expired' | 'cancelled';
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  startDate: Date;
+  endDate: Date;
+  price: number;
+  currency: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BillingHistory {
+  id: string;
+  userId: string;
+  invoiceNumber: string;
+  plan: SubscriptionPlan;
+  amount: number;
+  currency: string;
+  billingDate: Date;
+  status: 'paid' | 'pending' | 'failed';
+  createdAt: Date;
+}
+
+export interface BusinessDetails {
+  businessName: string;
+  businessField: string;
+  digitalSignature?: string;
+}

@@ -131,3 +131,35 @@ body {
     display: none !important;
   }
 }
+
+/* Accessibility: High Contrast */
+.high-contrast {
+  --text-color: #000000;
+  --bg-color: #ffffff;
+  --border-color: #000000;
+}
+
+.high-contrast * {
+  color: var(--text-color) !important;
+  background-color: var(--bg-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark.high-contrast {
+  --text-color: #ffffff;
+  --bg-color: #000000;
+  --border-color: #ffffff;
+}
+
+/* Accessibility: Large Cursor */
+.large-cursor,
+.large-cursor * {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="black" stroke="white" stroke-width="2"/></svg>') 16 16, auto !important;
+}
+
+/* Accessibility: Apply text size on page load */
+@layer utilities {
+  body {
+    font-size: 100%;
+  }
+}
