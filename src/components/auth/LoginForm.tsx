@@ -57,7 +57,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
           Welcome Back
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Sign in to your ProjectFlow account
+          Sign in to your SOLO account
         </p>
       </div>
 

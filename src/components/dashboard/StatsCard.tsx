@@ -32,7 +32,7 @@ export function StatsCard({ title, value, change, icon, color }: StatsCardProps)
               ) : (
                 <TrendingDown size={16} className="text-red-500" />
               )}
-              <span className={`text-sm ml-1 ${
+              <span className={`text-sm ms-1 ${
                 change.type === 'increase' ? 'text-green-500' : 'text-red-500'
               }`}>
                 {change.value}%

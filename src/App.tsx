@@ -11,6 +11,12 @@ import Team from './pages/Team';
 import Settings from './pages/Settings';
 import Calendar from './pages/Calendar';
 import Notifications from './pages/Notifications';
+import Customers from './pages/Customers';
+import Timer from './pages/Timer';
+import Incomes from './pages/Incomes';
+import Pricing from './pages/Pricing';
+import Payment from './pages/Payment';
+import Profile from './pages/Profile';
 
 function AppContent() {
   const { state } = useApp();
@@ -21,7 +27,7 @@ function AppContent() {
         <div className="text-center">
           <LoadingSpinner size="lg" />
           <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Loading ProjectFlow...
+            Loading SOLO...
           </p>
         </div>
       </div>
@@ -38,11 +44,17 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/customers" element={<Customers />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/timer" element={<Timer />} />
           <Route path="/team" element={<Team />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/incomes" element={<Incomes />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/payment" element={<Payment />} />
         </Routes>
       </Layout>
       <Toaster

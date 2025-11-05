@@ -6,9 +6,45 @@ import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { formatDate } from '../utils/dateUtils';
 import { getPriorityColor } from '../utils/colorUtils';
+import { Locale } from '../types';
+
+const translations: Record<Locale, {
+  pageTitle: string;
+  pageSubtitle: string;
+  addEvent: string;
+  today: string;
+  upcomingTasks: string;
+  due: string;
+  more: string;
+  dayNames: string[];
+}> = {
+  en: {
+    pageTitle: 'Calendar',
+    pageSubtitle: 'View your tasks and deadlines in calendar format',
+    addEvent: 'Add Event',
+    today: 'Today',
+    upcomingTasks: 'Upcoming Tasks',
+    due: 'Due',
+    more: 'more',
+    dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  },
+  he: {
+    pageTitle: 'לוח שנה',
+    pageSubtitle: 'צפה במשימות והמועדים שלך בפורמט לוח שנה',
+    addEvent: 'הוסף אירוע',
+    today: 'היום',
+    upcomingTasks: 'משימות קרובות',
+    due: 'מועד',
+    more: 'נוספות',
+    dayNames: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
+  },
+};
 
 export default function Calendar() {
   const { state } = useApp();
+  const locale: Locale = state.locale ?? 'en';
+  const isRTL = locale === 'he';
+  const t = translations[locale];
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const getDaysInMonth = (date: Date) => {
@@ -40,7 +76,7 @@ export default function Calendar() {
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
-  const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthYear = currentDate.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { month: 'long', year: 'numeric' });
 
   const days = [];
   
@@ -54,47 +90,74 @@ export default function Calendar() {
     days.push(day);
   }
 
+  const alignStart = isRTL ? 'text-right' : 'text-left';
+
   return (
-    <div className="space-y-6">
+    <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Calendar
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            View your tasks and deadlines in calendar format
-          </p>
-        </div>
-        <Button icon={<Plus size={16} />}>
-          Add Event
-        </Button>
+        {isRTL ? (
+          <>
+            <div className={alignStart}>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {t.pageTitle}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                {t.pageSubtitle}
+              </p>
+            </div>
+            <Button
+              icon={<Plus size={16} />}
+              className="flex-row-reverse"
+            >
+              {t.addEvent}
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className={alignStart}>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {t.pageTitle}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                {t.pageSubtitle}
+              </p>
+            </div>
+            <Button
+              icon={<Plus size={16} />}
+            >
+              {t.addEvent}
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         {/* Calendar Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className={`flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-xl font-semibold text-gray-900 dark:text-white ${alignStart}`}>
             {monthYear}
           </h2>
-          <div className="flex items-center space-x-2">
+          <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}>
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigateMonth('prev')}
               icon={<ChevronLeft size={16} />}
+              className={isRTL ? 'flex-row-reverse' : ''}
             />
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentDate(new Date())}
             >
-              Today
+              {t.today}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigateMonth('next')}
               icon={<ChevronRight size={16} />}
+              className={isRTL ? 'flex-row-reverse' : ''}
             />
           </div>
         </div>
@@ -103,8 +166,8 @@ export default function Calendar() {
         <div className="p-6">
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 mb-4">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+            {t.dayNames.map(day => (
+              <div key={day} className={`p-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400 ${alignStart}`}>
                 {day}
               </div>
             ))}
@@ -131,7 +194,7 @@ export default function Calendar() {
                     isToday ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' : ''
                   }`}
                 >
-                  <div className={`text-sm font-medium mb-1 ${
+                  <div className={`text-sm font-medium mb-1 ${alignStart} ${
                     isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
                   }`}>
                     {day}
@@ -140,15 +203,15 @@ export default function Calendar() {
                     {tasksForDay.slice(0, 2).map(task => (
                       <div
                         key={task.id}
-                        className={`text-xs p-1 rounded truncate ${getPriorityColor(task.priority)}`}
+                        className={`text-xs p-1 rounded truncate ${getPriorityColor(task.priority)} ${alignStart}`}
                         title={task.title}
                       >
                         {task.title}
                       </div>
                     ))}
                     {tasksForDay.length > 2 && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        +{tasksForDay.length - 2} more
+                      <div className={`text-xs text-gray-500 dark:text-gray-400 ${alignStart}`}>
+                        +{tasksForDay.length - 2} {t.more}
                       </div>
                     )}
                   </div>
@@ -161,8 +224,8 @@ export default function Calendar() {
 
       {/* Upcoming Tasks */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Upcoming Tasks
+        <h3 className={`text-lg font-semibold text-gray-900 dark:text-white mb-4 ${alignStart}`}>
+          {t.upcomingTasks}
         </h3>
         <div className="space-y-3">
           {state.tasks
@@ -170,15 +233,15 @@ export default function Calendar() {
             .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
             .slice(0, 5)
             .map(task => (
-              <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center space-x-3">
+              <div key={task.id} className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
                   <CalendarIcon size={16} className="text-gray-400" />
-                  <div>
+                  <div className={alignStart}>
                     <p className="font-medium text-gray-900 dark:text-white">
                       {task.title}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Due: {formatDate(task.dueDate)}
+                      {t.due}: {formatDate(task.dueDate)}
                     </p>
                   </div>
                 </div>
