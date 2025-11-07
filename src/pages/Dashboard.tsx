@@ -68,10 +68,12 @@ export default function Dashboard() {
     ]
   ), [state.projects.length, state.tasks, t.stats.activeTasks, t.stats.overdueTasks, t.stats.teamMembers, t.stats.totalProjects]);
 
+  const alignStart = isRTL ? 'text-right' : 'text-left';
+
   return (
     <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`}>
-      <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div>
+      <div className="flex items-center justify-between">
+        <div className={alignStart}>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t.title}
           </h1>

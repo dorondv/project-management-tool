@@ -6,6 +6,7 @@ import { Button } from '../components/common/Button';
 import { TimeEntry, Locale, Customer, Project, Task } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { timerService } from '../utils/timerService';
 
 const translations = {
   en: {
@@ -106,10 +107,22 @@ export default function Timer() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [description, setDescription] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [startTime, setStartTime] = useState<Date | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('current');
+
+  // Get timer state from context
+  const activeTimer = state.activeTimer;
+  const elapsedSeconds = state.timerElapsedSeconds;
+  const isRunning = activeTimer?.isRunning || false;
+
+  // Restore timer state when active timer exists
+  useEffect(() => {
+    if (activeTimer) {
+      setSelectedCustomerId(activeTimer.customerId);
+      setSelectedProjectId(activeTimer.projectId);
+      setSelectedTaskId(activeTimer.taskId || '');
+      setDescription(activeTimer.description);
+    }
+  }, [activeTimer?.id]); // Only restore when timer ID changes
 
   // Get filtered projects based on selected customer
   const availableProjects = useMemo(() => {
@@ -129,20 +142,12 @@ export default function Timer() {
     return state.customers.find(c => c.id === selectedCustomerId);
   }, [selectedCustomerId, state.customers]);
 
-  // Timer effect
+  // Update description in timer service when it changes
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isRunning && startTime) {
-      interval = setInterval(() => {
-        const now = new Date();
-        const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-        setElapsedSeconds(diff);
-      }, 1000);
+    if (isRunning && description !== activeTimer?.description) {
+      timerService.updateDescription(description);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning, startTime]);
+  }, [description, isRunning, activeTimer]);
 
   // Filter time entries by month
   const filteredTimeEntries = useMemo(() => {
@@ -168,43 +173,57 @@ export default function Timer() {
       return;
     }
 
-    setIsRunning(true);
-    const now = new Date();
-    setStartTime(now);
-    setElapsedSeconds(0);
+    if (!state.user?.id) {
+      toast.error(isRTL ? 'משתמש לא מזוהה' : 'User not identified');
+      return;
+    }
+
+    timerService.startTimer(
+      selectedCustomerId,
+      selectedProjectId,
+      selectedTaskId || undefined,
+      description || t.whatAreYouDoing,
+      state.user.id
+    );
+
+    toast.success(isRTL ? 'טיימר התחיל' : 'Timer started');
   };
 
   const handleStop = () => {
-    if (!isRunning || !startTime || !selectedCustomer || !selectedProjectId) return;
+    if (!isRunning || !activeTimer || !selectedCustomer) {
+      return;
+    }
 
-    const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
     const hourlyRate = getHourlyRate(selectedCustomer);
-    const income = (duration / 3600) * hourlyRate;
+    const timerLog = timerService.stopTimer(hourlyRate);
 
-    const newEntry: TimeEntry = {
-      id: `time-${Date.now()}`,
-      customerId: selectedCustomerId,
-      projectId: selectedProjectId,
-      taskId: selectedTaskId || undefined,
-      description: description || t.whatAreYouDoing,
-      startTime,
-      endTime,
-      duration,
-      hourlyRate,
-      income,
-      userId: state.user?.id || '1',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    if (timerLog) {
+      // Convert TimerLog to TimeEntry format
+      const newEntry: TimeEntry = {
+        id: timerLog.id,
+        customerId: timerLog.customerId,
+        projectId: timerLog.projectId,
+        taskId: timerLog.taskId,
+        description: timerLog.description,
+        startTime: timerLog.startTime,
+        endTime: timerLog.endTime,
+        duration: timerLog.duration,
+        hourlyRate: timerLog.hourlyRate,
+        income: timerLog.income,
+        userId: timerLog.userId,
+        createdAt: timerLog.createdAt,
+        updatedAt: timerLog.updatedAt,
+      };
 
-    dispatch({ type: 'ADD_TIME_ENTRY', payload: newEntry });
-    toast.success(isRTL ? 'רישום זמן נשמר בהצלחה' : 'Time entry saved successfully');
+      dispatch({ type: 'ADD_TIME_ENTRY', payload: newEntry });
+      toast.success(isRTL ? 'רישום זמן נשמר בהצלחה' : 'Time entry saved successfully');
 
-    setIsRunning(false);
-    setElapsedSeconds(0);
-    setStartTime(null);
-    setDescription('');
+      // Reset form
+      setSelectedCustomerId('');
+      setSelectedProjectId('');
+      setSelectedTaskId('');
+      setDescription('');
+    }
   };
 
   const handleAddEntry = () => {
