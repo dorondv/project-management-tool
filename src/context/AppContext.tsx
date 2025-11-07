@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { User, Project, Task, Notification, Activity, Customer, Locale, TimeEntry, Income } from '../types';
+import { User, Project, Task, Notification, Activity, Customer, Locale, TimeEntry, Income, ActiveTimer } from '../types';
 import { mockUsers, mockProjects, mockTasks, mockNotifications, mockActivities, mockCustomers, mockTimeEntries, mockIncomes } from '../data/mockData';
 import { storage, initializeStorage } from '../utils/localStorage';
+import { timerService } from '../utils/timerService';
 import toast from 'react-hot-toast';
 
 interface AppState {
@@ -13,6 +14,8 @@ interface AppState {
   customers: Customer[];
   timeEntries: TimeEntry[];
   incomes: Income[];
+  activeTimer: ActiveTimer | null;
+  timerElapsedSeconds: number;
   locale: Locale;
   theme: 'light' | 'dark';
   loading: boolean;
@@ -53,6 +56,8 @@ type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_AUTHENTICATED'; payload: boolean }
+  | { type: 'SET_ACTIVE_TIMER'; payload: ActiveTimer | null }
+  | { type: 'UPDATE_TIMER_ELAPSED'; payload: number }
   | { type: 'LOGOUT' };
 
 const initialState: AppState = {
@@ -64,6 +69,8 @@ const initialState: AppState = {
   customers: [],
   timeEntries: [],
   incomes: [],
+  activeTimer: null,
+  timerElapsedSeconds: 0,
   locale: 'en',
   theme: 'light',
   loading: false,
@@ -279,7 +286,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_AUTHENTICATED':
       return { ...state, isAuthenticated: action.payload };
     
+    case 'SET_ACTIVE_TIMER':
+      return { ...state, activeTimer: action.payload };
+    
+    case 'UPDATE_TIMER_ELAPSED':
+      return { ...state, timerElapsedSeconds: action.payload };
+    
     case 'LOGOUT':
+      timerService.clearTimer();
       storage.clear();
       return { ...initialState };
     
@@ -402,6 +416,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     applyAccessibilitySettings();
+  }, []);
+
+  // Subscribe to timer service updates
+  useEffect(() => {
+    const unsubscribe = timerService.subscribe((timer, elapsedSeconds) => {
+      dispatch({ type: 'SET_ACTIVE_TIMER', payload: timer });
+      dispatch({ type: 'UPDATE_TIMER_ELAPSED', payload: elapsedSeconds });
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return (

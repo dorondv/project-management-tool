@@ -3,9 +3,54 @@ import { Calendar, Users, FileText, Target, Flag } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useApp } from '../../context/AppContext';
-import { Task } from '../../types';
+import { Task, Locale } from '../../types';
 import { mockUsers } from '../../data/mockData';
 import toast from 'react-hot-toast';
+
+const translations = {
+  en: {
+    title: 'Create New Task',
+    taskTitle: 'Task Title',
+    taskTitlePlaceholder: 'Enter task title',
+    description: 'Description',
+    descriptionPlaceholder: 'Describe the task',
+    project: 'Project',
+    selectProject: 'Select a project',
+    dueDate: 'Due Date',
+    priority: 'Priority',
+    priorityLow: 'Low',
+    priorityMedium: 'Medium',
+    priorityHigh: 'High',
+    tags: 'Tags (comma separated)',
+    tagsPlaceholder: 'frontend, ui, urgent',
+    assignTo: 'Assign To',
+    cancel: 'Cancel',
+    createTask: 'Create Task',
+    errorSelectProject: 'Please select a project',
+    successCreated: 'Task created successfully!',
+  },
+  he: {
+    title: 'יצירת משימה חדשה',
+    taskTitle: 'כותרת המשימה',
+    taskTitlePlaceholder: 'הזן כותרת משימה',
+    description: 'תיאור',
+    descriptionPlaceholder: 'תאר את המשימה',
+    project: 'פרויקט',
+    selectProject: 'בחר פרויקט',
+    dueDate: 'תאריך יעד',
+    priority: 'עדיפות',
+    priorityLow: 'נמוכה',
+    priorityMedium: 'בינונית',
+    priorityHigh: 'גבוהה',
+    tags: 'תגיות (מופרדות בפסיק)',
+    tagsPlaceholder: 'frontend, ui, דחוף',
+    assignTo: 'הקצה ל',
+    cancel: 'ביטול',
+    createTask: 'צור משימה',
+    errorSelectProject: 'אנא בחר פרויקט',
+    successCreated: 'המשימה נוצרה בהצלחה!',
+  },
+} as const;
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -15,6 +60,9 @@ interface CreateTaskModalProps {
 
 export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalProps) {
   const { state, dispatch } = useApp();
+  const locale: Locale = state.locale ?? 'en';
+  const isRTL = locale === 'he';
+  const t = translations[locale];
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -29,7 +77,7 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
     e.preventDefault();
     
     if (!formData.projectId) {
-      toast.error('Please select a project');
+      toast.error(t.errorSelectProject);
       return;
     }
 
@@ -67,7 +115,7 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
       }
     });
 
-    toast.success('Task created successfully!');
+    toast.success(t.successCreated);
     onClose();
     
     // Reset form
@@ -92,49 +140,49 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Task" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal isOpen={isOpen} onClose={onClose} title={t.title} size="lg">
+      <form onSubmit={handleSubmit} className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <FileText size={16} className="inline mr-2" />
-              Task Title
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <FileText size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.taskTitle}
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Enter task title"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.taskTitlePlaceholder}
               required
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.description}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Describe the task"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.descriptionPlaceholder}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Project
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.project}
             </label>
             <select
               value={formData.projectId}
               onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
               required
             >
-              <option value="">Select a project</option>
+              <option value="">{t.selectProject}</option>
               {state.projects.map(project => (
                 <option key={project.id} value={project.id}>
                   {project.title}
@@ -144,9 +192,9 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Calendar size={16} className="inline mr-2" />
-              Due Date
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <Calendar size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.dueDate}
             </label>
             <input
               type="date"
@@ -158,42 +206,42 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Flag size={16} className="inline mr-2" />
-              Priority
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <Flag size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.priority}
             </label>
             <select
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
+              <option value="low">{t.priorityLow}</option>
+              <option value="medium">{t.priorityMedium}</option>
+              <option value="high">{t.priorityHigh}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tags (comma separated)
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.tags}
             </label>
             <input
               type="text"
               value={formData.tags}
               onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="frontend, ui, urgent"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
+              placeholder={t.tagsPlaceholder}
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              <Users size={16} className="inline mr-2" />
-              Assign To
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <Users size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.assignTo}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {mockUsers.map(user => (
-                <label key={user.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                <label key={user.id} className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'} p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer`}>
                   <input
                     type="checkbox"
                     checked={formData.assignedTo.includes(user.id)}
@@ -212,12 +260,12 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3">
+        <div className={`flex ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} gap-3`}>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t.cancel}
           </Button>
           <Button type="submit">
-            Create Task
+            {t.createTask}
           </Button>
         </div>
       </form>

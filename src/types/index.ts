@@ -177,3 +177,30 @@ export interface BusinessDetails {
   businessField: string;
   digitalSignature?: string;
 }
+
+export interface ActiveTimer {
+  id: string;
+  customerId: string;
+  projectId: string;
+  taskId?: string;
+  description: string;
+  startTime: Date;
+  isRunning: boolean;
+  userId: string;
+}
+
+export interface TimerLog {
+  id: string;
+  customerId: string;
+  projectId: string;
+  taskId?: string;
+  description: string;
+  startTime: Date;
+  endTime: Date;
+  duration: number; // in seconds
+  hourlyRate: number;
+  income: number;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

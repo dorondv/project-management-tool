@@ -3,7 +3,36 @@ import { Calendar, Users, FileText, Target } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useApp } from '../../context/AppContext';
-import { Project } from '../../types';
+import { Project, Locale } from '../../types';
+
+const translations = {
+  en: {
+    title: 'Create New Project',
+    projectTitle: 'Project Title',
+    description: 'Description',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    priority: 'Priority',
+    priorityLow: 'Low',
+    priorityMedium: 'Medium',
+    priorityHigh: 'High',
+    cancel: 'Cancel',
+    createProject: 'Create Project',
+  },
+  he: {
+    title: 'יצירת פרויקט חדש',
+    projectTitle: 'כותרת הפרויקט',
+    description: 'תיאור',
+    startDate: 'תאריך התחלה',
+    endDate: 'תאריך סיום',
+    priority: 'עדיפות',
+    priorityLow: 'נמוכה',
+    priorityMedium: 'בינונית',
+    priorityHigh: 'גבוהה',
+    cancel: 'ביטול',
+    createProject: 'צור פרויקט',
+  },
+} as const;
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -12,6 +41,9 @@ interface CreateProjectModalProps {
 
 export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
   const { state, dispatch } = useApp();
+  const locale: Locale = state.locale ?? 'en';
+  const isRTL = locale === 'he';
+  const t = translations[locale];
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -55,40 +87,40 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Project" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal isOpen={isOpen} onClose={onClose} title={t.title} size="lg">
+      <form onSubmit={handleSubmit} className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <FileText size={16} className="inline mr-2" />
-              Project Title
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <FileText size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.projectTitle}
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
               required
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.description}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Calendar size={16} className="inline mr-2" />
-              Start Date
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <Calendar size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.startDate}
             </label>
             <input
               type="date"
@@ -100,8 +132,8 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              End Date
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.endDate}
             </label>
             <input
               type="date"
@@ -113,28 +145,28 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Target size={16} className="inline mr-2" />
-              Priority
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <Target size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.priority}
             </label>
             <select
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
+              <option value="low">{t.priorityLow}</option>
+              <option value="medium">{t.priorityMedium}</option>
+              <option value="high">{t.priorityHigh}</option>
             </select>
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3">
+        <div className={`flex ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} gap-3`}>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t.cancel}
           </Button>
           <Button type="submit">
-            Create Project
+            {t.createProject}
           </Button>
         </div>
       </form>

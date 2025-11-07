@@ -223,22 +223,43 @@ export function Sidebar() {
         {/* User Profile */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           {state.user && (
-            <div className={`flex items-center ${isCollapsed ? 'justify-center' : isRTL ? 'flex-row-reverse gap-3' : 'gap-3'}`}>
-              <Avatar
-                src={state.user.avatar}
-                alt={state.user.name}
-                size="md"
-                isOnline={state.user.isOnline}
-              />
-              {!isCollapsed && (
-                <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {state.user.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                    {state.user.role}
-                  </p>
-                </div>
+            <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`} dir={isRTL && !isCollapsed ? 'ltr' : undefined}>
+              {isRTL && !isCollapsed ? (
+                <>
+                  <div className="flex-1 min-w-0 text-right">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {state.user.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                      {state.user.role}
+                    </p>
+                  </div>
+                  <Avatar
+                    src={state.user.avatar}
+                    alt={state.user.name}
+                    size="md"
+                    isOnline={state.user.isOnline}
+                  />
+                </>
+              ) : (
+                <>
+                  <Avatar
+                    src={state.user.avatar}
+                    alt={state.user.name}
+                    size="md"
+                    isOnline={state.user.isOnline}
+                  />
+                  {!isCollapsed && (
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {state.user.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                        {state.user.role}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
