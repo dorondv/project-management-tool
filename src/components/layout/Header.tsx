@@ -106,15 +106,16 @@ export function Header() {
                   </div>
                 </form>
               </div>
-              {/* Actions - RTL: on right */}
-              <div className="flex items-center gap-4 flex-row-reverse">
-                {/* Create Menu */}
+              {/* Actions - RTL: on right, order reversed */}
+              <div className="flex items-center gap-4 flex-row-reverse" dir="ltr">
+                {/* Create Menu - RTL: first in DOM (rightmost visually) */}
                 <div className="relative">
                   <Button
                     variant="primary"
                     size="sm"
                     icon={<Plus size={16} />}
                     onClick={() => setShowCreateMenu(!showCreateMenu)}
+                    className="flex-row-reverse"
                   >
                     {t.create}
                   </Button>
@@ -178,7 +179,7 @@ export function Header() {
                   )}
                 </div>
 
-                {/* User Menu */}
+                {/* User Menu - RTL: last in DOM (leftmost visually) */}
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}

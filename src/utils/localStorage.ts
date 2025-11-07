@@ -8,6 +8,8 @@ export interface StorageData {
   theme: 'light' | 'dark';
   locale: 'en' | 'he';
   settings: any;
+  activeTimer?: any;
+  timerLogs?: any[];
 }
 
 const STORAGE_KEY = 'projectflow_data';

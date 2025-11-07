@@ -47,11 +47,12 @@ export function KanbanBoard() {
   const isRTL = locale === 'he';
   const t = translations[locale];
   const countMarginClass = isRTL ? 'mr-2' : 'ml-2';
-  const columns = [
+  const baseColumns = [
     { id: 'todo', title: t.columns.todo, color: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'in-progress', title: t.columns.inProgress, color: 'bg-blue-100 dark:bg-blue-900/20' },
     { id: 'completed', title: t.columns.completed, color: 'bg-green-100 dark:bg-green-900/20' }
   ] as const;
+  const columns = isRTL ? [...baseColumns].reverse() : baseColumns;
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
@@ -106,8 +107,8 @@ export function KanbanBoard() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className={`flex overflow-x-auto pb-4 gap-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {columns.map((column) => (
-            <div key={column.id} className="flex-shrink-0 w-80">
-              <div className="flex items-center justify-between mb-4">
+            <div key={column.id} className={`flex-shrink-0 w-80 ${isRTL ? 'text-right' : ''}`}>
+              <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <h3 className={`font-semibold text-gray-900 dark:text-white ${isRTL ? 'text-right' : ''}`}>
                   {column.title}
                   <span className={`${countMarginClass} text-sm text-gray-500 dark:text-gray-400`}>
