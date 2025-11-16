@@ -4,10 +4,11 @@ import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 
 // Prisma Client configuration for Supabase connection pooling
-// DATABASE_URL should include: pgbouncer=true&connection_limit=5
+// Using transaction mode (port 6543) - better for Prisma with Supabase pooler
+// DATABASE_URL should include: pgbouncer=true&connection_limit=1&sslmode=require
 // This prevents connection exhaustion and ensures proper pooling
 const prisma = new PrismaClient({
-  log: ['error', 'warn'],
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 });
 import { usersRouter } from './routes/users.js';
 import { projectsRouter } from './routes/projects.js';
@@ -18,7 +19,6 @@ import { incomesRouter } from './routes/incomes.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { activitiesRouter } from './routes/activities.js';
 import { timersRouter } from './routes/timers.js';
-import { testDatabaseConnection } from './middleware/dbTest.js';
 
 const app = express();
 
@@ -89,7 +89,31 @@ async function startServer() {
   } catch (error: any) {
     console.error('❌ Database connection test failed:', error.message);
     console.warn('⚠️  Server started but database queries may fail');
-    console.warn('   Ensure DATABASE_URL includes: pgbouncer=true&connection_limit=5');
+    
+    // Provide helpful debugging information
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const urlObj = new URL(dbUrl);
+      console.warn(`   Database host: ${urlObj.hostname}:${urlObj.port}`);
+      console.warn(`   Has pgbouncer: ${dbUrl.includes('pgbouncer=true') ? 'Yes' : 'No'}`);
+    } else {
+      console.error('   ❌ DATABASE_URL is not set in environment variables');
+    }
+    
+    if (error.message.includes("Can't reach database server")) {
+      console.warn('   💡 Possible issues:');
+      console.warn('      - Network connectivity problem');
+      console.warn('      - Supabase project might be paused');
+      console.warn('      - Firewall blocking connection');
+      console.warn('      - Connection string might be incorrect');
+      console.warn('      - Missing SSL parameters (add ?sslmode=require to DATABASE_URL)');
+    }
+    
+    // Check for missing SSL
+    if (dbUrl && !dbUrl.includes('sslmode')) {
+      console.warn('   ⚠️  Connection string missing SSL parameter');
+      console.warn('      Add &sslmode=require to your DATABASE_URL');
+    }
   }
 }
 
