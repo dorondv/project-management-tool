@@ -85,7 +85,7 @@ export default function Profile() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (state.user) {
       const updatedUser = {
         ...state.user,
@@ -94,8 +94,40 @@ export default function Profile() {
         role: profileData.role as 'admin' | 'manager' | 'contributor',
         avatar: avatarPreview || state.user.avatar,
       };
+      
+      // Update local state
       dispatch({ type: 'SET_USER', payload: updatedUser });
-      toast.success(t.profileUpdated);
+      
+      // Sync to API/database
+      try {
+        const { api } = await import('../utils/api');
+        await api.users.update(state.user.id, {
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          avatar: updatedUser.avatar,
+        });
+        
+        // Also update in Supabase users table if using Supabase Auth
+        const { supabase } = await import('../utils/supabase');
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          await supabase
+            .from('users')
+            .update({
+              name: updatedUser.name,
+              email: updatedUser.email,
+              role: updatedUser.role,
+              avatar: updatedUser.avatar,
+            })
+            .eq('id', state.user.id);
+        }
+        
+        toast.success(t.profileUpdated);
+      } catch (error) {
+        console.error('Failed to sync profile to API:', error);
+        toast.error('Failed to save profile. Please try again.');
+      }
     }
   };
 

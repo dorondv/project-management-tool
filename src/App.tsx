@@ -21,7 +21,15 @@ import Profile from './pages/Profile';
 function AppContent() {
   const { state } = useApp();
 
+  console.log('🟡 AppContent: Render check:', { 
+    loading: state.loading, 
+    hasUser: !!state.user, 
+    userId: state.user?.id,
+    isAuthenticated: state.isAuthenticated 
+  });
+
   if (state.loading) {
+    console.log('🟡 AppContent: Showing loading screen');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -35,8 +43,11 @@ function AppContent() {
   }
 
   if (!state.user) {
+    console.log('🟡 AppContent: No user found, showing AuthPage');
     return <AuthPage />;
   }
+
+  console.log('🟡 AppContent: User found, showing main app');
 
   return (
     <Router>

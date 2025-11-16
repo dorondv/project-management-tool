@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { CustomerStatus, PaymentMethod, BillingModel, PaymentFrequency, Locale } from '../types';
+import { CreateCustomerModal } from '../components/customers/CreateCustomerModal';
 
 type ViewMode = 'list' | 'grid';
 type StatusFilter = 'all' | CustomerStatus;
@@ -268,6 +269,7 @@ export default function Customers() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   const metrics = useMemo<CustomersMetrics>(() => {
     const total = state.customers.length;
@@ -312,7 +314,11 @@ export default function Customers() {
           <h1 className={`text-2xl font-bold text-gray-900 dark:text-white ${alignStart}`}>{t.pageTitle}</h1>
           <p className={`text-gray-600 dark:text-gray-400 ${alignStart}`}>{t.pageSubtitle}</p>
         </div>
-        <Button variant="primary" icon={<Plus size={16} />}>
+        <Button 
+          variant="primary" 
+          icon={<Plus size={16} />}
+          onClick={() => setIsCustomerModalOpen(true)}
+        >
           {t.newCustomer}
         </Button>
       </div>
@@ -569,6 +575,13 @@ export default function Customers() {
           )}
         </div>
       )}
+
+      {/* Customer Modal */}
+      <CreateCustomerModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        customer={null}
+      />
     </div>
   );
 }
