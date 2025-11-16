@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Square, Plus, FileText, Clock, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Play, Square, Pause, Plus, FileText, Clock, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { TimeEntry, Locale, Customer, Project, Task } from '../types';
@@ -36,6 +36,7 @@ const translations = {
     income: 'Income',
     noEntries: 'No time entries found',
     noEntriesSubtitle: 'Start tracking time to see entries here',
+    currentCost: 'Current Cost',
   },
   he: {
     title: 'מעקב זמן',
@@ -64,6 +65,7 @@ const translations = {
     income: 'הכנסה',
     noEntries: 'לא נמצאו רישומי זמן',
     noEntriesSubtitle: 'התחל לעקוב אחר זמן כדי לראות רישומים כאן',
+    currentCost: 'עלות נוכחית',
   },
 } as const;
 
@@ -113,6 +115,7 @@ export default function Timer() {
   const activeTimer = state.activeTimer;
   const elapsedSeconds = state.timerElapsedSeconds;
   const isRunning = activeTimer?.isRunning || false;
+  const isPaused = activeTimer?.isPaused || false;
 
   // Restore timer state when active timer exists
   useEffect(() => {
@@ -125,11 +128,14 @@ export default function Timer() {
   }, [activeTimer?.id]); // Only restore when timer ID changes
 
   // Get filtered projects based on selected customer
+  // Since projects don't have a direct customerId, we show all projects
+  // When a customer is selected, we can optionally filter by projects used with that customer
+  // For now, we show all projects to allow maximum flexibility
   const availableProjects = useMemo(() => {
-    if (!selectedCustomerId) return state.projects;
-    // For now, return all projects. In a real app, you'd filter by customer
+    // Show all projects - users can select any project with any customer
+    // This matches the database schema where projects and customers are linked via TimeEntry
     return state.projects;
-  }, [selectedCustomerId, state.projects]);
+  }, [state.projects]);
 
   // Get filtered tasks based on selected project
   const availableTasks = useMemo(() => {
@@ -141,6 +147,16 @@ export default function Timer() {
   const selectedCustomer = useMemo(() => {
     return state.customers.find(c => c.id === selectedCustomerId);
   }, [selectedCustomerId, state.customers]);
+
+  // Calculate current cost based on elapsed time
+  const currentCost = useMemo(() => {
+    if (!selectedCustomer || (!isRunning && !isPaused) || elapsedSeconds === 0) {
+      return 0;
+    }
+    const hourlyRate = getHourlyRate(selectedCustomer);
+    const hours = elapsedSeconds / 3600;
+    return hours * hourlyRate;
+  }, [selectedCustomer, elapsedSeconds, isRunning, isPaused]);
 
   // Update description in timer service when it changes
   useEffect(() => {
@@ -189,8 +205,24 @@ export default function Timer() {
     toast.success(isRTL ? 'טיימר התחיל' : 'Timer started');
   };
 
+  const handlePause = () => {
+    if (!isRunning || !activeTimer) {
+      return;
+    }
+    timerService.pauseTimer();
+    toast.success(isRTL ? 'טיימר הושהה' : 'Timer paused');
+  };
+
+  const handleResume = () => {
+    if (!isPaused || !activeTimer) {
+      return;
+    }
+    timerService.resumeTimer();
+    toast.success(isRTL ? 'טיימר חודש' : 'Timer resumed');
+  };
+
   const handleStop = () => {
-    if (!isRunning || !activeTimer || !selectedCustomer) {
+    if ((!isRunning && !isPaused) || !activeTimer || !selectedCustomer) {
       return;
     }
 
@@ -258,8 +290,8 @@ export default function Timer() {
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
       {/* Header */}
-      <div className={alignStart}>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className={`mb-8 ${alignStart}`}>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
           {t.title}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
@@ -285,7 +317,7 @@ export default function Timer() {
       )}
 
       {/* Timer Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="glass-effect border-0 shadow-2xl rounded-xl p-8">
         {/* Selection Dropdowns */}
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ${flexDirection}`}>
           <div>
@@ -301,7 +333,7 @@ export default function Timer() {
                   setSelectedTaskId('');
                 }}
                 disabled={isRunning}
-                className={`w-full px-3 py-2 pr-8 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} appearance-none`}
+                className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} appearance-none`}
               >
                 <option value="">{t.allCustomers}</option>
                 {state.customers.map(customer => (
@@ -325,8 +357,8 @@ export default function Timer() {
                   setSelectedProjectId(e.target.value);
                   setSelectedTaskId('');
                 }}
-                disabled={isRunning || !selectedCustomerId}
-                className={`w-full px-3 py-2 pr-8 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} appearance-none`}
+                disabled={isRunning}
+                className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} appearance-none`}
               >
                 <option value="">{t.selectProject}</option>
                 {availableProjects.map(project => (
@@ -348,7 +380,7 @@ export default function Timer() {
                 value={selectedTaskId}
                 onChange={(e) => setSelectedTaskId(e.target.value)}
                 disabled={isRunning || !selectedProjectId}
-                className={`w-full px-3 py-2 pr-8 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} appearance-none`}
+                className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} appearance-none`}
               >
                 <option value="">{t.noSpecificTask}</option>
                 {availableTasks.map(task => (
@@ -363,54 +395,121 @@ export default function Timer() {
         </div>
 
         {/* Timer Display */}
-        <div className="text-center mb-6">
-          <div className="text-6xl font-bold bg-gradient-to-r from-primary-500 to-primary-700 bg-clip-text text-transparent mb-4">
-            {formatDuration(elapsedSeconds)}
+        <div className="text-center space-y-6">
+          <motion.div
+            className="relative"
+            animate={{ scale: isRunning ? 1.02 : 1 }}
+            transition={{ duration: 0.5, repeat: isRunning ? Infinity : 0, repeatType: "reverse" }}
+          >
+            <div className="text-6xl md:text-7xl font-mono font-bold text-transparent bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text">
+              {formatDuration(elapsedSeconds)}
+            </div>
+            {isRunning && (
+              <div className="absolute -top-2 -right-2">
+                <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" />
+              </div>
+            )}
+            {isPaused && (
+              <div className="absolute -top-2 -right-2">
+                <div className="w-4 h-4 bg-orange-500 rounded-full" />
+              </div>
+            )}
+          </motion.div>
+
+          {/* Project Info */}
+          {selectedCustomer && selectedProjectId && (
+            <div className="space-y-3">
+              <div className={`flex items-center justify-center gap-2 ${flexDirection}`}>
+                <span className="px-3 py-1 text-sm font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200 rounded-full">
+                  {state.projects.find(p => p.id === selectedProjectId)?.title || ''}
+                </span>
+                <span className="px-3 py-1 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-full">
+                  {selectedCustomer.name}
+                </span>
+              </div>
+              
+              {(isRunning || isPaused) && (
+                <div className="text-2xl font-bold text-gray-700 dark:text-gray-300">
+                  {formatCurrency(currentCost, selectedCustomer.currency || '₪', locale)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Description Input */}
+          <div className="max-w-md mx-auto">
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t.whatAreYouDoing}
+              className={`w-full p-4 border border-gray-200 dark:border-gray-600 rounded-xl resize-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-center ${alignStart}`}
+              rows={2}
+              disabled={!canStart && !isRunning}
+            />
           </div>
-        </div>
 
-        {/* Description Input */}
-        <div className="mb-6">
-          <input
-            type="text"
-            placeholder={t.whatAreYouDoing}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={isRunning}
-            className={`w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart}`}
-          />
-        </div>
+          {/* Control Buttons */}
+          <div className="flex justify-center gap-4">
+            {isRunning ? (
+              <div className={`flex gap-3 ${flexDirection}`}>
+                <Button
+                  onClick={handlePause}
+                  size="lg"
+                  variant="outline"
+                  className="px-6 py-4 rounded-xl border-2 border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                >
+                  <Pause className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  {locale === 'he' ? 'השהה' : 'Pause'}
+                </Button>
+                <Button
+                  onClick={handleStop}
+                  size="lg"
+                  variant="outline"
+                  className="px-6 py-4 rounded-xl border-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <Square className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  {locale === 'he' ? 'סיים משימה' : 'End Task'}
+                </Button>
+              </div>
+            ) : isPaused ? (
+              <div className={`flex gap-3 ${flexDirection}`}>
+                <Button
+                  onClick={handleResume}
+                  size="lg"
+                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white"
+                >
+                  <Play className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  {locale === 'he' ? 'המשך' : 'Resume'}
+                </Button>
+                <Button
+                  onClick={handleStop}
+                  size="lg"
+                  variant="outline"
+                  className="px-6 py-4 rounded-xl border-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <Square className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  {locale === 'he' ? 'סיים משימה' : 'End Task'}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={handleStart}
+                disabled={!canStart}
+                size="lg"
+                className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-8 py-4 text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Play className={`w-6 h-6 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {t.start}
+              </Button>
+            )}
+          </div>
 
-        {/* Start/Stop Button */}
-        <div className="flex justify-center mb-4">
-          {!isRunning ? (
-            <Button
-              onClick={handleStart}
-              disabled={!canStart}
-              size="lg"
-              icon={<Play size={20} />}
-              className={flexDirection}
-            >
-              {t.start}
-            </Button>
-          ) : (
-            <Button
-              onClick={handleStop}
-              variant="danger"
-              size="lg"
-              icon={<Square size={20} />}
-              className={flexDirection}
-            >
-              {t.stop}
-            </Button>
+          {!canStart && !isRunning && (
+            <p className="text-gray-500 dark:text-gray-400">
+              {t.selectProjectAndCustomer}
+            </p>
           )}
         </div>
-
-        {!canStart && !isRunning && (
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            {t.selectProjectAndCustomer}
-          </p>
-        )}
       </div>
 
       {/* Time Log Section */}

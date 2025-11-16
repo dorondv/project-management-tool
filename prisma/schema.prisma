@@ -1,0 +1,265 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  role      String   @default("contributor") // admin, manager, contributor
+  avatar    String?
+  isOnline  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdProjects Project[]       @relation("ProjectCreator")
+  createdTasks    Task[]          @relation("TaskCreator")
+  notifications   Notification[]
+  activities      Activity[]
+  timeEntries     TimeEntry[]
+  activeTimers    ActiveTimer[]
+  projectMembers  ProjectMember[]
+  taskAssignees   TaskAssignee[]
+  comments        Comment[]
+  attachments     Attachment[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("planning") // planning, in-progress, completed, on-hold
+  progress    Int      @default(0)
+  priority    String   @default("medium") // low, medium, high
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creator User        @relation("ProjectCreator", fields: [createdBy], references: [id])
+  tasks   Task[]
+  members ProjectMember[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  projectId   String
+  status      String   @default("todo") // todo, in-progress, completed
+  priority    String   @default("medium") // low, medium, high
+  dueDate     DateTime
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator     User             @relation("TaskCreator", fields: [createdBy], references: [id])
+  assignees   TaskAssignee[]
+  comments    Comment[]
+  attachments Attachment[]
+  tags        TaskTag[]
+  timeEntries TimeEntry[]
+
+  @@map("tasks")
+}
+
+model TaskAssignee {
+  id     String @id @default(uuid())
+  taskId String
+  userId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@map("task_assignees")
+}
+
+model TaskTag {
+  id     String @id @default(uuid())
+  taskId String
+  tag    String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_tags")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Attachment {
+  id         String   @id @default(uuid())
+  filename   String
+  url        String
+  size       Int
+  type       String
+  taskId     String
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String // task_assigned, deadline_approaching, task_completed, project_updated
+  title     String
+  message   String
+  userId    String
+  read      Boolean  @default(false)
+  relatedId String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  type        String // project_created, task_created, task_updated, member_added
+  description String
+  userId      String
+  projectId   String?
+  taskId      String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  name            String
+  status          String   @default("trial") // active, trial, paused, churned
+  contactName     String
+  contactEmail    String
+  contactPhone    String
+  country         String
+  taxId           String
+  joinDate        DateTime
+  industry        String?
+  paymentMethod   String // bank-transfer, credit-card, direct-debit, cash
+  billingCycle    String // monthly, quarterly, annual
+  billingModel    String // retainer, hourly, project
+  currency        String   @default("₪")
+  monthlyRetainer Float    @default(0)
+  annualFee       Float    @default(0)
+  hoursPerMonth   Int      @default(0)
+  customerScore   Int      @default(0)
+  notes           String?
+  referralSource  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  timeEntries TimeEntry[]
+  incomes     Income[]
+  timers      ActiveTimer[]
+
+  @@map("customers")
+}
+
+model TimeEntry {
+  id          String   @id @default(uuid())
+  customerId  String
+  projectId   String
+  taskId      String?
+  description String
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int // in seconds
+  hourlyRate  Float
+  income      Float
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  task     Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("time_entries")
+}
+
+model Income {
+  id              String   @id @default(uuid())
+  customerId      String
+  customerName     String
+  incomeDate       DateTime
+  invoiceNumber    String?
+  vatRate          Float   @default(0.18)
+  amountBeforeVat  Float
+  vatAmount        Float
+  finalAmount      Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("incomes")
+}
+
+model ActiveTimer {
+  id          String   @id @default(uuid())
+  customerId  String
+  projectId   String
+  taskId      String?
+  description String
+  startTime   DateTime
+  isRunning   Boolean  @default(true)
+  userId      String
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("active_timers")
+}
+

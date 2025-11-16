@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../common/Button';
-import { mockUsers } from '../../data/mockData';
+import { supabase } from '../../utils/supabase';
 import toast from 'react-hot-toast';
 
 interface LoginFormProps {
@@ -13,32 +13,150 @@ interface LoginFormProps {
 export function LoginForm({ onToggleMode }: LoginFormProps) {
   const { dispatch } = useApp();
   const [formData, setFormData] = useState({
-    email: 'ajay@example.com',
-    password: 'password123'
+    email: '',
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔵 LoginForm: handleSubmit called');
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('🔵 LoginForm: Attempting to sign in with email:', formData.email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      // Find user by email
-      const user = mockUsers.find(u => u.email === formData.email);
-      
-      if (user && formData.password === 'password123') {
-        dispatch({ type: 'SET_USER', payload: user });
-        toast.success(`Welcome back, ${user.name}!`);
-      } else {
-        toast.error('Invalid email or password');
+      console.log('🔵 LoginForm: Sign in response:', { 
+        hasData: !!data, 
+        hasUser: !!data?.user, 
+        hasSession: !!data?.session,
+        error: error?.message 
+      });
+
+      if (error) {
+        console.error('❌ LoginForm: Sign in error:', error);
+        
+        // Handle specific Supabase errors with better messages
+        let errorMessage = error.message || 'Invalid email or password';
+        if (error.message === 'Email not confirmed') {
+          errorMessage = 'Please check your email and confirm your account before logging in. If you need to resend the confirmation email, please sign up again or contact support.';
+        } else if (error.message === 'Invalid login credentials') {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        }
+        
+        toast.error(errorMessage, { duration: 6000 });
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      toast.error('Login failed. Please try again.');
+
+      if (data.user && data.session) {
+        console.log('✅ LoginForm: Sign in successful, user ID:', data.user.id);
+        // The auth state listener will handle setting the user
+        // But we'll also set it here to ensure immediate UI update
+        try {
+          console.log('🔵 LoginForm: Fetching user profile from database...');
+          // Fetch user profile from our database
+          const { data: userProfile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+          
+          console.log('🔵 LoginForm: Profile fetch result:', { 
+            hasProfile: !!userProfile, 
+            error: profileError?.message 
+          });
+
+          if (profileError || !userProfile) {
+            // If user doesn't exist in our database, create a basic profile
+            const newUser = {
+              id: data.user.id,
+              name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
+              email: data.user.email || '',
+              role: 'contributor' as const,
+              avatar: data.user.user_metadata?.avatar_url,
+              isOnline: true,
+            };
+
+            // Try to create user in database
+            const { error: createError } = await supabase
+              .from('users')
+              .insert([{
+                id: newUser.id,
+                name: newUser.name,
+                email: newUser.email,
+                role: newUser.role,
+                avatar: newUser.avatar,
+              }])
+              .select()
+              .single();
+
+            if (!createError) {
+              console.log('✅ LoginForm: Creating new user profile, dispatching SET_USER:', newUser);
+              dispatch({ type: 'SET_USER', payload: newUser });
+              dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+              console.log('✅ LoginForm: User state updated, waiting for re-render...');
+              toast.success(`Welcome back, ${newUser.name}!`);
+              // Force a small delay to ensure state updates propagate
+              await new Promise(resolve => setTimeout(resolve, 100));
+              console.log('✅ LoginForm: Login complete');
+            } else {
+              console.log('⚠️ LoginForm: Profile creation failed, using user anyway:', createError);
+              // Use the user object anyway (might be a constraint issue)
+              dispatch({ type: 'SET_USER', payload: newUser });
+              dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+              toast.success(`Welcome back, ${newUser.name}!`);
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          } else {
+            // User exists in database, use their profile
+            const user = {
+              id: userProfile.id,
+              name: userProfile.name,
+              email: userProfile.email,
+              role: userProfile.role,
+              avatar: userProfile.avatar,
+              isOnline: true,
+            };
+            console.log('✅ LoginForm: User profile found, dispatching SET_USER:', user);
+            dispatch({ type: 'SET_USER', payload: user });
+            dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+            console.log('✅ LoginForm: User state updated, waiting for re-render...');
+            toast.success(`Welcome back, ${user.name}!`);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('✅ LoginForm: Login complete');
+          }
+        } catch (err) {
+          console.error('❌ LoginForm: Error setting user after login:', err);
+          // Still set basic user info from auth data
+          const fallbackUser = {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
+            email: data.user.email || '',
+            role: 'contributor' as const,
+            avatar: data.user.user_metadata?.avatar_url,
+            isOnline: true,
+          };
+          console.log('⚠️ LoginForm: Using fallback user, dispatching SET_USER:', fallbackUser);
+          dispatch({ type: 'SET_USER', payload: fallbackUser });
+          dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+          toast.success(`Welcome back, ${fallbackUser.name}!`);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } else {
+        console.error('❌ LoginForm: Login failed: No session created');
+        toast.error('Login failed: No session created');
+      }
+    } catch (error: any) {
+      console.error('❌ LoginForm: Unexpected error:', error);
+      toast.error(error.message || 'Login failed. Please try again.');
     } finally {
+      console.log('🔵 LoginForm: Setting loading to false');
       setLoading(false);
     }
   };
@@ -143,14 +261,6 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
         </p>
       </div>
 
-      <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Demo Accounts:</h4>
-        <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-          <p>Admin: ajay@example.com</p>
-          <p>Manager: sarah@example.com</p>
-          <p>Password: password123</p>
-        </div>
-      </div>
     </motion.div>
   );
 }

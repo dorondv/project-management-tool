@@ -73,7 +73,7 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
     tags: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.projectId) {
@@ -81,53 +81,86 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
       return;
     }
 
-    const newTask: Task = {
-      id: Date.now().toString(),
+    // Validate projectId is a UUID (not a timestamp)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(formData.projectId)) {
+      console.error('❌ CreateTaskModal: Invalid projectId format:', formData.projectId);
+      toast.error('Invalid project selected. Please select a valid project.');
+      return;
+    }
+
+    const taskData = {
       title: formData.title,
       description: formData.description,
       projectId: formData.projectId,
-      assignedTo: formData.assignedTo.map(id => mockUsers.find(u => u.id === id)!).filter(Boolean),
-      status: 'todo',
+      assignedTo: formData.assignedTo, // Array of user IDs (strings)
+      status: 'todo' as const,
       priority: formData.priority,
-      dueDate: new Date(formData.dueDate),
+      dueDate: formData.dueDate, // Should be ISO string format
       createdBy: state.user!.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      comments: [],
-      attachments: [],
       tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
     };
 
-    dispatch({ type: 'ADD_TASK', payload: newTask });
-    
-    // Add activity
-    dispatch({
-      type: 'ADD_ACTIVITY',
-      payload: {
-        id: Date.now().toString(),
-        type: 'task_created',
-        description: `created task "${newTask.title}"`,
-        userId: state.user!.id,
-        user: state.user!,
-        projectId: newTask.projectId,
-        taskId: newTask.id,
-        createdAt: new Date()
-      }
-    });
+    console.log('🔵 CreateTaskModal: Sending task data:', taskData);
 
-    toast.success(t.successCreated);
-    onClose();
-    
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      projectId: projectId || '',
-      assignedTo: [],
-      priority: 'medium',
-      dueDate: '',
-      tags: ''
-    });
+    try {
+      // Create task via API first
+      const { api } = await import('../../utils/api');
+      const createdTask = await api.tasks.create(taskData);
+      
+      // Transform the API response to match our Task type
+      const newTask: Task = {
+        id: createdTask.id,
+        title: createdTask.title,
+        description: createdTask.description,
+        projectId: createdTask.projectId,
+        assignedTo: createdTask.assignedTo || [],
+        status: createdTask.status,
+        priority: createdTask.priority,
+        dueDate: new Date(createdTask.dueDate),
+        createdBy: createdTask.createdBy,
+        createdAt: new Date(createdTask.createdAt),
+        updatedAt: new Date(createdTask.updatedAt),
+        comments: createdTask.comments || [],
+        attachments: createdTask.attachments || [],
+        tags: createdTask.tags || []
+      };
+
+      // Add to local state (this will also sync to localStorage)
+      dispatch({ type: 'ADD_TASK', payload: newTask });
+      
+      // Add activity
+      dispatch({
+        type: 'ADD_ACTIVITY',
+        payload: {
+          id: Date.now().toString(),
+          type: 'task_created',
+          description: `created task "${newTask.title}"`,
+          userId: state.user!.id,
+          user: state.user!,
+          projectId: newTask.projectId,
+          taskId: newTask.id,
+          createdAt: new Date()
+        }
+      });
+
+      toast.success(t.successCreated);
+      onClose();
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        projectId: projectId || '',
+        assignedTo: [],
+        priority: 'medium',
+        dueDate: '',
+        tags: ''
+      });
+    } catch (error: any) {
+      console.error('Failed to create task:', error);
+      toast.error(error.message || 'Failed to create task. Please try again.');
+    }
   };
 
   const handleAssigneeToggle = (userId: string) => {
@@ -183,11 +216,17 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
               required
             >
               <option value="">{t.selectProject}</option>
-              {state.projects.map(project => (
-                <option key={project.id} value={project.id}>
-                  {project.title}
-                </option>
-              ))}
+              {state.projects
+                .filter(project => {
+                  // Only show projects with valid UUID format
+                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                  return uuidRegex.test(project.id);
+                })
+                .map(project => (
+                  <option key={project.id} value={project.id}>
+                    {project.title}
+                  </option>
+                ))}
             </select>
           </div>
 
