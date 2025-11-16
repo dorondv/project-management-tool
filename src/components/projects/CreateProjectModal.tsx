@@ -4,6 +4,7 @@ import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useApp } from '../../context/AppContext';
 import { Project, Locale } from '../../types';
+import toast from 'react-hot-toast';
 
 const translations = {
   en: {
@@ -53,37 +54,60 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     members: [] as string[]
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newProject: Project = {
-      id: Date.now().toString(),
+    const projectData = {
       title: formData.title,
       description: formData.description,
-      startDate: new Date(formData.startDate),
-      endDate: new Date(formData.endDate),
-      status: 'planning',
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      status: 'planning' as const,
       progress: 0,
       priority: formData.priority,
-      members: formData.members.map(id => state.user!), // In real app, fetch by ID
-      tasks: [],
       createdBy: state.user!.id,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      members: formData.members, // Array of user IDs
     };
 
-    dispatch({ type: 'ADD_PROJECT', payload: newProject });
-    onClose();
-    
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      priority: 'medium',
-      members: []
-    });
+    try {
+      // Create project via API first
+      const { api } = await import('../../utils/api');
+      const createdProject = await api.projects.create(projectData);
+      
+      // Transform the API response to match our Project type
+      const newProject: Project = {
+        id: createdProject.id,
+        title: createdProject.title,
+        description: createdProject.description,
+        startDate: new Date(createdProject.startDate),
+        endDate: new Date(createdProject.endDate),
+        status: createdProject.status,
+        progress: createdProject.progress,
+        priority: createdProject.priority,
+        members: createdProject.members || [],
+        tasks: createdProject.tasks || [],
+        createdBy: createdProject.createdBy,
+        createdAt: new Date(createdProject.createdAt),
+        updatedAt: new Date(createdProject.updatedAt)
+      };
+
+      // Add to local state
+      dispatch({ type: 'ADD_PROJECT', payload: newProject });
+      onClose();
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        startDate: '',
+        endDate: '',
+        priority: 'medium',
+        members: []
+      });
+    } catch (error: any) {
+      console.error('Failed to create project:', error);
+      toast.error(error.message || 'Failed to create project. Please try again.');
+    }
   };
 
   return (
