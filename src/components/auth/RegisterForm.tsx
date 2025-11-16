@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, User, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../common/Button';
-import { User as UserType } from '../../types';
+import { supabase } from '../../utils/supabase';
 import toast from 'react-hot-toast';
 
 interface RegisterFormProps {
@@ -37,22 +37,65 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const newUser: UserType = {
-        id: Date.now().toString(),
-        name: formData.name,
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
-        role: 'contributor',
-        avatar: `https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1`,
-        isOnline: true
-      };
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+          },
+        },
+      });
 
-      dispatch({ type: 'SET_USER', payload: newUser });
-      toast.success(`Welcome to SOLO, ${newUser.name}!`);
-    } catch (error) {
-      toast.error('Registration failed. Please try again.');
+      if (authError) {
+        toast.error(authError.message || 'Registration failed. Please try again.');
+        return;
+      }
+
+      if (authData.user) {
+        // Check if email confirmation is required
+        if (!authData.session) {
+          // Email confirmation required
+          toast.success('Account created! Please check your email to confirm your account before logging in.', { duration: 6000 });
+          setLoading(false);
+          return;
+        }
+
+        // Create user profile in our database
+        const newUser = {
+          id: authData.user.id,
+          name: formData.name,
+          email: formData.email,
+          role: 'contributor' as const,
+          avatar: authData.user.user_metadata?.avatar_url,
+          isOnline: true,
+        };
+
+        // Insert user into database
+        const { error: dbError } = await supabase
+          .from('users')
+          .insert([{
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+            role: newUser.role,
+            avatar: newUser.avatar,
+          }]);
+
+        if (dbError) {
+          console.warn('Failed to create user profile:', dbError);
+          // Continue anyway - user is authenticated
+        }
+
+        // Set user in context
+        dispatch({ type: 'SET_USER', payload: newUser });
+        dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+        
+        toast.success(`Welcome to SOLO, ${newUser.name}!`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -1,20 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, Search, Sun, Moon, Plus, LogOut, User, Languages } from 'lucide-react';
+import { Bell, Search, Sun, Moon, LogOut, User, Languages } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
-import { CreateProjectModal } from '../projects/CreateProjectModal';
-import { CreateTaskModal } from '../tasks/CreateTaskModal';
 import toast from 'react-hot-toast';
 
 const headerTranslations = {
   en: {
-    create: 'Create',
-    newProject: 'New Project',
-    newTask: 'New Task',
     searchPlaceholder: 'Search projects, tasks, or team members...',
     profile: 'Profile',
     logout: 'Logout',
@@ -26,9 +20,6 @@ const headerTranslations = {
     switchLocaleLabel: 'Switch to Hebrew',
   },
   he: {
-    create: 'יצירה',
-    newProject: 'פרויקט חדש',
-    newTask: 'משימה חדשה',
     searchPlaceholder: 'חיפוש פרויקטים, משימות או חברי צוות...',
     profile: 'פרופיל',
     logout: 'התנתקות',
@@ -44,9 +35,6 @@ const headerTranslations = {
 export function Header() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateMenu, setShowCreateMenu] = useState(false);
-  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
-  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { state, dispatch } = useApp();
   const isRTL = state.locale === 'he';
@@ -108,45 +96,6 @@ export function Header() {
               </div>
               {/* Actions - RTL: on right, order reversed */}
               <div className="flex items-center gap-4 flex-row-reverse" dir="ltr">
-                {/* Create Menu - RTL: first in DOM (rightmost visually) */}
-                <div className="relative">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    icon={<Plus size={16} />}
-                    onClick={() => setShowCreateMenu(!showCreateMenu)}
-                    className="flex-row-reverse"
-                  >
-                    {t.create}
-                  </Button>
-                  {showCreateMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50"
-                    >
-                      <button
-                        onClick={() => {
-                          setIsCreateProjectModalOpen(true);
-                          setShowCreateMenu(false);
-                        }}
-                        className="w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        {t.newProject}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsCreateTaskModalOpen(true);
-                          setShowCreateMenu(false);
-                        }}
-                        className="w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        {t.newTask}
-                      </button>
-                    </motion.div>
-                  )}
-                </div>
-
                 {/* Theme Toggle */}
                 <button
                   onClick={handleThemeToggle}
@@ -251,44 +200,6 @@ export function Header() {
 
               {/* Actions - LTR: on right */}
               <div className="flex items-center gap-4">
-                {/* Create Menu */}
-                <div className="relative">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    icon={<Plus size={16} />}
-                    onClick={() => setShowCreateMenu(!showCreateMenu)}
-                  >
-                    {t.create}
-                  </Button>
-                  {showCreateMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50"
-                    >
-                      <button
-                        onClick={() => {
-                          setIsCreateProjectModalOpen(true);
-                          setShowCreateMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        {t.newProject}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsCreateTaskModalOpen(true);
-                          setShowCreateMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        {t.newTask}
-                      </button>
-                    </motion.div>
-                  )}
-                </div>
-
                 {/* Theme Toggle */}
                 <button
                   onClick={handleThemeToggle}
@@ -373,16 +284,6 @@ export function Header() {
           )}
         </div>
       </motion.header>
-
-      {/* Modals */}
-      <CreateProjectModal
-        isOpen={isCreateProjectModalOpen}
-        onClose={() => setIsCreateProjectModalOpen(false)}
-      />
-      <CreateTaskModal
-        isOpen={isCreateTaskModalOpen}
-        onClose={() => setIsCreateTaskModalOpen(false)}
-      />
     </>
   );
 }

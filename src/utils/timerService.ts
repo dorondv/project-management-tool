@@ -8,6 +8,9 @@ export interface ActiveTimer {
   description: string;
   startTime: Date;
   isRunning: boolean;
+  isPaused: boolean;
+  pausedDuration: number; // Total paused time in seconds
+  pauseStartTime?: Date; // When the current pause started
   userId: string;
 }
 
@@ -47,9 +50,19 @@ class TimerService {
     try {
       const allData = storage.getAll();
       const stored = (allData as any).activeTimer as ActiveTimer | undefined;
-      if (stored && stored.isRunning) {
+      if (stored && (stored.isRunning || stored.isPaused)) {
         // Parse dates
         stored.startTime = new Date(stored.startTime);
+        if (stored.pauseStartTime) {
+          stored.pauseStartTime = new Date(stored.pauseStartTime);
+        }
+        // Ensure pausedDuration exists for old timers
+        if (typeof stored.pausedDuration === 'undefined') {
+          stored.pausedDuration = 0;
+        }
+        if (typeof stored.isPaused === 'undefined') {
+          stored.isPaused = false;
+        }
         this.activeTimer = stored;
       }
     } catch (error) {
@@ -82,7 +95,7 @@ class TimerService {
     if (this.intervalId) return;
 
     this.intervalId = setInterval(() => {
-      if (this.activeTimer && this.activeTimer.isRunning) {
+      if (this.activeTimer && (this.activeTimer.isRunning || this.activeTimer.isPaused)) {
         const elapsedSeconds = this.getElapsedSeconds();
         this.notifySubscribers(elapsedSeconds);
       }
@@ -100,15 +113,32 @@ class TimerService {
   }
 
   /**
-   * Calculate elapsed seconds from start time
+   * Calculate elapsed seconds from start time (excluding paused time)
    */
   private getElapsedSeconds(): number {
-    if (!this.activeTimer || !this.activeTimer.isRunning) {
+    if (!this.activeTimer) {
       return 0;
     }
+    
+    if (!this.activeTimer.isRunning && !this.activeTimer.isPaused) {
+      return 0;
+    }
+
     const now = new Date();
     const start = new Date(this.activeTimer.startTime);
-    return Math.floor((now.getTime() - start.getTime()) / 1000);
+    const totalElapsed = Math.floor((now.getTime() - start.getTime()) / 1000);
+    
+    // Subtract paused duration
+    let pausedDuration = this.activeTimer.pausedDuration;
+    
+    // If currently paused, add the current pause time
+    if (this.activeTimer.isPaused && this.activeTimer.pauseStartTime) {
+      const pauseStart = new Date(this.activeTimer.pauseStartTime);
+      const currentPauseDuration = Math.floor((now.getTime() - pauseStart.getTime()) / 1000);
+      pausedDuration += currentPauseDuration;
+    }
+    
+    return Math.max(0, totalElapsed - pausedDuration);
   }
 
   /**
@@ -127,7 +157,7 @@ class TimerService {
     this.updateCallbacks.add(callback);
     
     // Immediately notify with current state
-    if (this.activeTimer && this.activeTimer.isRunning) {
+    if (this.activeTimer && (this.activeTimer.isRunning || this.activeTimer.isPaused)) {
       const elapsedSeconds = this.getElapsedSeconds();
       callback(this.activeTimer, elapsedSeconds);
     } else {
@@ -163,6 +193,8 @@ class TimerService {
       description,
       startTime: new Date(),
       isRunning: true,
+      isPaused: false,
+      pausedDuration: 0,
       userId,
     };
 
@@ -174,11 +206,61 @@ class TimerService {
   }
 
   /**
+   * Pause the current timer
+   */
+  pauseTimer(): boolean {
+    if (!this.activeTimer || !this.activeTimer.isRunning || this.activeTimer.isPaused) {
+      return false;
+    }
+
+    this.activeTimer.isRunning = false;
+    this.activeTimer.isPaused = true;
+    this.activeTimer.pauseStartTime = new Date();
+    this.saveTimerToStorage();
+    this.notifySubscribers(this.getElapsedSeconds());
+
+    return true;
+  }
+
+  /**
+   * Resume a paused timer
+   */
+  resumeTimer(): boolean {
+    if (!this.activeTimer || !this.activeTimer.isPaused || this.activeTimer.isRunning) {
+      return false;
+    }
+
+    // Accumulate the paused duration
+    if (this.activeTimer.pauseStartTime) {
+      const pauseStart = new Date(this.activeTimer.pauseStartTime);
+      const now = new Date();
+      const pauseDuration = Math.floor((now.getTime() - pauseStart.getTime()) / 1000);
+      this.activeTimer.pausedDuration += pauseDuration;
+    }
+
+    this.activeTimer.isRunning = true;
+    this.activeTimer.isPaused = false;
+    this.activeTimer.pauseStartTime = undefined;
+    this.saveTimerToStorage();
+    this.notifySubscribers(this.getElapsedSeconds());
+
+    return true;
+  }
+
+  /**
    * Stop the current timer and return the timer log
    */
   stopTimer(hourlyRate: number): TimerLog | null {
-    if (!this.activeTimer || !this.activeTimer.isRunning) {
+    if (!this.activeTimer || (!this.activeTimer.isRunning && !this.activeTimer.isPaused)) {
       return null;
+    }
+
+    // If paused, accumulate the current pause before stopping
+    if (this.activeTimer.isPaused && this.activeTimer.pauseStartTime) {
+      const pauseStart = new Date(this.activeTimer.pauseStartTime);
+      const now = new Date();
+      const pauseDuration = Math.floor((now.getTime() - pauseStart.getTime()) / 1000);
+      this.activeTimer.pausedDuration += pauseDuration;
     }
 
     const endTime = new Date();

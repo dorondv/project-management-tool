@@ -1,10 +1,15 @@
+// Shared types between frontend and backend
+// These types match the Prisma schema and frontend types
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'admin' | 'manager' | 'contributor';
-  avatar?: string;
+  avatar?: string | null;
   isOnline?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Project {
@@ -66,7 +71,7 @@ export interface Notification {
   userId: string;
   read: boolean;
   createdAt: Date;
-  relatedId?: string;
+  relatedId?: string | null;
 }
 
 export interface Activity {
@@ -75,128 +80,42 @@ export interface Activity {
   description: string;
   userId: string;
   user: User;
-  projectId?: string;
-  taskId?: string;
+  projectId?: string | null;
+  taskId?: string | null;
   createdAt: Date;
 }
-
-export type Locale = 'en' | 'he';
-
-export type CustomerStatus = 'active' | 'trial' | 'paused' | 'churned';
-
-export type PaymentMethod = 'bank-transfer' | 'credit-card' | 'direct-debit' | 'cash';
-
-export type PaymentFrequency = 'monthly' | 'quarterly' | 'annual';
-
-export type BillingModel = 'retainer' | 'hourly' | 'project';
 
 export interface Customer {
   id: string;
   name: string;
-  status: CustomerStatus;
+  status: 'active' | 'trial' | 'paused' | 'churned';
   contactName: string;
   contactEmail: string;
   contactPhone: string;
   country: string;
   taxId: string;
   joinDate: Date;
-  industry?: string;
-  paymentMethod: PaymentMethod;
-  billingCycle: PaymentFrequency;
-  billingModel: BillingModel;
+  industry?: string | null;
+  paymentMethod: 'bank-transfer' | 'credit-card' | 'direct-debit' | 'cash';
+  billingCycle: 'monthly' | 'quarterly' | 'annual';
+  billingModel: 'retainer' | 'hourly' | 'project';
   currency: string;
   monthlyRetainer: number;
   annualFee: number;
   hoursPerMonth: number;
   customerScore: number;
-  notes?: string;
-  referralSource?: string;
+  notes?: string | null;
+  referralSource?: string | null;
   tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface TimeEntry {
   id: string;
   customerId: string;
   projectId: string;
-  taskId?: string;
-  description: string;
-  startTime: Date;
-  endTime: Date;
-  duration: number; // in seconds
-  hourlyRate: number;
-  income: number; // calculated based on duration and hourly rate
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Income {
-  id: string;
-  customerId: string;
-  customerName: string;
-  incomeDate: Date;
-  invoiceNumber?: string;
-  vatRate: number; // e.g., 0.18 for 18%
-  amountBeforeVat: number;
-  vatAmount: number; // calculated
-  finalAmount: number; // calculated
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type SubscriptionPlan = 'monthly' | 'annual' | 'trial';
-export type SubscriptionStatus = 'active' | 'trial' | 'expired' | 'cancelled';
-
-export interface Subscription {
-  id: string;
-  userId: string;
-  plan: SubscriptionPlan;
-  status: SubscriptionStatus;
-  startDate: Date;
-  endDate: Date;
-  price: number;
-  currency: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface BillingHistory {
-  id: string;
-  userId: string;
-  invoiceNumber: string;
-  plan: SubscriptionPlan;
-  amount: number;
-  currency: string;
-  billingDate: Date;
-  status: 'paid' | 'pending' | 'failed';
-  createdAt: Date;
-}
-
-export interface BusinessDetails {
-  businessName: string;
-  businessField: string;
-  digitalSignature?: string;
-}
-
-export interface ActiveTimer {
-  id: string;
-  customerId: string;
-  projectId: string;
-  taskId?: string;
-  description: string;
-  startTime: Date;
-  isRunning: boolean;
-  isPaused: boolean;
-  pausedDuration: number; // Total paused time in seconds
-  pauseStartTime?: Date; // When the current pause started
-  userId: string;
-}
-
-export interface TimerLog {
-  id: string;
-  customerId: string;
-  projectId: string;
-  taskId?: string;
+  taskId?: string | null;
   description: string;
   startTime: Date;
   endTime: Date;
@@ -207,3 +126,29 @@ export interface TimerLog {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface Income {
+  id: string;
+  customerId: string;
+  customerName: string;
+  incomeDate: Date;
+  invoiceNumber?: string | null;
+  vatRate: number;
+  amountBeforeVat: number;
+  vatAmount: number;
+  finalAmount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ActiveTimer {
+  id: string;
+  customerId: string;
+  projectId: string;
+  taskId?: string | null;
+  description: string;
+  startTime: Date;
+  isRunning: boolean;
+  userId: string;
+}
+
