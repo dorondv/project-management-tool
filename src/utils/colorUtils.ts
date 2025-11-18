@@ -9,12 +9,12 @@ export const getPriorityColor = (priority: 'low' | 'medium' | 'high'): string =>
 
 export const getStatusColor = (status: string): string => {
   switch (status) {
-    case 'todo': return 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20';
-    case 'in-progress': return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20';
-    case 'completed': return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20';
-    case 'planning': return 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20';
-    case 'on-hold': return 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20';
-    default: return 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20';
+    case 'todo': return 'text-gray-800 bg-gray-200 dark:text-gray-200 dark:bg-gray-700';
+    case 'in-progress': return 'text-blue-800 bg-blue-200 dark:text-blue-200 dark:bg-blue-800';
+    case 'completed': return 'text-green-800 bg-green-200 dark:text-green-200 dark:bg-green-800';
+    case 'planning': return 'text-purple-800 bg-purple-200 dark:text-purple-200 dark:bg-purple-800';
+    case 'on-hold': return 'text-orange-800 bg-orange-200 dark:text-orange-200 dark:bg-orange-800';
+    default: return 'text-gray-800 bg-gray-200 dark:text-gray-200 dark:bg-gray-700';
   }
 };
 

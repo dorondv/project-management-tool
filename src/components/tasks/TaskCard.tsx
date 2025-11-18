@@ -1,10 +1,9 @@
 // import { motion } from 'framer-motion';
-import { Calendar, User, MessageSquare, Paperclip, MoreHorizontal } from 'lucide-react';
+import { MessageSquare, Paperclip, MoreHorizontal } from 'lucide-react';
 import { Task } from '../../types';
 import { formatDate, getDeadlineStatus } from '../../utils/dateUtils';
 import { getPriorityColor, getStatusColor } from '../../utils/colorUtils';
 import { Badge } from '../common/Badge';
-import { Avatar } from '../common/Avatar';
 import { Card } from '../common/Card';
 
 interface TaskCardProps {
@@ -48,18 +47,8 @@ export function TaskCard({ task, onClick, isDragging = false }: TaskCardProps) {
       </div>
 
       <div className="flex items-center justify-between">
+        {/* Assigned users hidden for current version - tasks auto-assigned to single user */}
         <div className="flex items-center space-x-3">
-          <div className="flex -space-x-2">
-            {task.assignedTo.map((user) => (
-              <Avatar
-                key={user.id}
-                src={user.avatar}
-                alt={user.name}
-                size="sm"
-                className="border-2 border-white dark:border-gray-800"
-              />
-            ))}
-          </div>
         </div>
         <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
           {task.comments.length > 0 && (

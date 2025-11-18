@@ -7,25 +7,56 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     console.log('📝 Fetching all projects...');
+    const { customerId } = req.query;
+    const where = customerId ? { customerId: customerId as string } : {};
+    
+    // Optimized: Don't include tasks by default - they're fetched separately
+    // This significantly reduces query time and data transfer
     const projects = await prisma.project.findMany({
-      include: {
-        creator: true,
-        members: {
-          include: {
-            user: true,
+      where,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        progress: true,
+        priority: true,
+        createdBy: true,
+        customerId: true,
+        createdAt: true,
+        updatedAt: true,
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
           },
         },
-        tasks: {
-          include: {
-            assignees: {
-              include: {
-                user: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
+        members: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true,
               },
             },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: 500, // Limit projects
     });
     
     console.log(`✅ Found ${projects.length} projects`);
@@ -34,10 +65,7 @@ router.get('/', async (req, res) => {
     const transformedProjects = projects.map(project => ({
       ...project,
       members: project.members.map(m => m.user),
-      tasks: project.tasks.map(task => ({
-        ...task,
-        assignedTo: task.assignees.map(a => a.user),
-      })),
+      tasks: [], // Tasks are fetched separately for better performance
     }));
     
     res.json(transformedProjects);
@@ -55,6 +83,7 @@ router.get('/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         creator: true,
+        customer: true,
         members: {
           include: {
             user: true,
@@ -95,7 +124,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/projects - Create project
 router.post('/', async (req, res) => {
   try {
-    const { title, description, startDate, endDate, status, progress, priority, createdBy, members } = req.body;
+    const { title, description, startDate, endDate, status, progress, priority, createdBy, customerId, members } = req.body;
     
     console.log('📝 Project creation request:', {
       title,
@@ -106,6 +135,7 @@ router.post('/', async (req, res) => {
       progress,
       priority,
       createdBy,
+      customerId,
       membersCount: members?.length || 0
     });
     
@@ -128,6 +158,7 @@ router.post('/', async (req, res) => {
         progress: progress || 0,
         priority: priority || 'medium',
         createdBy,
+        customerId: customerId || null,
         members: {
           create: (members || []).map((userId: string) => ({
             userId,
@@ -136,6 +167,7 @@ router.post('/', async (req, res) => {
       },
       include: {
         creator: true,
+        customer: true,
         members: {
           include: {
             user: true,
@@ -162,106 +194,142 @@ router.post('/', async (req, res) => {
 // PUT /api/projects/:id - Update project
 router.put('/:id', async (req, res) => {
   try {
-    const { title, description, startDate, endDate, status, progress, priority, members } = req.body;
+    const { title, description, startDate, endDate, status, progress, priority, customerId, members } = req.body;
     
-    // Update project
-    const project = await prisma.project.update({
-      where: { id: req.params.id },
-      data: {
-        ...(title && { title }),
-        ...(description && { description }),
-        ...(startDate && { startDate: new Date(startDate) }),
-        ...(endDate && { endDate: new Date(endDate) }),
-        ...(status && { status }),
-        ...(progress !== undefined && { progress }),
-        ...(priority && { priority }),
-      },
-      include: {
-        creator: true,
-        members: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    });
-    
-    // Update members if provided
-    if (members) {
-      // Delete existing members
-      await prisma.projectMember.deleteMany({
-        where: { projectId: req.params.id },
-      });
-      
-      // Create new members
-      await prisma.projectMember.createMany({
-        data: members.map((userId: string) => ({
-          projectId: req.params.id,
-          userId,
-        })),
-      });
-      
-      // Fetch updated project
-      const updatedProject = await prisma.project.findUnique({
+    // Use transaction for atomic updates with increased timeout
+    const result = await prisma.$transaction(async (tx) => {
+      // Update project
+      const project = await tx.project.update({
         where: { id: req.params.id },
+        data: {
+          ...(title && { title }),
+          ...(description && { description }),
+          ...(startDate && { startDate: new Date(startDate) }),
+          ...(endDate && { endDate: new Date(endDate) }),
+          ...(status && { status }),
+          ...(progress !== undefined && { progress }),
+          ...(priority && { priority }),
+          ...(customerId !== undefined && { customerId: customerId || null }),
+        },
         include: {
           creator: true,
+          customer: true,
           members: {
             include: {
               user: true,
             },
           },
-          tasks: {
-            include: {
-              assignees: {
-                include: {
-                  user: true,
-                },
+        },
+      });
+      
+      // Update members if provided
+      if (members) {
+        // Delete existing members
+        await tx.projectMember.deleteMany({
+          where: { projectId: req.params.id },
+        });
+        
+        // Create new members
+        if (members.length > 0) {
+          await tx.projectMember.createMany({
+            data: members.map((userId: string) => ({
+              projectId: req.params.id,
+              userId,
+            })),
+          });
+        }
+        
+        // Fetch updated project (without tasks to keep transaction fast)
+        const updatedProject = await tx.project.findUnique({
+          where: { id: req.params.id },
+          include: {
+            creator: true,
+            customer: true,
+            members: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        });
+        
+        return updatedProject;
+      }
+      
+      return project;
+    }, {
+      maxWait: 10000, // Maximum time to wait for a transaction slot
+      timeout: 15000, // Maximum time the transaction can run (15 seconds)
+    });
+    
+    // Fetch tasks outside transaction to avoid timeout
+    const projectWithTasks = await prisma.project.findUnique({
+      where: { id: req.params.id },
+      include: {
+        creator: true,
+        customer: true,
+        members: {
+          include: {
+            user: true,
+          },
+        },
+        tasks: {
+          include: {
+            assignees: {
+              include: {
+                user: true,
               },
             },
           },
         },
-      });
-      
-      const transformedProject = {
-        ...updatedProject!,
-        members: updatedProject!.members.map(m => m.user),
-        tasks: updatedProject!.tasks.map(task => ({
-          ...task,
-          assignedTo: task.assignees.map(a => a.user),
-        })),
-      };
-      
-      return res.json(transformedProject);
-    }
+      },
+    });
     
     const transformedProject = {
-      ...project,
-      members: project.members.map(m => m.user),
-      tasks: [],
+      ...projectWithTasks!,
+      members: projectWithTasks!.members.map(m => m.user),
+      tasks: projectWithTasks!.tasks ? projectWithTasks!.tasks.map((task: any) => ({
+        ...task,
+        assignedTo: task.assignees.map((a: any) => a.user),
+      })) : [],
     };
     
+    console.log('✅ Project updated successfully:', transformedProject.id);
     res.json(transformedProject);
   } catch (error: any) {
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Project not found' });
     }
-    res.status(500).json({ error: 'Failed to update project' });
+    console.error('❌ Failed to update project:', error);
+    res.status(500).json({ error: 'Failed to update project', details: error.message });
   }
 });
 
 // DELETE /api/projects/:id - Delete project
 router.delete('/:id', async (req, res) => {
   try {
+    // Check if project exists first
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    // Delete project (cascade will handle related records)
     await prisma.project.delete({
       where: { id: req.params.id },
     });
+    
     res.status(204).send();
   } catch (error: any) {
+    console.error('❌ Failed to delete project:', error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Project not found' });
     }
-    res.status(500).json({ error: 'Failed to delete project' });
+    res.status(500).json({ error: 'Failed to delete project', details: error.message });
   }
 });
 

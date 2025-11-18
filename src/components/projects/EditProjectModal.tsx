@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Users, FileText, Target, Building2 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 const translations = {
   en: {
-    title: 'Create New Project',
+    title: 'Edit Project',
     projectTitle: 'Project Title',
     client: 'Client',
     selectClient: 'Select Client',
@@ -27,10 +27,10 @@ const translations = {
     priorityMedium: 'Medium',
     priorityHigh: 'High',
     cancel: 'Cancel',
-    createProject: 'Create Project',
+    updateProject: 'Update Project',
   },
   he: {
-    title: 'יצירת פרויקט חדש',
+    title: 'עריכת פרויקט',
     projectTitle: 'שם הפרויקט',
     client: 'לקוח',
     selectClient: 'בחר לקוח',
@@ -48,16 +48,17 @@ const translations = {
     priorityMedium: 'בינונית',
     priorityHigh: 'גבוהה',
     cancel: 'ביטול',
-    createProject: 'צור פרויקט',
+    updateProject: 'עדכן פרויקט',
   },
 } as const;
 
-interface CreateProjectModalProps {
+interface EditProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  project: Project | null;
 }
 
-export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
+export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalProps) {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
@@ -72,74 +73,87 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     customerId: '',
     members: [] as string[]
   });
+
+  // Initialize form data when project changes
+  useEffect(() => {
+    if (project) {
+      const formatDate = (date: Date | string) => {
+        const d = date instanceof Date ? date : new Date(date);
+        return d.toISOString().split('T')[0];
+      };
+
+      setFormData({
+        title: project.title || '',
+        description: project.description || '',
+        startDate: formatDate(project.startDate),
+        endDate: formatDate(project.endDate),
+        status: project.status || 'planning',
+        priority: project.priority || 'medium',
+        customerId: project.customerId || '',
+        members: project.members?.map(m => m.id) || []
+      });
+    }
+  }, [project]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!project) return;
     
     if (isSubmitting) return; // Prevent double submission
     
     setIsSubmitting(true);
-    
+
     const projectData = {
       title: formData.title,
       description: formData.description,
       startDate: formData.startDate,
       endDate: formData.endDate,
       status: formData.status,
-      progress: 0,
       priority: formData.priority,
-      createdBy: state.user!.id,
       customerId: formData.customerId || undefined,
-      members: formData.members, // Array of user IDs
+      members: formData.members,
     };
 
     try {
-      // Create project via API first
+      // Update project via API first
       const { api } = await import('../../utils/api');
-      const createdProject = await api.projects.create(projectData);
+      const updatedProject = await api.projects.update(project.id, projectData);
       
       // Transform the API response to match our Project type
-      const newProject: Project = {
-        id: createdProject.id,
-        title: createdProject.title,
-        description: createdProject.description,
-        startDate: new Date(createdProject.startDate),
-        endDate: new Date(createdProject.endDate),
-        status: createdProject.status,
-        progress: createdProject.progress,
-        priority: createdProject.priority,
-        members: createdProject.members || [],
-        tasks: createdProject.tasks || [],
-        createdBy: createdProject.createdBy,
-        customerId: createdProject.customerId,
-        customer: createdProject.customer,
-        createdAt: new Date(createdProject.createdAt),
-        updatedAt: new Date(createdProject.updatedAt)
+      const transformedProject: Project = {
+        id: updatedProject.id,
+        title: updatedProject.title,
+        description: updatedProject.description,
+        startDate: new Date(updatedProject.startDate),
+        endDate: new Date(updatedProject.endDate),
+        status: updatedProject.status,
+        progress: updatedProject.progress,
+        priority: updatedProject.priority,
+        members: updatedProject.members || [],
+        tasks: updatedProject.tasks || [],
+        createdBy: updatedProject.createdBy,
+        customerId: updatedProject.customerId,
+        customer: updatedProject.customer,
+        createdAt: new Date(updatedProject.createdAt),
+        updatedAt: new Date(updatedProject.updatedAt)
       };
 
-      // Add to local state
-      dispatch({ type: 'ADD_PROJECT', payload: newProject });
+      // Update local state (API call is already done above)
+      dispatch({ type: 'UPDATE_PROJECT', payload: transformedProject });
       onClose();
       
-      // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        status: 'planning',
-        priority: 'medium',
-        customerId: '',
-        members: []
-      });
+      toast.success(locale === 'he' ? 'הפרויקט עודכן בהצלחה' : 'Project updated successfully');
     } catch (error: any) {
-      console.error('Failed to create project:', error);
-      toast.error(error.message || 'Failed to create project. Please try again.');
+      console.error('Failed to update project:', error);
+      toast.error(error.message || (locale === 'he' ? 'שגיאה בעדכון הפרויקט' : 'Failed to update project. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (!project) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t.title} size="lg">
@@ -269,10 +283,10 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
             {isSubmitting ? (
               <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <LoadingSpinner size="sm" />
-                {isRTL ? 'יוצר...' : 'Creating...'}
+                {isRTL ? 'מעדכן...' : 'Updating...'}
               </span>
             ) : (
-              t.createProject
+              t.updateProject
             )}
           </Button>
         </div>
@@ -280,3 +294,4 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     </Modal>
   );
 }
+

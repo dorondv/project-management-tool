@@ -45,7 +45,32 @@ router.get('/:id', async (req, res) => {
 // POST /api/users - Create user
 router.post('/', async (req, res) => {
   try {
-    const { name, email, role, avatar, isOnline } = req.body;
+    const { id, name, email, role, avatar, isOnline } = req.body;
+    
+    // If ID is provided, use upsert (create or update)
+    if (id) {
+      const user = await prisma.user.upsert({
+        where: { id },
+        update: {
+          name: name || undefined,
+          email: email || undefined,
+          role: role || undefined,
+          avatar: avatar !== undefined ? avatar : undefined,
+          isOnline: isOnline !== undefined ? isOnline : undefined,
+        },
+        create: {
+          id,
+          name,
+          email,
+          role: role || 'contributor',
+          avatar,
+          isOnline: isOnline ?? false,
+        },
+      });
+      return res.status(201).json(user);
+    }
+    
+    // Otherwise, create new user
     const user = await prisma.user.create({
       data: {
         name,
@@ -60,7 +85,7 @@ router.post('/', async (req, res) => {
     if (error.code === 'P2002') {
       return res.status(409).json({ error: 'Email already exists' });
     }
-    res.status(500).json({ error: 'Failed to create user' });
+    res.status(500).json({ error: 'Failed to create user', details: error.message });
   }
 });
 

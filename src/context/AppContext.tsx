@@ -156,6 +156,45 @@ function normalizeTasks(tasks: Task[]): Task[] {
   });
 }
 
+function normalizeTimeEntries(timeEntries: TimeEntry[]): TimeEntry[] {
+  return timeEntries.map((entry) => {
+    const startTimeValue = entry.startTime instanceof Date
+      ? entry.startTime
+      : new Date(entry.startTime);
+    const endTimeValue = entry.endTime instanceof Date
+      ? entry.endTime
+      : new Date(entry.endTime);
+    const createdAtValue = entry.createdAt instanceof Date
+      ? entry.createdAt
+      : new Date(entry.createdAt);
+    const updatedAtValue = entry.updatedAt instanceof Date
+      ? entry.updatedAt
+      : new Date(entry.updatedAt);
+
+    const startTime = !Number.isNaN(startTimeValue.getTime()) ? startTimeValue : new Date();
+    const endTime = !Number.isNaN(endTimeValue.getTime()) ? endTimeValue : new Date();
+    const createdAt = !Number.isNaN(createdAtValue.getTime()) ? createdAtValue : new Date();
+    const updatedAt = !Number.isNaN(updatedAtValue.getTime()) ? updatedAtValue : new Date();
+
+    return {
+      ...entry,
+      startTime,
+      endTime,
+      createdAt,
+      updatedAt,
+    };
+  });
+}
+
+async function safeFetch<T>(label: string, fetcher: () => Promise<T>, fallbackValue: T): Promise<T> {
+  try {
+    return await fetcher();
+  } catch (error) {
+    console.warn(`⚠️ AppContext: ${label} request failed:`, error);
+    return fallbackValue;
+  }
+}
+
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_USER':
@@ -173,8 +212,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return newStateWithUser;
     
     case 'SET_PROJECTS':
-      storage.set('projects', action.payload);
-      return { ...state, projects: action.payload };
+      // Recalculate progress for all projects based on current tasks
+      const projectsWithProgress = action.payload.map(project => {
+        const projectTasks = state.tasks.filter(t => t.projectId === project.id);
+        if (projectTasks.length === 0) {
+          return { ...project, progress: 0 };
+        }
+        const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+        const progress = Math.round((completedTasks / projectTasks.length) * 100);
+        return { ...project, progress };
+      });
+      storage.set('projects', projectsWithProgress);
+      return { ...state, projects: projectsWithProgress };
     
     case 'ADD_PROJECT':
       const newProjects = [...state.projects, action.payload];
@@ -206,21 +255,81 @@ function appReducer(state: AppState, action: AppAction): AppState {
       storage.set('tasks', newTasks);
       // Note: Task creation is now handled in CreateTaskModal before dispatching ADD_TASK
       // This ensures we have the correct database ID and structure
-      return { ...state, tasks: newTasks };
+      // Recalculate project progress
+      const updatedProjectsAfterAdd = state.projects.map(project => {
+        const projectTasks = newTasks.filter(t => t.projectId === project.id);
+        if (projectTasks.length === 0) {
+          return { ...project, progress: 0 };
+        }
+        const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+        const progress = Math.round((completedTasks / projectTasks.length) * 100);
+        return { ...project, progress };
+      });
+      storage.set('projects', updatedProjectsAfterAdd);
+      // Sync updated project progress to backend
+      updatedProjectsAfterAdd.forEach(project => {
+        const originalProject = state.projects.find(p => p.id === project.id);
+        if (originalProject && originalProject.progress !== project.progress) {
+          api.projects.update(project.id, { progress: project.progress }).catch(err => 
+            console.warn('Failed to sync project progress update to API:', err)
+          );
+        }
+      });
+      return { ...state, tasks: newTasks, projects: updatedProjectsAfterAdd };
     
     case 'UPDATE_TASK':
       const updatedTasks = state.tasks.map(t => t.id === action.payload.id ? action.payload : t);
       storage.set('tasks', updatedTasks);
       // Sync with API
       api.tasks.update(action.payload.id, action.payload).catch(err => console.warn('Failed to sync task update to API:', err));
-      return { ...state, tasks: updatedTasks };
+      // Recalculate project progress
+      const updatedProjectsAfterUpdate = state.projects.map(project => {
+        const projectTasks = updatedTasks.filter(t => t.projectId === project.id);
+        if (projectTasks.length === 0) {
+          return { ...project, progress: 0 };
+        }
+        const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+        const progress = Math.round((completedTasks / projectTasks.length) * 100);
+        return { ...project, progress };
+      });
+      storage.set('projects', updatedProjectsAfterUpdate);
+      // Sync updated project progress to backend
+      updatedProjectsAfterUpdate.forEach(project => {
+        const originalProject = state.projects.find(p => p.id === project.id);
+        if (originalProject && originalProject.progress !== project.progress) {
+          api.projects.update(project.id, { progress: project.progress }).catch(err => 
+            console.warn('Failed to sync project progress update to API:', err)
+          );
+        }
+      });
+      return { ...state, tasks: updatedTasks, projects: updatedProjectsAfterUpdate };
     
     case 'DELETE_TASK':
       const filteredTasks = state.tasks.filter(t => t.id !== action.payload);
       storage.set('tasks', filteredTasks);
       // Sync with API
       api.tasks.delete(action.payload).catch(err => console.warn('Failed to sync task deletion to API:', err));
-      return { ...state, tasks: filteredTasks };
+      // Recalculate project progress
+      const updatedProjectsAfterDelete = state.projects.map(project => {
+        const projectTasks = filteredTasks.filter(t => t.projectId === project.id);
+        if (projectTasks.length === 0) {
+          return { ...project, progress: 0 };
+        }
+        const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
+        const progress = Math.round((completedTasks / projectTasks.length) * 100);
+        return { ...project, progress };
+      });
+      storage.set('projects', updatedProjectsAfterDelete);
+      // Sync updated project progress to backend
+      updatedProjectsAfterDelete.forEach(project => {
+        const originalProject = state.projects.find(p => p.id === project.id);
+        if (originalProject && originalProject.progress !== project.progress) {
+          api.projects.update(project.id, { progress: project.progress }).catch(err => 
+            console.warn('Failed to sync project progress update to API:', err)
+          );
+        }
+      });
+      return { ...state, tasks: filteredTasks, projects: updatedProjectsAfterDelete };
     
     case 'SET_NOTIFICATIONS':
       storage.set('notifications', action.payload);
@@ -278,17 +387,21 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, customers: filteredCustomers };
 
     case 'SET_TIME_ENTRIES':
-      storage.set('timeEntries', action.payload);
-      return { ...state, timeEntries: action.payload };
+      const normalizedTimeEntries = normalizeTimeEntries(action.payload);
+      storage.set('timeEntries', normalizedTimeEntries);
+      return { ...state, timeEntries: normalizedTimeEntries };
 
     case 'ADD_TIME_ENTRY':
-      const newTimeEntries = [action.payload, ...state.timeEntries];
+      const normalizedNewEntry = normalizeTimeEntries([action.payload])[0];
+      const newTimeEntries = [normalizedNewEntry, ...state.timeEntries];
       storage.set('timeEntries', newTimeEntries);
       return { ...state, timeEntries: newTimeEntries };
 
     case 'UPDATE_TIME_ENTRY':
-      const updatedTimeEntries = state.timeEntries.map(te => 
-        te.id === action.payload.id ? action.payload : te
+      const updatedTimeEntries = normalizeTimeEntries(
+        state.timeEntries.map(te => 
+          te.id === action.payload.id ? action.payload : te
+        )
       );
       storage.set('timeEntries', updatedTimeEntries);
       return { ...state, timeEntries: updatedTimeEntries };
@@ -365,6 +478,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'LOGOUT':
       timerService.clearTimer();
       storage.clear();
+      // Clear fetch refs to allow fresh data fetch on next login
+      // Note: We can't access refs here, but they'll be cleared in the auth listener
       // Sign out from Supabase (will trigger SIGNED_OUT event in auth listener)
       // Don't await here - let the auth state listener handle the cleanup
       supabase.auth.signOut().catch(err => {
@@ -380,43 +495,98 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  
+  // Track ongoing fetch to prevent duplicate calls
+  const fetchUserDataRef = React.useRef<Promise<void> | null>(null);
+  const lastFetchedUserIdRef = React.useRef<string | null>(null);
 
-  // Reusable function to fetch user data (projects, tasks, etc.)
-  const fetchUserData = async () => {
-    console.log('📥 AppContext: Fetching user data from API...');
-    try {
-      const [users, projects, tasks, customers, timeEntries, incomes, notifications, activities] = await Promise.allSettled([
-        api.users.getAll().catch(() => []),
-        api.projects.getAll().catch(() => []),
-        api.tasks.getAll().catch(() => []),
-        api.customers.getAll().catch(() => []),
-        api.timeEntries.getAll().catch(() => []),
-        api.incomes.getAll().catch(() => []),
-        api.notifications.getAll().catch(() => []),
-        api.activities.getAll().catch(() => []),
-      ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : []));
-
-      // Filter out projects with invalid IDs (timestamps instead of UUIDs)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const validProjects = projects.filter((p: any) => uuidRegex.test(p.id));
-      if (validProjects.length !== projects.length) {
-        console.warn(`⚠️ Filtered out ${projects.length - validProjects.length} projects with invalid IDs`);
-      }
-
-      console.log(`📥 AppContext: Loaded ${validProjects.length} projects, ${tasks.length} tasks, ${customers.length} customers`);
-
-      // Update state with fetched data
-      dispatch({ type: 'SET_PROJECTS', payload: validProjects });
-      dispatch({ type: 'SET_TASKS', payload: normalizeTasks(tasks) });
-      dispatch({ type: 'SET_CUSTOMERS', payload: customers });
-      dispatch({ type: 'SET_TIME_ENTRIES', payload: timeEntries });
-      dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(incomes) });
-      dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
-      dispatch({ type: 'SET_ACTIVITIES', payload: activities });
-    } catch (error) {
-      console.error('❌ AppContext: Failed to fetch user data:', error);
+  // Reusable function to fetch user data (projects, tasks, etc.) - optimized single request
+  const fetchUserData = React.useCallback(async (userId?: string) => {
+    const effectiveUserId = userId || state.user?.id;
+    
+    // Prevent duplicate calls for the same user
+    if (!effectiveUserId) {
+      console.warn('⚠️ AppContext: Cannot fetch user data without userId');
+      return;
     }
-  };
+    
+    // If user ID changed, clear the refs to allow fresh fetch
+    if (lastFetchedUserIdRef.current && lastFetchedUserIdRef.current !== effectiveUserId) {
+      console.log('📥 AppContext: User ID changed, clearing refs for fresh fetch...');
+      fetchUserDataRef.current = null;
+      lastFetchedUserIdRef.current = null;
+    }
+    
+    // If already fetching for this user, return the existing promise
+    if (fetchUserDataRef.current && lastFetchedUserIdRef.current === effectiveUserId) {
+      console.log('📥 AppContext: Already fetching data for user, reusing promise...');
+      return fetchUserDataRef.current;
+    }
+    
+    console.log('📥 AppContext: Fetching user data from optimized endpoint...', `for user: ${effectiveUserId}`);
+    
+    // Create and store the promise
+    const fetchPromise = (async () => {
+      try {
+        const data = await api.dashboard.getInitialData(effectiveUserId);
+
+        // Filter out projects with invalid IDs (timestamps instead of UUIDs)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const validProjects = (data.projects || []).filter((p: any) => uuidRegex.test(p.id));
+        if (validProjects.length !== (data.projects || []).length) {
+          console.warn(`⚠️ Filtered out ${(data.projects || []).length - validProjects.length} projects with invalid IDs`);
+        }
+
+        console.log(`📥 AppContext: Loaded ${validProjects.length} projects, ${(data.tasks || []).length} tasks, ${(data.customers || []).length} customers`);
+
+        // Update state with fetched data
+        dispatch({ type: 'SET_PROJECTS', payload: validProjects });
+        dispatch({ type: 'SET_TASKS', payload: normalizeTasks(data.tasks || []) });
+        dispatch({ type: 'SET_CUSTOMERS', payload: data.customers || [] });
+        dispatch({ type: 'SET_TIME_ENTRIES', payload: normalizeTimeEntries(data.timeEntries || []) });
+        dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(data.incomes || []) });
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: data.notifications || [] });
+        dispatch({ type: 'SET_ACTIVITIES', payload: data.activities || [] });
+      } catch (error) {
+        console.error('❌ AppContext: Failed to fetch user data:', error);
+        // Fallback to individual API calls if optimized endpoint fails
+        console.warn('⚠️ Falling back to individual API calls (sequential)...');
+        try {
+          const projects = await safeFetch<Project[]>('projects.getAll', () => api.projects.getAll(), []);
+          const tasks = await safeFetch<Task[]>('tasks.getAll', () => api.tasks.getAll(), []);
+          const customers = await safeFetch<Customer[]>('customers.getAll', () => api.customers.getAll(), []);
+          const timeEntries = await safeFetch<TimeEntry[]>('timeEntries.getAll', () => api.timeEntries.getAll(), []);
+          const incomes = await safeFetch<Income[]>('incomes.getAll', () => api.incomes.getAll(), []);
+          const notifications = await safeFetch<Notification[]>('notifications.getAll', () => api.notifications.getAll(), []);
+          const activities = await safeFetch<Activity[]>('activities.getAll', () => api.activities.getAll(), []);
+
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const validProjects = projects.filter((p: any) => uuidRegex.test(p.id));
+          dispatch({ type: 'SET_PROJECTS', payload: validProjects });
+          dispatch({ type: 'SET_TASKS', payload: normalizeTasks(tasks) });
+          dispatch({ type: 'SET_CUSTOMERS', payload: customers });
+          dispatch({ type: 'SET_TIME_ENTRIES', payload: normalizeTimeEntries(timeEntries) });
+          dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(incomes) });
+          dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
+          dispatch({ type: 'SET_ACTIVITIES', payload: activities });
+        } catch (fallbackError) {
+          console.error('❌ AppContext: Fallback also failed:', fallbackError);
+        }
+      } finally {
+        // Clear the ref when done
+        if (fetchUserDataRef.current === fetchPromise) {
+          fetchUserDataRef.current = null;
+          lastFetchedUserIdRef.current = null;
+        }
+      }
+    })();
+    
+    // Store the promise and userId
+    fetchUserDataRef.current = fetchPromise;
+    lastFetchedUserIdRef.current = effectiveUserId;
+    
+    return fetchPromise;
+  }, [state.user?.id]);
 
   // Initialize app with data from API or fallback to localStorage/mock data
   useEffect(() => {
@@ -440,22 +610,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
         
         if (session && session.user && !sessionError) {
-          // User is authenticated, fetch their profile
-          console.log('🔵 AppContext: Session found, fetching user profile...');
+          // User is authenticated, fetch their profile from backend
+          console.log('🔵 AppContext: Session found, fetching user profile from backend...');
           try {
-            const { data: userProfile, error: profileError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            console.log('🔵 AppContext: Initial profile fetch:', {
-              hasProfile: !!userProfile,
-              error: profileError?.message,
-              errorCode: profileError?.code
-            });
+            let userProfile = null;
+            try {
+              // Try to get user by ID from backend
+              userProfile = await api.users.getById(session.user.id);
+            } catch (apiError: any) {
+              // User doesn't exist in backend, create it
+              if (apiError.status === 404) {
+                console.log('🔵 AppContext: User not found in backend, creating...');
+                const newUser = {
+                  id: session.user.id,
+                  name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                  email: session.user.email || '',
+                  role: 'contributor' as const,
+                  avatar: session.user.user_metadata?.avatar_url,
+                  isOnline: true,
+                };
+                
+                try {
+                  userProfile = await api.users.create(newUser);
+                  console.log('✅ AppContext: User created in backend');
+                } catch (createError) {
+                  console.warn('⚠️ AppContext: Failed to create user in backend:', createError);
+                  // Use the newUser object anyway
+                  userProfile = newUser;
+                }
+              } else {
+                throw apiError;
+              }
+            }
 
-            if (!profileError && userProfile) {
+            if (userProfile) {
               authenticatedUser = {
                 id: userProfile.id,
                 name: userProfile.name,
@@ -466,34 +654,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
               };
               dispatch({ type: 'SET_USER', payload: authenticatedUser });
               dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-            } else {
-              // User authenticated but no profile - create one
-              authenticatedUser = {
-                id: session.user.id,
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                email: session.user.email || '',
-                role: 'contributor' as const,
-                avatar: session.user.user_metadata?.avatar_url,
-                isOnline: true,
-              };
-
-              const { error: createError } = await supabase
-                .from('users')
-                .insert([{
-                  id: authenticatedUser.id,
-                  name: authenticatedUser.name,
-                  email: authenticatedUser.email,
-                  role: authenticatedUser.role,
-                  avatar: authenticatedUser.avatar,
-                }]);
-
-              if (!createError) {
-                dispatch({ type: 'SET_USER', payload: authenticatedUser });
-                dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-              }
             }
           } catch (error) {
-            console.warn('Failed to fetch user profile:', error);
+            console.warn('Failed to fetch/create user profile:', error);
           }
         }
         
@@ -501,25 +664,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (authenticatedUser) {
           dispatch({ type: 'SET_LOADING', payload: false });
           // Fetch user data if authenticated
-          fetchUserData();
+          fetchUserData(authenticatedUser.id);
         } else {
           // Try to load data from API first (non-blocking) - only if not authenticated
           try {
-            const [users, projects, tasks, customers, timeEntries, incomes, notifications, activities] = await Promise.allSettled([
-              api.users.getAll().catch(() => []),
-              api.projects.getAll().catch(() => []),
-              api.tasks.getAll().catch(() => []),
-              api.customers.getAll().catch(() => []),
-              api.timeEntries.getAll().catch(() => []),
-              api.incomes.getAll().catch(() => []),
-              api.notifications.getAll().catch(() => []),
-              api.activities.getAll().catch(() => []),
-            ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : []));
+            const users = await safeFetch<User[]>('users.getAll', () => api.users.getAll(), []);
+            const projects = await safeFetch<Project[]>('projects.getAll', () => api.projects.getAll(), []);
+            const tasks = await safeFetch<Task[]>('tasks.getAll', () => api.tasks.getAll(), []);
+            const customers = await safeFetch<Customer[]>('customers.getAll', () => api.customers.getAll(), []);
+            const timeEntries = await safeFetch<TimeEntry[]>('timeEntries.getAll', () => api.timeEntries.getAll(), []);
+            const incomes = await safeFetch<Income[]>('incomes.getAll', () => api.incomes.getAll(), []);
+            const notifications = await safeFetch<Notification[]>('notifications.getAll', () => api.notifications.getAll(), []);
+            const activities = await safeFetch<Activity[]>('activities.getAll', () => api.activities.getAll(), []);
 
-            // If we got data from API, use it
             if (users.length > 0 || projects.length > 0 || tasks.length > 0) {
               dispatch({ type: 'SET_USER', payload: users[0] || null });
-              // Filter out projects with invalid IDs (timestamps instead of UUIDs)
               const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
               const validProjects = projects.filter((p: any) => uuidRegex.test(p.id));
               if (validProjects.length !== projects.length) {
@@ -528,7 +687,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               dispatch({ type: 'SET_PROJECTS', payload: validProjects });
               dispatch({ type: 'SET_TASKS', payload: normalizeTasks(tasks) });
               dispatch({ type: 'SET_CUSTOMERS', payload: customers });
-              dispatch({ type: 'SET_TIME_ENTRIES', payload: timeEntries });
+              dispatch({ type: 'SET_TIME_ENTRIES', payload: normalizeTimeEntries(timeEntries) });
               dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(incomes) });
               dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
               dispatch({ type: 'SET_ACTIVITIES', payload: activities });
@@ -568,7 +727,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             }
           } catch (apiError) {
-            // API failed, fallback to localStorage/mock data (only if not authenticated)
             console.warn('API connection failed, using localStorage/mock data:', apiError);
             if (!authenticatedUser) {
               const storedUser = storage.get<User>('user');
@@ -640,57 +798,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🟣 AppContext: SIGNED_IN event, fetching user profile...');
-        // User signed in - fetch their profile
+        console.log('🟣 AppContext: SIGNED_IN event, fetching user profile from backend...');
+        // User signed in - fetch their profile from backend
         try {
-          console.log('🟣 AppContext: Querying users table for ID:', session.user.id);
-          
-          // Try fetching from backend API first (more reliable)
           let userProfile = null;
-          let profileError = null;
-          
           try {
-            console.log('🟣 AppContext: Trying to fetch user via backend API...');
-            const { api } = await import('../utils/api');
-            const users = await api.users.getAll();
-            userProfile = users.find((u: any) => u.id === session.user.id) || null;
-            console.log('🟣 AppContext: Backend API fetch result:', { hasProfile: !!userProfile });
-          } catch (apiError) {
-            console.warn('🟣 AppContext: Backend API failed, trying Supabase directly:', apiError);
-            
-            // Fallback to Supabase direct query with timeout
-            try {
-              const profilePromise = supabase
-                .from('users')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
+            // Try to get user by ID from backend
+            userProfile = await api.users.getById(session.user.id);
+            console.log('🟣 AppContext: User found in backend');
+          } catch (apiError: any) {
+            // User doesn't exist in backend, create it
+            if (apiError.status === 404) {
+              console.log('🟣 AppContext: User not found in backend, creating...');
+              const newUser = {
+                id: session.user.id,
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                email: session.user.email || '',
+                role: 'contributor' as const,
+                avatar: session.user.user_metadata?.avatar_url,
+                isOnline: true,
+              };
               
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Profile fetch timeout after 5 seconds')), 5000)
-              );
-              
-              const result = await Promise.race([
-                profilePromise,
-                timeoutPromise
-              ]) as any;
-              
-              userProfile = result.data;
-              profileError = result.error;
-            } catch (supabaseError: any) {
-              console.error('🟣 AppContext: Supabase query failed:', supabaseError);
-              profileError = supabaseError;
+              try {
+                userProfile = await api.users.create(newUser);
+                console.log('✅ AppContext: User created in backend');
+              } catch (createError) {
+                console.warn('⚠️ AppContext: Failed to create user in backend:', createError);
+                // Use the newUser object anyway
+                userProfile = newUser;
+              }
+            } else {
+              throw apiError;
             }
           }
 
-          console.log('🟣 AppContext: Profile fetch result:', { 
-            hasProfile: !!userProfile, 
-            error: profileError?.message,
-            errorCode: profileError?.code,
-            errorDetails: profileError
-          });
-
-          if (!profileError && userProfile) {
+          if (userProfile) {
             const user = {
               id: userProfile.id,
               name: userProfile.name,
@@ -704,43 +846,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             dispatch({ type: 'SET_AUTHENTICATED', payload: true });
             console.log('🟣 AppContext: User set successfully');
             // Fetch user data after setting user
-            fetchUserData();
-          } else {
-            // User authenticated but no profile - create one
-            console.log('🟣 AppContext: No profile found, creating user profile...');
-            const newUser = {
-              id: session.user.id,
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-              email: session.user.email || '',
-              role: 'contributor' as const,
-              avatar: session.user.user_metadata?.avatar_url,
-              isOnline: true,
-            };
-            
-            // Try to create user in database
-            const { error: createError } = await supabase
-              .from('users')
-              .insert([{
-                id: newUser.id,
-                name: newUser.name,
-                email: newUser.email,
-                role: newUser.role,
-                avatar: newUser.avatar,
-              }]);
-
-            if (createError) {
-              console.warn('🟣 AppContext: Failed to create user profile:', createError);
-              // Continue anyway - user is authenticated
-            } else {
-              console.log('🟣 AppContext: User profile created successfully');
-            }
-            
-            console.log('🟣 AppContext: Dispatching SET_USER with new user:', newUser);
-            dispatch({ type: 'SET_USER', payload: newUser });
-            dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-            console.log('🟣 AppContext: User set successfully');
-            // Fetch user data after setting user
-            fetchUserData();
+            fetchUserData(session.user.id);
           }
         } catch (error) {
           console.error('❌ AppContext: Exception fetching user profile on auth change:', error);
@@ -757,7 +863,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'SET_USER', payload: fallbackUser });
           dispatch({ type: 'SET_AUTHENTICATED', payload: true });
           // Fetch user data after setting user
-          fetchUserData();
+          fetchUserData(session.user.id);
         }
       } else if (event === 'SIGNED_OUT') {
         // User signed out - clear everything
@@ -766,6 +872,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_AUTHENTICATED', payload: false });
         timerService.clearTimer();
         storage.clear();
+        // Clear fetch refs to allow fresh data fetch on next login
+        fetchUserDataRef.current = null;
+        lastFetchedUserIdRef.current = null;
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         // Token refreshed - ensure user is still authenticated
         console.log('🟣 AppContext: TOKEN_REFRESHED event');
@@ -777,7 +886,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.log('🟣 AppContext: Cleaning up auth state listener');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserData]);
 
   // Apply theme to document
   useEffect(() => {

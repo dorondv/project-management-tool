@@ -7,7 +7,8 @@ import { AuthPage } from './components/auth/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Tasks from './pages/Tasks';
-import Team from './pages/Team';
+// Team feature hidden for current version - keep for future use
+// import Team from './pages/Team';
 import Settings from './pages/Settings';
 import Calendar from './pages/Calendar';
 import Notifications from './pages/Notifications';
@@ -58,7 +59,8 @@ function AppContent() {
           <Route path="/customers" element={<Customers />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/timer" element={<Timer />} />
-          <Route path="/team" element={<Team />} />
+          {/* Team feature hidden for current version - keep for future use */}
+          {/* <Route path="/team" element={<Team />} /> */}
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/incomes" element={<Incomes />} />

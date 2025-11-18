@@ -1,18 +1,71 @@
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Users, MoreHorizontal } from 'lucide-react';
-import { Project } from '../../types';
+import { Calendar, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Project, Locale } from '../../types';
 import { formatDate } from '../../utils/dateUtils';
 import { getStatusColor, getProgressColor } from '../../utils/colorUtils';
 import { Badge } from '../common/Badge';
-import { Avatar } from '../common/Avatar';
 import { Card } from '../common/Card';
+import { useApp } from '../../context/AppContext';
+
+const translations = {
+  en: {
+    editProject: 'Edit Project',
+    deleteProject: 'Delete Project',
+  },
+  he: {
+    editProject: 'ערוך פרויקט',
+    deleteProject: 'מחק פרויקט',
+  },
+} as const;
 
 interface ProjectCardProps {
   project: Project;
   onClick: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export function ProjectCard({ project, onClick }: ProjectCardProps) {
+export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardProps) {
+  const { state } = useApp();
+  const locale: Locale = state.locale ?? 'en';
+  const isRTL = locale === 'he';
+  const t = translations[locale];
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    if (onEdit) {
+      onEdit();
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    if (onDelete) {
+      onDelete();
+    }
+  };
+
   return (
     <Card hover onClick={onClick} className="p-6">
       <div className="flex items-start justify-between mb-4">
@@ -24,14 +77,40 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             {project.description}
           </p>
         </div>
-        <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-          <MoreHorizontal size={16} />
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(!isMenuOpen);
+            }}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {isMenuOpen && (
+            <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10`}>
+              <button
+                onClick={handleEditClick}
+                className={`w-full px-4 py-2 ${isRTL ? 'text-right flex-row-reverse' : 'text-left'} text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2`}
+              >
+                <Edit size={16} />
+                {t.editProject}
+              </button>
+              <button
+                onClick={handleDeleteClick}
+                className={`w-full px-4 py-2 ${isRTL ? 'text-right flex-row-reverse' : 'text-left'} text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700`}
+              >
+                <Trash2 size={16} />
+                {t.deleteProject}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Badge variant="secondary" className={getStatusColor(project.status)}>
+          <Badge className={getStatusColor(project.status)}>
             {project.status.replace('-', ' ')}
           </Badge>
           <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -53,27 +132,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             <Calendar size={14} />
             <span>{formatDate(project.endDate)}</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <Users size={14} className="text-gray-500 dark:text-gray-400" />
-            <div className="flex -space-x-2">
-              {project.members.slice(0, 3).map((member) => (
-                <Avatar
-                  key={member.id}
-                  src={member.avatar}
-                  alt={member.name}
-                  size="sm"
-                  className="border-2 border-white dark:border-gray-800"
-                />
-              ))}
-              {project.members.length > 3 && (
-                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    +{project.members.length - 3}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Project members hidden for current version - team feature disabled */}
         </div>
       </div>
     </Card>

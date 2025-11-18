@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Calendar, Users, FileText, Target, Flag } from 'lucide-react';
+import { Calendar, FileText, Target, Flag } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
+import { LoadingSpinner } from '../common/LoadingSpinner';
 import { useApp } from '../../context/AppContext';
 import { Task, Locale } from '../../types';
-import { mockUsers } from '../../data/mockData';
 import toast from 'react-hot-toast';
 
 const translations = {
@@ -23,7 +23,6 @@ const translations = {
     priorityHigh: 'High',
     tags: 'Tags (comma separated)',
     tagsPlaceholder: 'frontend, ui, urgent',
-    assignTo: 'Assign To',
     cancel: 'Cancel',
     createTask: 'Create Task',
     errorSelectProject: 'Please select a project',
@@ -44,7 +43,6 @@ const translations = {
     priorityHigh: 'גבוהה',
     tags: 'תגיות (מופרדות בפסיק)',
     tagsPlaceholder: 'frontend, ui, דחוף',
-    assignTo: 'הקצה ל',
     cancel: 'ביטול',
     createTask: 'צור משימה',
     errorSelectProject: 'אנא בחר פרויקט',
@@ -67,19 +65,23 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
     title: '',
     description: '',
     projectId: projectId || '',
-    assignedTo: [] as string[],
     priority: 'medium' as 'low' | 'medium' | 'high',
     dueDate: '',
     tags: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) return; // Prevent double submission
     
     if (!formData.projectId) {
       toast.error(t.errorSelectProject);
       return;
     }
+    
+    setIsSubmitting(true);
 
     // Validate projectId is a UUID (not a timestamp)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -93,7 +95,7 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
       title: formData.title,
       description: formData.description,
       projectId: formData.projectId,
-      assignedTo: formData.assignedTo, // Array of user IDs (strings)
+      assignedTo: [state.user!.id], // Auto-assign to current user
       status: 'todo' as const,
       priority: formData.priority,
       dueDate: formData.dueDate, // Should be ISO string format
@@ -152,7 +154,6 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
         title: '',
         description: '',
         projectId: projectId || '',
-        assignedTo: [],
         priority: 'medium',
         dueDate: '',
         tags: ''
@@ -160,16 +161,9 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
     } catch (error: any) {
       console.error('Failed to create task:', error);
       toast.error(error.message || 'Failed to create task. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleAssigneeToggle = (userId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      assignedTo: prev.assignedTo.includes(userId)
-        ? prev.assignedTo.filter(id => id !== userId)
-        : [...prev.assignedTo, userId]
-    }));
   };
 
   return (
@@ -272,39 +266,29 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
               placeholder={t.tagsPlaceholder}
             />
           </div>
-
-          <div className="md:col-span-2">
-            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-              <Users size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
-              {t.assignTo}
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {mockUsers.map(user => (
-                <label key={user.id} className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'} p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer`}>
-                  <input
-                    type="checkbox"
-                    checked={formData.assignedTo.includes(user.id)}
-                    onChange={() => handleAssigneeToggle(user.id)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="w-6 h-6 rounded-full"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{user.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className={`flex ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} gap-3`}>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t.cancel}
           </Button>
-          <Button type="submit">
-            {t.createTask}
+          <Button 
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <LoadingSpinner size="sm" />
+                {isRTL ? 'יוצר...' : 'Creating...'}
+              </span>
+            ) : (
+              t.createTask
+            )}
           </Button>
         </div>
       </form>
