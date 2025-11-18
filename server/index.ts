@@ -2,6 +2,16 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import { ensureDatabaseUrlForPrisma, maskDatabaseUrl } from './utils/databaseUrl.js';
+
+const dbNormalization = ensureDatabaseUrlForPrisma();
+if (dbNormalization.messages.length > 0) {
+  console.log('ℹ️  Database URL check:');
+  dbNormalization.messages.forEach((message) => console.log(`   - ${message}`));
+}
+if (dbNormalization.maskedUrl) {
+  console.log(`🗄️  Using DATABASE_URL: ${dbNormalization.maskedUrl}`);
+}
 
 // Prisma Client configuration for Supabase connection pooling
 // Using transaction mode (port 6543) - better for Prisma with Supabase pooler
@@ -9,6 +19,12 @@ import { PrismaClient } from '@prisma/client';
 // This prevents connection exhaustion and ensures proper pooling
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  // Connection pool optimization is handled via DATABASE_URL parameters
+  // For better performance with Supabase:
+  // - Use connection pooling (pgbouncer=true)
+  // - Set connection_limit=5-10 for parallel queries (transaction mode can handle more)
+  // - Enable SSL (sslmode=require)
+  // Note: With pgbouncer, we can use more connections safely
 });
 import { usersRouter } from './routes/users.js';
 import { projectsRouter } from './routes/projects.js';
@@ -19,6 +35,7 @@ import { incomesRouter } from './routes/incomes.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { activitiesRouter } from './routes/activities.js';
 import { timersRouter } from './routes/timers.js';
+import { dashboardRouter } from './routes/dashboard.js';
 
 const app = express();
 
@@ -63,6 +80,7 @@ app.use('/api/incomes', incomesRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/activities', activitiesRouter);
 app.use('/api/timers', timersRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -96,6 +114,7 @@ async function startServer() {
       const urlObj = new URL(dbUrl);
       console.warn(`   Database host: ${urlObj.hostname}:${urlObj.port}`);
       console.warn(`   Has pgbouncer: ${dbUrl.includes('pgbouncer=true') ? 'Yes' : 'No'}`);
+      console.warn(`   Effective URL: ${maskDatabaseUrl(dbUrl)}`);
     } else {
       console.error('   ❌ DATABASE_URL is not set in environment variables');
     }

@@ -19,6 +19,8 @@ export interface Project {
   members: User[];
   tasks: Task[];
   createdBy: string;
+  customerId?: string;
+  customer?: Customer;
   createdAt: Date;
   updatedAt: Date;
 }

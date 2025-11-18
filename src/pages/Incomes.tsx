@@ -33,7 +33,7 @@ const translations: Record<
   }
 > = {
   en: {
-    pageTitle: 'Revenue Ops',
+    pageTitle: 'Income Management',
     pageSubtitle: 'Track all your incomes',
     newIncome: 'New Income',
     searchPlaceholder: 'Search incomes...',

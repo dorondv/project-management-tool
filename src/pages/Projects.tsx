@@ -1,10 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Filter, Search, FolderOpen } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ProjectCard } from '../components/projects/ProjectCard';
 import { CreateProjectModal } from '../components/projects/CreateProjectModal';
+import { EditProjectModal } from '../components/projects/EditProjectModal';
 import { Button } from '../components/common/Button';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { Project } from '../types';
+import toast from 'react-hot-toast';
 
 const projectTranslations = {
   en: {
@@ -18,6 +23,10 @@ const projectTranslations = {
       inProgress: 'In Progress',
       completed: 'Completed',
       onHold: 'On Hold',
+    },
+    customer: {
+      all: 'All Customers',
+      label: 'Customer',
     },
     moreFilters: 'More Filters',
     emptyTitle: 'No projects found',
@@ -36,6 +45,10 @@ const projectTranslations = {
       completed: 'הושלם',
       onHold: 'בהמתנה',
     },
+    customer: {
+      all: 'כל הלקוחות',
+      label: 'לקוח',
+    },
     moreFilters: 'מסננים נוספים',
     emptyTitle: 'לא נמצאו פרויקטים',
     emptySubtitle: 'התחילו ביצירת הפרויקט הראשון שלכם',
@@ -44,14 +57,60 @@ const projectTranslations = {
 } as const;
 
 export default function Projects() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [customerFilter, setCustomerFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
 
   const locale = state.locale;
   const isRTL = locale === 'he';
   const t = projectTranslations[locale];
+
+  const handleDeleteProject = async (project: Project) => {
+    const confirmMessage = locale === 'he' 
+      ? `האם אתה בטוח שברצונך למחוק את הפרויקט "${project.title}"?`
+      : `Are you sure you want to delete the project "${project.title}"?`;
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        // Delete via API first
+        const { api } = await import('../utils/api');
+        await api.projects.delete(project.id);
+        
+        // Update local state
+        dispatch({ type: 'DELETE_PROJECT', payload: project.id });
+        
+        toast.success(locale === 'he' ? 'הפרויקט נמחק בהצלחה' : 'Project deleted successfully');
+      } catch (error: any) {
+        console.error('Failed to delete project:', error);
+        toast.error(error.message || (locale === 'he' ? 'שגיאה במחיקת הפרויקט' : 'Failed to delete project. Please try again.'));
+      }
+    }
+  };
+
+  // Initialize customer filter from URL params
+  useEffect(() => {
+    const customerParam = searchParams.get('customer');
+    if (customerParam) {
+      setCustomerFilter(customerParam);
+    }
+  }, [searchParams]);
+
+  // Set loading state based on whether projects are loaded
+  useEffect(() => {
+    // If the app is loading (initial load), show loading
+    if (state.loading) {
+      setIsLoading(true);
+    } else {
+      // Once app loading is done, we can show the projects (even if empty)
+      setIsLoading(false);
+    }
+  }, [state.loading]);
 
   const filteredProjects = useMemo(() =>
     state.projects.filter(project => {
@@ -59,9 +118,10 @@ export default function Projects() {
       const matchesSearch = project.title.toLowerCase().includes(query) ||
         project.description.toLowerCase().includes(query);
       const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesCustomer = customerFilter === 'all' || project.customerId === customerFilter;
+      return matchesSearch && matchesStatus && matchesCustomer;
     }),
-    [state.projects, searchQuery, statusFilter]
+    [state.projects, searchQuery, statusFilter, customerFilter]
   );
 
   const alignStart = isRTL ? 'text-right' : 'text-left';
@@ -124,6 +184,18 @@ export default function Projects() {
             <option value="completed">{t.status.completed}</option>
             <option value="on-hold">{t.status.onHold}</option>
           </select>
+          <select
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectAlign}`}
+          >
+            <option value="all">{t.customer.all}</option>
+            {state.customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+              </option>
+            ))}
+          </select>
           <Button
             variant="outline"
             icon={<Filter size={16} />}
@@ -146,13 +218,26 @@ export default function Projects() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
+              {locale === 'he' ? 'טוען פרויקטים...' : 'Loading projects...'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Projects Grid */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-      >
-        {filteredProjects.map((project, index) => (
+      {!isLoading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {filteredProjects.map((project, index) => (
           <motion.div
             key={project.id}
             initial={{ opacity: 0, y: 20 }}
@@ -162,12 +247,18 @@ export default function Projects() {
             <ProjectCard
               project={project}
               onClick={() => {/* Handle project click */}}
+              onEdit={() => {
+                setEditingProject(project);
+                setIsEditModalOpen(true);
+              }}
+              onDelete={() => handleDeleteProject(project)}
             />
           </motion.div>
         ))}
-      </motion.div>
+        </motion.div>
+      )}
 
-      {filteredProjects.length === 0 && (
+      {!isLoading && filteredProjects.length === 0 && (
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <FolderOpen size={32} className="text-gray-400" />
@@ -190,6 +281,14 @@ export default function Projects() {
       <CreateProjectModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+      />
+      <EditProjectModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingProject(null);
+        }}
+        project={editingProject}
       />
     </div>
   );

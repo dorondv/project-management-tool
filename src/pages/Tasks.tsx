@@ -242,7 +242,7 @@ export default function Tasks() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="min-h-[600px]"
+          className={`min-h-[600px] ${isRTL ? 'text-right' : 'text-left'}`}
         >
           {viewMode === 'kanban' ? (
             <KanbanBoard />
