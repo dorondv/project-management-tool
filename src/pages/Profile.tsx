@@ -98,7 +98,7 @@ export default function Profile() {
       // Update local state
       dispatch({ type: 'SET_USER', payload: updatedUser });
       
-      // Sync to API/database
+      // Sync to backend API
       try {
         const { api } = await import('../utils/api');
         await api.users.update(state.user.id, {
@@ -107,21 +107,6 @@ export default function Profile() {
           role: updatedUser.role,
           avatar: updatedUser.avatar,
         });
-        
-        // Also update in Supabase users table if using Supabase Auth
-        const { supabase } = await import('../utils/supabase');
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          await supabase
-            .from('users')
-            .update({
-              name: updatedUser.name,
-              email: updatedUser.email,
-              role: updatedUser.role,
-              avatar: updatedUser.avatar,
-            })
-            .eq('id', state.user.id);
-        }
         
         toast.success(t.profileUpdated);
       } catch (error) {

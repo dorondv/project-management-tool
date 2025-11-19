@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
-import { LayoutGrid, LayoutList, Plus, Search } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { LayoutGrid, LayoutList, Plus, Search, FolderOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
-import { CustomerStatus, PaymentMethod, BillingModel, PaymentFrequency, Locale } from '../types';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { Customer, CustomerStatus, PaymentMethod, BillingModel, PaymentFrequency, Locale } from '../types';
 import { CreateCustomerModal } from '../components/customers/CreateCustomerModal';
 
 type ViewMode = 'list' | 'grid';
@@ -118,6 +120,7 @@ const translations: Record<
       billingCycle: string;
       annualFee: string;
       monthlyRetainer: string;
+      hourlyRate: string;
       hoursPerMonth: string;
       referralSource: string;
       details: string;
@@ -129,20 +132,23 @@ const translations: Record<
       tenureLabel: string;
       tenureUnit: string;
       monthlyRetainerLabel: string;
+      hourlyRateLabel: string;
       scoreLabel: string;
+      activeProjects: string;
+      viewProjects: string;
       detailsButton: string;
       empty: string;
     };
   }
 > = {
   en: {
-    pageTitle: 'Customer Management',
+    pageTitle: 'Customers',
     pageSubtitle: 'All of your customers in one place',
     newCustomer: 'New Customer',
     metrics: {
       totalCustomers: 'Total Customers',
       activeCustomers: 'Active Customers',
-      monthlyRecurring: 'Monthly Retainer Revenue',
+      monthlyRecurring: 'Monthly Revenue',
     },
     filters: {
       searchPlaceholder: 'Search customer by name, tax ID, or email',
@@ -159,7 +165,8 @@ const translations: Record<
       billingModel: 'Billing Model',
       billingCycle: 'Billing Cycle',
       annualFee: 'Annual Fee',
-      monthlyRetainer: 'Monthly Retainer',
+      monthlyRetainer: 'Retainer/Hourly',
+      hourlyRate: 'Hourly Rate',
       hoursPerMonth: 'Hours / Month',
       referralSource: 'Lead Source',
       details: 'Details',
@@ -171,19 +178,22 @@ const translations: Record<
       tenureLabel: 'Tenure',
       tenureUnit: 'months',
       monthlyRetainerLabel: 'Monthly Retainer',
+      hourlyRateLabel: 'Hourly Rate',
       scoreLabel: 'Score',
+      activeProjects: 'Active Projects',
+      viewProjects: 'View Projects',
       detailsButton: 'Customer Details',
       empty: 'No customers to display',
     },
   },
   he: {
-    pageTitle: 'ניהול לקוחות',
+    pageTitle: 'לקוחות',
     pageSubtitle: 'כל הלקוחות שלך במקום אחד',
     newCustomer: 'לקוח חדש',
     metrics: {
       totalCustomers: 'סה"כ לקוחות',
       activeCustomers: 'לקוחות פעילים',
-      monthlyRecurring: 'הכנסה חודשית מריטיינר',
+      monthlyRecurring: 'הכנסה חודשית',
     },
     filters: {
       searchPlaceholder: 'חיפוש לקוח לפי שם, ח"פ או אימייל',
@@ -200,7 +210,8 @@ const translations: Record<
       billingModel: 'מודל חיוב',
       billingCycle: 'מחזור חיוב',
       annualFee: 'תעריף שנתי',
-      monthlyRetainer: 'ריטיינר חודשי',
+      monthlyRetainer: 'ריטיינר/שעתי',
+      hourlyRate: 'תעריף שעתי',
       hoursPerMonth: 'שעות לחודש',
       referralSource: 'מקור הגעה',
       details: 'פרטים',
@@ -212,7 +223,10 @@ const translations: Record<
       tenureLabel: 'וותק',
       tenureUnit: 'חודשים',
       monthlyRetainerLabel: 'ריטיינר חודשי',
+      hourlyRateLabel: 'תעריף שעתי',
       scoreLabel: 'Score',
+      activeProjects: 'פרויקטים פעילים',
+      viewProjects: 'צפה בפרויקטים',
       detailsButton: 'פרטי לקוח',
       empty: 'לא נמצאו לקוחות תואמים להצגה',
     },
@@ -262,6 +276,7 @@ interface CustomersMetrics {
 
 export default function Customers() {
   const { state } = useApp();
+  const navigate = useNavigate();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
@@ -270,14 +285,69 @@ export default function Customers() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Set loading state based on whether customers are loaded
+  useEffect(() => {
+    // If the app is loading (initial load), show loading
+    if (state.loading) {
+      setIsLoading(true);
+    } else {
+      // Once app loading is done, we can show the customers (even if empty)
+      setIsLoading(false);
+    }
+  }, [state.loading]);
+
+  const getCustomerProjectCount = (customerId: string) => {
+    return state.projects.filter(p => p.customerId === customerId).length;
+  };
+
+  const handleViewProjects = (customerId: string) => {
+    navigate(`/projects?customer=${customerId}`);
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setIsCustomerModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsCustomerModalOpen(false);
+    setEditingCustomer(null);
+  };
+
+  const handleNewCustomer = () => {
+    setEditingCustomer(null);
+    setIsCustomerModalOpen(true);
+  };
 
   const metrics = useMemo<CustomersMetrics>(() => {
     const total = state.customers.length;
     const active = state.customers.filter((customer) => customer.status === 'active').length;
-    const monthlyRecurring = state.customers.reduce((sum, customer) => sum + (customer.monthlyRetainer || 0), 0);
+    
+    // Calculate actual income earned so far
+    const monthlyRecurring = state.customers.reduce((sum, customer) => {
+      let customerIncome = 0;
+      
+      if (customer.billingModel === 'hourly') {
+        // For hourly billing: sum all actual hours worked * rate (from time entries)
+        const customerTimeEntries = state.timeEntries.filter(te => te.customerId === customer.id);
+        customerIncome = customerTimeEntries.reduce((entrySum, entry) => entrySum + (entry.income || 0), 0);
+      } else {
+        // For retainer billing: use monthly retainer amount
+        customerIncome = customer.monthlyRetainer || 0;
+      }
+      
+      // Add income from Income records (applies to both billing models)
+      const customerIncomes = state.incomes.filter(inc => inc.customerId === customer.id);
+      const incomeFromRecords = customerIncomes.reduce((incSum, inc) => incSum + (inc.finalAmount || 0), 0);
+      
+      return sum + customerIncome + incomeFromRecords;
+    }, 0);
 
     return { total, active, monthlyRecurring };
-  }, [state.customers]);
+  }, [state.customers, state.timeEntries, state.incomes]);
 
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -317,7 +387,7 @@ export default function Customers() {
         <Button 
           variant="primary" 
           icon={<Plus size={16} />}
-          onClick={() => setIsCustomerModalOpen(true)}
+          onClick={handleNewCustomer}
         >
           {t.newCustomer}
         </Button>
@@ -396,7 +466,19 @@ export default function Customers() {
         </div>
       </div>
 
-      {viewMode === 'list' ? (
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
+              {locale === 'he' ? 'טוען לקוחות...' : 'Loading customers...'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && viewMode === 'list' ? (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className={`min-w-full divide-y divide-gray-200 dark:divide-gray-700 ${alignStart}`}>
@@ -443,6 +525,9 @@ export default function Customers() {
                   </th>
                   <th scope="col" className={`px-4 py-3 font-semibold ${alignStart}`}>
                     {t.table.referralSource}
+                  </th>
+                  <th scope="col" className={`px-4 py-3 font-semibold ${alignStart}`}>
+                    {t.grid.activeProjects}
                   </th>
                   <th scope="col" className={`px-4 py-3 font-semibold ${alignStart}`}>
                     {t.table.details}
@@ -500,17 +585,33 @@ export default function Customers() {
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
                         {customer.referralSource || t.table.referralFallback}
                       </td>
+                      <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
+                        {getCustomerProjectCount(customer.id)}
+                      </td>
                       <td className={`px-4 py-4 ${alignStart}`}>
-                        <Button variant="outline" size="sm">
-                          {t.table.details}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewProjects(customer.id)}
+                          >
+                            {t.grid.viewProjects}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditCustomer(customer)}
+                          >
+                            {t.table.details}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
                 {filteredCustomers.length === 0 && (
                   <tr>
-                    <td colSpan={15} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={16} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">
                       {t.table.noResults}
                     </td>
                   </tr>
@@ -519,7 +620,7 @@ export default function Customers() {
             </table>
           </div>
         </div>
-      ) : (
+      ) : !isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredCustomers.map((customer) => {
             const tenure = calculateTenureMonths(customer.joinDate);
@@ -553,18 +654,42 @@ export default function Customers() {
                     </span>
                   </div>
                   <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-gray-500 dark:text-gray-400">{t.grid.monthlyRetainerLabel}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {customer.billingModel === 'hourly' ? t.grid.hourlyRateLabel : t.grid.monthlyRetainerLabel}
+                    </span>
                     <span>{formatCurrency(customer.monthlyRetainer, customer.currency, locale)}</span>
                   </div>
                   <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <span className="text-gray-500 dark:text-gray-400">{t.grid.scoreLabel}</span>
                     <span className="font-semibold text-gray-900 dark:text-white">{customer.customerScore}</span>
                   </div>
+                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <FolderOpen size={14} />
+                      {t.grid.activeProjects}
+                    </span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {getCustomerProjectCount(customer.id)}
+                    </span>
+                  </div>
                 </div>
 
-                <Button className="mt-5 w-full" variant="outline">
-                  {t.grid.detailsButton}
-                </Button>
+                <div className="mt-5 flex gap-2">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={() => handleViewProjects(customer.id)}
+                  >
+                    {t.grid.viewProjects}
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={() => handleEditCustomer(customer)}
+                  >
+                    {t.grid.detailsButton}
+                  </Button>
+                </div>
               </div>
             );
           })}
@@ -574,13 +699,13 @@ export default function Customers() {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Customer Modal */}
       <CreateCustomerModal
         isOpen={isCustomerModalOpen}
-        onClose={() => setIsCustomerModalOpen(false)}
-        customer={null}
+        onClose={handleCloseModal}
+        customer={editingCustomer}
       />
     </div>
   );

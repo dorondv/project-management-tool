@@ -19,28 +19,32 @@ export function StatsCard({ title, value, change, icon, color }: StatsCardProps)
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700"
+      className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col"
     >
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between flex-1 gap-3">
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-          {change && (
-            <div className="flex items-center mt-2">
-              {change.type === 'increase' ? (
-                <TrendingUp size={16} className="text-green-500" />
-              ) : (
-                <TrendingDown size={16} className="text-red-500" />
-              )}
-              <span className={`text-sm ms-1 ${
-                change.type === 'increase' ? 'text-green-500' : 'text-red-500'
-              }`}>
-                {change.value}%
-              </span>
-            </div>
-          )}
+          <div className="flex items-center mt-2 h-5">
+            {change ? (
+              <>
+                {change.type === 'increase' ? (
+                  <TrendingUp size={16} className="text-green-500" />
+                ) : (
+                  <TrendingDown size={16} className="text-red-500" />
+                )}
+                <span className={`text-sm ms-1 ${
+                  change.type === 'increase' ? 'text-green-500' : 'text-red-500'
+                }`}>
+                  {change.value}%
+                </span>
+              </>
+            ) : (
+              <span className="text-sm text-transparent">0%</span>
+            )}
+          </div>
         </div>
-        <div className={`p-3 rounded-lg ${color}`}>
+        <div className={`p-3 rounded-lg ${color} flex-shrink-0`}>
           {icon}
         </div>
       </div>

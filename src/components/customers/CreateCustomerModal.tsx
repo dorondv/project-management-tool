@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
+import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Customer, Locale, CustomerStatus, PaymentMethod, PaymentFrequency, BillingModel } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../utils/api';
@@ -13,6 +14,7 @@ interface CreateCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
   customer?: Customer | null;
+  onCustomerCreated?: (customerId: string) => void;
 }
 
 const translations = {
@@ -192,6 +194,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
   });
 
   const [joinDate, setJoinDate] = useState<Date | null>(customer?.joinDate ? new Date(customer.joinDate) : new Date());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (customer) {
@@ -269,6 +272,10 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
       return;
     }
 
+    if (isSubmitting) return; // Prevent double submission
+
+    setIsSubmitting(true);
+
     try {
       // Prepare customer data matching Prisma schema
       const customerData: any = {
@@ -314,6 +321,8 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
     } catch (error: any) {
       console.error('Failed to save customer:', error);
       toast.error(error.message || (isRTL ? 'שגיאה בשמירת הלקוח' : 'Failed to save customer'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -682,11 +691,27 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
         </div>
 
         <div className={`flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700 ${flexDirection}`}>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t.cancel}
           </Button>
-          <Button type="submit" className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white">
-            {customer ? t.updateCustomer : t.addCustomer}
+          <Button 
+            type="submit" 
+            className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className={`flex items-center gap-2 ${flexDirection}`}>
+                <LoadingSpinner size="sm" />
+                {isRTL ? 'שומר...' : 'Saving...'}
+              </span>
+            ) : (
+              customer ? t.updateCustomer : t.addCustomer
+            )}
           </Button>
         </div>
       </form>

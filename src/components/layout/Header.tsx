@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 const headerTranslations = {
   en: {
-    searchPlaceholder: 'Search projects, tasks, or team members...',
+    searchPlaceholder: 'Search projects or tasks...',
     profile: 'Profile',
     logout: 'Logout',
     switchToDark: 'Switched to dark mode',
@@ -20,7 +20,7 @@ const headerTranslations = {
     switchLocaleLabel: 'Switch to Hebrew',
   },
   he: {
-    searchPlaceholder: 'חיפוש פרויקטים, משימות או חברי צוות...',
+    searchPlaceholder: 'חיפוש פרויקטים או משימות...',
     profile: 'פרופיל',
     logout: 'התנתקות',
     switchToDark: 'הופעלה תצוגה כהה',

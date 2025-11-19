@@ -48,13 +48,15 @@ model Project {
   progress    Int      @default(0)
   priority    String   @default("medium") // low, medium, high
   createdBy   String
+  customerId  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  creator User        @relation("ProjectCreator", fields: [createdBy], references: [id])
-  tasks   Task[]
-  members ProjectMember[]
+  creator  User        @relation("ProjectCreator", fields: [createdBy], references: [id])
+  customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tasks    Task[]
+  members  ProjectMember[]
 
   @@map("projects")
 }
@@ -201,6 +203,7 @@ model Customer {
   updatedAt       DateTime @updatedAt
 
   // Relations
+  projects    Project[]
   timeEntries TimeEntry[]
   incomes     Income[]
   timers      ActiveTimer[]
