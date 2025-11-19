@@ -59,62 +59,41 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
         // The auth state listener will handle setting the user
         // But we'll also set it here to ensure immediate UI update
         try {
-          console.log('🔵 LoginForm: Fetching user profile from database...');
-          // Fetch user profile from our database
-          const { data: userProfile, error: profileError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
+          console.log('🔵 LoginForm: Fetching user profile from backend...');
+          const { api } = await import('../../utils/api');
           
-          console.log('🔵 LoginForm: Profile fetch result:', { 
-            hasProfile: !!userProfile, 
-            error: profileError?.message 
-          });
-
-          if (profileError || !userProfile) {
-            // If user doesn't exist in our database, create a basic profile
-            const newUser = {
-              id: data.user.id,
-              name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
-              email: data.user.email || '',
-              role: 'contributor' as const,
-              avatar: data.user.user_metadata?.avatar_url,
-              isOnline: true,
-            };
-
-            // Try to create user in database
-            const { error: createError } = await supabase
-              .from('users')
-              .insert([{
-                id: newUser.id,
-                name: newUser.name,
-                email: newUser.email,
-                role: newUser.role,
-                avatar: newUser.avatar,
-              }])
-              .select()
-              .single();
-
-            if (!createError) {
-              console.log('✅ LoginForm: Creating new user profile, dispatching SET_USER:', newUser);
-              dispatch({ type: 'SET_USER', payload: newUser });
-              dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-              console.log('✅ LoginForm: User state updated, waiting for re-render...');
-              toast.success(`Welcome back, ${newUser.name}!`);
-              // Force a small delay to ensure state updates propagate
-              await new Promise(resolve => setTimeout(resolve, 100));
-              console.log('✅ LoginForm: Login complete');
+          let userProfile = null;
+          try {
+            // Try to get user by ID from backend
+            userProfile = await api.users.getById(data.user.id);
+            console.log('✅ LoginForm: User found in backend');
+          } catch (apiError: any) {
+            // User doesn't exist in backend, create it
+            if (apiError.status === 404) {
+              console.log('🔵 LoginForm: User not found in backend, creating...');
+              const newUser = {
+                id: data.user.id,
+                name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
+                email: data.user.email || '',
+                role: 'contributor' as const,
+                avatar: data.user.user_metadata?.avatar_url,
+                isOnline: true,
+              };
+              
+              try {
+                userProfile = await api.users.create(newUser);
+                console.log('✅ LoginForm: User created in backend');
+              } catch (createError) {
+                console.warn('⚠️ LoginForm: Failed to create user in backend:', createError);
+                // Use the newUser object anyway
+                userProfile = newUser;
+              }
             } else {
-              console.log('⚠️ LoginForm: Profile creation failed, using user anyway:', createError);
-              // Use the user object anyway (might be a constraint issue)
-              dispatch({ type: 'SET_USER', payload: newUser });
-              dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-              toast.success(`Welcome back, ${newUser.name}!`);
-              await new Promise(resolve => setTimeout(resolve, 100));
+              throw apiError;
             }
-          } else {
-            // User exists in database, use their profile
+          }
+
+          if (userProfile) {
             const user = {
               id: userProfile.id,
               name: userProfile.name,
@@ -123,10 +102,9 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
               avatar: userProfile.avatar,
               isOnline: true,
             };
-            console.log('✅ LoginForm: User profile found, dispatching SET_USER:', user);
+            console.log('✅ LoginForm: Dispatching SET_USER:', user);
             dispatch({ type: 'SET_USER', payload: user });
             dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-            console.log('✅ LoginForm: User state updated, waiting for re-render...');
             toast.success(`Welcome back, ${user.name}!`);
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('✅ LoginForm: Login complete');

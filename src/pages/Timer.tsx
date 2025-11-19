@@ -10,7 +10,7 @@ import { timerService } from '../utils/timerService';
 
 const translations = {
   en: {
-    title: 'Time Tracking',
+    title: 'Timer',
     subtitle: 'Start tracking your time on projects',
     selectCustomer: 'Select Customer',
     selectProject: 'Select Project',
@@ -221,7 +221,7 @@ export default function Timer() {
     toast.success(isRTL ? 'טיימר חודש' : 'Timer resumed');
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
     if ((!isRunning && !isPaused) || !activeTimer || !selectedCustomer) {
       return;
     }
@@ -230,31 +230,52 @@ export default function Timer() {
     const timerLog = timerService.stopTimer(hourlyRate);
 
     if (timerLog) {
-      // Convert TimerLog to TimeEntry format
-      const newEntry: TimeEntry = {
-        id: timerLog.id,
-        customerId: timerLog.customerId,
-        projectId: timerLog.projectId,
-        taskId: timerLog.taskId,
-        description: timerLog.description,
-        startTime: timerLog.startTime,
-        endTime: timerLog.endTime,
-        duration: timerLog.duration,
-        hourlyRate: timerLog.hourlyRate,
-        income: timerLog.income,
-        userId: timerLog.userId,
-        createdAt: timerLog.createdAt,
-        updatedAt: timerLog.updatedAt,
-      };
+      try {
+        // Save to database first
+        const { api } = await import('../utils/api');
+        const timeEntryData = {
+          customerId: timerLog.customerId,
+          projectId: timerLog.projectId,
+          taskId: timerLog.taskId || undefined,
+          description: timerLog.description,
+          startTime: timerLog.startTime.toISOString(),
+          endTime: timerLog.endTime.toISOString(),
+          hourlyRate: timerLog.hourlyRate,
+          userId: timerLog.userId,
+        };
 
-      dispatch({ type: 'ADD_TIME_ENTRY', payload: newEntry });
-      toast.success(isRTL ? 'רישום זמן נשמר בהצלחה' : 'Time entry saved successfully');
+        const createdEntry = await api.timeEntries.create(timeEntryData);
 
-      // Reset form
-      setSelectedCustomerId('');
-      setSelectedProjectId('');
-      setSelectedTaskId('');
-      setDescription('');
+        // Convert API response to TimeEntry format
+        const newEntry: TimeEntry = {
+          id: createdEntry.id,
+          customerId: createdEntry.customerId,
+          projectId: createdEntry.projectId,
+          taskId: createdEntry.taskId,
+          description: createdEntry.description,
+          startTime: new Date(createdEntry.startTime),
+          endTime: new Date(createdEntry.endTime),
+          duration: createdEntry.duration,
+          hourlyRate: createdEntry.hourlyRate,
+          income: createdEntry.income,
+          userId: createdEntry.userId,
+          createdAt: new Date(createdEntry.createdAt),
+          updatedAt: new Date(createdEntry.updatedAt),
+        };
+
+        // Add to local state (this will also sync to localStorage)
+        dispatch({ type: 'ADD_TIME_ENTRY', payload: newEntry });
+        toast.success(isRTL ? 'רישום זמן נשמר בהצלחה' : 'Time entry saved successfully');
+
+        // Reset form
+        setSelectedCustomerId('');
+        setSelectedProjectId('');
+        setSelectedTaskId('');
+        setDescription('');
+      } catch (error: any) {
+        console.error('Failed to save time entry:', error);
+        toast.error(error.message || (isRTL ? 'שגיאה בשמירת רישום זמן' : 'Failed to save time entry. Please try again.'));
+      }
     }
   };
 

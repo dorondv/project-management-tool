@@ -62,7 +62,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           return;
         }
 
-        // Create user profile in our database
+        // Create user profile in backend database
         const newUser = {
           id: authData.user.id,
           name: formData.name,
@@ -72,19 +72,13 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           isOnline: true,
         };
 
-        // Insert user into database
-        const { error: dbError } = await supabase
-          .from('users')
-          .insert([{
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            role: newUser.role,
-            avatar: newUser.avatar,
-          }]);
-
-        if (dbError) {
-          console.warn('Failed to create user profile:', dbError);
+        // Insert user into backend database
+        try {
+          const { api } = await import('../../utils/api');
+          await api.users.create(newUser);
+          console.log('✅ RegisterForm: User created in backend');
+        } catch (dbError) {
+          console.warn('⚠️ RegisterForm: Failed to create user profile in backend:', dbError);
           // Continue anyway - user is authenticated
         }
 

@@ -239,6 +239,16 @@ export const api = {
         method: 'DELETE',
       }).then(() => null),
   },
+
+  // Dashboard - optimized single endpoint for initial data
+  dashboard: {
+    getInitialData: (userId?: string) => {
+      const url = userId 
+        ? `${API_URL}/api/dashboard/initial-data?userId=${encodeURIComponent(userId)}`
+        : `${API_URL}/api/dashboard/initial-data`;
+      return fetch(url).then(handleResponse);
+    },
+  },
 };
 
 export { ApiError };

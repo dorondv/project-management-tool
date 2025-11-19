@@ -7,7 +7,6 @@ import {
   Paperclip, 
   Flag, 
   Clock,
-  Edit3,
   Trash2,
   Send
 } from 'lucide-react';
@@ -133,9 +132,6 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
             </div>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" icon={<Edit3 size={16} />}>
-              Edit
-            </Button>
             <Button 
               variant="danger" 
               size="sm" 
@@ -170,20 +166,7 @@ export function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps)
             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Project</h3>
             <p className="text-gray-600 dark:text-gray-400">{project?.title}</p>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900 dark:text-white mb-3">Assigned To</h3>
-            <div className="flex -space-x-2">
-              {task.assignedTo.map((user) => (
-                <Avatar
-                  key={user.id}
-                  src={user.avatar}
-                  alt={user.name}
-                  size="sm"
-                  className="border-2 border-white dark:border-gray-800"
-                />
-              ))}
-            </div>
-          </div>
+          {/* Assigned users hidden for current version - tasks auto-assigned to single user */}
           <div>
             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Created</h3>
             <p className="text-gray-600 dark:text-gray-400">

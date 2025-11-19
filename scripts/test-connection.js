@@ -10,6 +10,78 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+const SUPABASE_POOLER_SUFFIX = '.pooler.supabase.com';
+const SUPABASE_POOLER_PORT = '6543';
+
+const normalizeDatabaseUrl = (value) => {
+  if (!value) {
+    return { changed: false, messages: ['DATABASE_URL not set'] };
+  }
+
+  try {
+    const url = new URL(value);
+    const messages = [];
+    let changed = false;
+
+    if (url.hostname.endsWith(SUPABASE_POOLER_SUFFIX)) {
+      if (!url.port || url.port === '5432') {
+        url.port = SUPABASE_POOLER_PORT;
+        messages.push('Adjusted port to 6543 for Supabase pooler');
+        changed = true;
+      }
+      const ensureParam = (key, val, description) => {
+        if (url.searchParams.get(key) !== val) {
+          url.searchParams.set(key, val);
+          messages.push(description);
+          changed = true;
+        }
+      };
+      ensureParam('pgbouncer', 'true', 'Added pgbouncer=true');
+      ensureParam(
+        'connection_limit',
+        '1',
+        'Set connection_limit=1 for Prisma compatibility'
+      );
+      ensureParam('sslmode', 'require', 'Enforced sslmode=require');
+    }
+
+    if (changed) {
+      const normalized = url.toString();
+      process.env.DATABASE_URL = normalized;
+      return { changed, messages, normalized };
+    }
+
+    return { changed, messages: [] };
+  } catch (error) {
+    return {
+      changed: false,
+      messages: [`Failed to parse DATABASE_URL: ${error.message}`],
+    };
+  }
+};
+
+const maskDatabaseUrl = (value) => {
+  if (!value) return value;
+  try {
+    const safe = new URL(value);
+    if (safe.password) {
+      safe.password = '****';
+    }
+    return safe.toString();
+  } catch {
+    return value;
+  }
+};
+
+const normalization = normalizeDatabaseUrl(process.env.DATABASE_URL);
+if (normalization.messages.length > 0) {
+  console.log('ℹ️  Database URL check:');
+  normalization.messages.forEach((message) => console.log(`   - ${message}`));
+}
+if (process.env.DATABASE_URL) {
+  console.log(`🗄️  Using DATABASE_URL: ${maskDatabaseUrl(process.env.DATABASE_URL)}`);
+}
+
 const prisma = new PrismaClient();
 
 async function testConnection() {

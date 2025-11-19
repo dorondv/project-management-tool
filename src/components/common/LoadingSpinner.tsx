@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -14,10 +12,12 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
 
   return (
     <div className={`flex items-center justify-center ${className}`}>
-      <motion.div
-        className={`border-2 border-gray-300 border-t-primary-500 rounded-full ${sizeClasses[size]}`}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+      <div
+        className={`border-2 border-gray-300 border-t-primary-500 rounded-full ${sizeClasses[size]} animate-spin`}
+        style={{ 
+          animation: 'spin 1s linear infinite',
+          willChange: 'transform'
+        }}
       />
     </div>
   );

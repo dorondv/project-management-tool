@@ -25,43 +25,44 @@ import { SupportModal } from '../common/SupportModal';
 
 const menuItems = [
   { icon: Home, key: 'dashboard', path: '/' },
+  { icon: Clock, key: 'timer', path: '/timer' },
+  { icon: CheckSquare, key: 'tasks', path: '/tasks' },
   { icon: FolderOpen, key: 'projects', path: '/projects' },
   { icon: Contact, key: 'customers', path: '/customers' },
-  { icon: CheckSquare, key: 'tasks', path: '/tasks' },
-  { icon: Clock, key: 'timer', path: '/timer' },
-  { icon: Users, key: 'team', path: '/team' },
   { icon: Calendar, key: 'calendar', path: '/calendar' },
   { icon: Bell, key: 'notifications', path: '/notifications' },
   { icon: DollarSign, key: 'incomes', path: '/incomes' },
+  // Team feature hidden for current version - keep for future use
+  // { icon: Users, key: 'team', path: '/team' },
   { icon: Settings, key: 'settings', path: '/settings' },
 ];
 
 const menuLabels = {
   en: {
     dashboard: 'Dashboard',
+    timer: 'Timer',
+    tasks: 'Tasks',
     projects: 'Projects',
     customers: 'Customers',
-    tasks: 'Tasks',
-    timer: 'Timer',
-    team: 'Team',
     calendar: 'Calendar',
     notifications: 'Notifications',
-    incomes: 'Revenue Ops',
+    incomes: 'Income Management',
+    // team: 'Team', // Hidden for current version - keep for future use
     settings: 'Settings',
     accessibility: 'Accessibility',
     support: 'Support',
     logout: 'Logout',
   },
   he: {
-    dashboard: 'לוח מחוונים',
+    dashboard: 'לוח בקרה',
+    timer: 'מעקב זמן',
+    tasks: 'משימות',
     projects: 'פרויקטים',
     customers: 'לקוחות',
-    tasks: 'משימות',
-    timer: 'מעקב זמן',
-    team: 'צוות',
     calendar: 'לוח שנה',
     notifications: 'התראות',
     incomes: 'ניהול הכנסות',
+    // team: 'צוות', // מוסתר בגרסה הנוכחית - שמור לשימוש עתידי
     settings: 'הגדרות',
     accessibility: 'נגישות',
     support: 'תמיכה',
