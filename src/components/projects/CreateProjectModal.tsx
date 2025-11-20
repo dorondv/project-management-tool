@@ -120,6 +120,21 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
 
       // Add to local state
       dispatch({ type: 'ADD_PROJECT', payload: newProject });
+      
+      // Add activity
+      dispatch({
+        type: 'ADD_ACTIVITY',
+        payload: {
+          id: Date.now().toString(),
+          type: 'project_created',
+          description: `created project "${newProject.title}"`,
+          userId: state.user!.id,
+          user: state.user!,
+          projectId: newProject.id,
+          createdAt: new Date()
+        }
+      });
+      
       onClose();
       
       // Reset form

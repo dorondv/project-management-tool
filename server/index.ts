@@ -15,16 +15,16 @@ if (dbNormalization.maskedUrl) {
 
 // Prisma Client configuration for Supabase connection pooling
 // Using transaction mode (port 6543) - better for Prisma with Supabase pooler
-// DATABASE_URL should include: pgbouncer=true&connection_limit=1&sslmode=require
-// This prevents connection exhaustion and ensures proper pooling
+// DATABASE_URL should include: pgbouncer=true&connection_limit=10&sslmode=require
+// This allows parallel queries while preventing connection exhaustion
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   // Connection pool optimization is handled via DATABASE_URL parameters
   // For better performance with Supabase:
   // - Use connection pooling (pgbouncer=true)
-  // - Set connection_limit=5-10 for parallel queries (transaction mode can handle more)
+  // - Set connection_limit=10 for parallel queries (transaction mode can handle more)
   // - Enable SSL (sslmode=require)
-  // Note: With pgbouncer, we can use more connections safely
+  // Note: With pgbouncer transaction mode, we can safely use 10 connections
 });
 import { usersRouter } from './routes/users.js';
 import { projectsRouter } from './routes/projects.js';

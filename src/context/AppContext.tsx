@@ -280,8 +280,24 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_TASK':
       const updatedTasks = state.tasks.map(t => t.id === action.payload.id ? action.payload : t);
       storage.set('tasks', updatedTasks);
-      // Sync with API
-      api.tasks.update(action.payload.id, action.payload).catch(err => console.warn('Failed to sync task update to API:', err));
+      // Sync with API - format data properly for backend
+      const taskToSync = {
+        title: action.payload.title,
+        description: action.payload.description,
+        status: action.payload.status,
+        priority: action.payload.priority,
+        dueDate: action.payload.dueDate instanceof Date 
+          ? action.payload.dueDate.toISOString() 
+          : new Date(action.payload.dueDate).toISOString(),
+        assignedTo: action.payload.assignedTo 
+          ? action.payload.assignedTo.map((user: any) => typeof user === 'string' ? user : user.id)
+          : undefined,
+        tags: action.payload.tags || [],
+      };
+      api.tasks.update(action.payload.id, taskToSync).catch(err => {
+        console.warn('Failed to sync task update to API:', err);
+        console.warn('Task data sent:', taskToSync);
+      });
       // Recalculate project progress
       const updatedProjectsAfterUpdate = state.projects.map(project => {
         const projectTasks = updatedTasks.filter(t => t.projectId === project.id);
@@ -345,15 +361,71 @@ function appReducer(state: AppState, action: AppAction): AppState {
         n.id === action.payload ? { ...n, read: true } : n
       );
       storage.set('notifications', updatedNotifications);
+      // Sync with API
+      api.notifications.update(action.payload, { read: true }).catch(err => 
+        console.warn('Failed to sync notification read status to API:', err)
+      );
       return { ...state, notifications: updatedNotifications };
     
     case 'SET_ACTIVITIES':
-      storage.set('activities', action.payload);
-      return { ...state, activities: action.payload };
+      // Deduplicate activities by ID and description+userId+createdAt to prevent duplicates
+      const uniqueActivities = action.payload.reduce((acc: Activity[], activity: Activity) => {
+        // Check if activity already exists by ID
+        const existsById = acc.some(a => a.id === activity.id);
+        if (existsById) return acc;
+        
+        // Check if activity already exists by description, userId, and createdAt (within 1 second tolerance)
+        const existsByContent = acc.some(a => 
+          a.description === activity.description &&
+          a.userId === activity.userId &&
+          Math.abs(new Date(a.createdAt).getTime() - new Date(activity.createdAt).getTime()) < 1000
+        );
+        if (existsByContent) return acc;
+        
+        return [...acc, activity];
+      }, []);
+      
+      storage.set('activities', uniqueActivities);
+      return { ...state, activities: uniqueActivities };
     
     case 'ADD_ACTIVITY':
+      // Check if activity already exists to prevent duplicates
+      const activityExists = state.activities.some(a => 
+        a.id === action.payload.id ||
+        (a.description === action.payload.description &&
+         a.userId === action.payload.userId &&
+         Math.abs(new Date(a.createdAt).getTime() - new Date(action.payload.createdAt).getTime()) < 1000)
+      );
+      
+      if (activityExists) {
+        console.log('⚠️ Activity already exists, skipping duplicate:', action.payload.description);
+        return state; // Don't add duplicate
+      }
+      
       const newActivities = [action.payload, ...state.activities];
       storage.set('activities', newActivities);
+      // Sync with API - format data properly (API doesn't need id, user object, etc.)
+      const activityToSync = {
+        type: action.payload.type,
+        description: action.payload.description,
+        userId: action.payload.userId,
+        projectId: action.payload.projectId || undefined,
+        taskId: action.payload.taskId || undefined,
+      };
+      api.activities.create(activityToSync)
+        .then((createdActivity) => {
+          // Update localStorage with the created activity (has proper ID from backend)
+          // Replace the temporary ID activity with the real one from API
+          const updatedActivities = newActivities.map(a => 
+            a.id === action.payload.id ? createdActivity : a
+          );
+          storage.set('activities', updatedActivities);
+          // Note: We don't update state here to avoid race conditions, 
+          // but the activity is now in the database and will be fetched on next refresh
+        })
+        .catch(err => 
+          console.warn('Failed to sync activity to API:', err)
+        );
       return { ...state, activities: newActivities };
 
     case 'SET_CUSTOMERS':
@@ -417,10 +489,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, incomes: normalizedIncomes };
 
     case 'ADD_INCOME':
+      // Income is already created via API in the modal, just add to local state
       const newIncomes = normalizeIncomes([action.payload, ...state.incomes]);
       storage.set('incomes', newIncomes);
-      // Sync with API
-      api.incomes.create(action.payload).catch(err => console.warn('Failed to sync income to API:', err));
       return { ...state, incomes: newIncomes };
 
     case 'UPDATE_INCOME':

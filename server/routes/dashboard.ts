@@ -42,225 +42,230 @@ router.get('/initial-data', async (req, res) => {
       return result;
     };
 
-    console.log('   ▶️ Running sequential queries to respect pool limit...');
+    console.log('   ▶️ Running parallel queries (connection_limit=10 allows parallel execution)...');
 
-    const projects = await fetchWithTiming('projects', () =>
-      prisma.project.findMany({
-        ...(projectWhere && { where: projectWhere }),
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          startDate: true,
-          endDate: true,
-          status: true,
-          progress: true,
-          priority: true,
-          createdBy: true,
-          customerId: true,
-          createdAt: true,
-          updatedAt: true,
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
+    // Run independent queries in parallel for better performance
+    const [
+      projects,
+      tasks,
+      customers,
+      timeEntries,
+      incomes,
+      notifications,
+      activities,
+    ] = await Promise.all([
+      fetchWithTiming('projects', () =>
+        prisma.project.findMany({
+          ...(projectWhere && { where: projectWhere }),
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            startDate: true,
+            endDate: true,
+            status: true,
+            progress: true,
+            priority: true,
+            createdBy: true,
+            customerId: true,
+            createdAt: true,
+            updatedAt: true,
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true,
+              },
             },
-          },
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              status: true,
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+              },
             },
-          },
-          members: {
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  avatar: true,
+            members: {
+              select: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatar: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 500,
-      })
-    );
-
-    const tasks = await fetchWithTiming('tasks', () =>
-      prisma.task.findMany({
-        ...(taskWhere && { where: taskWhere }),
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          projectId: true,
-          status: true,
-          priority: true,
-          dueDate: true,
-          createdBy: true,
-          createdAt: true,
-          updatedAt: true,
-          project: {
-            select: {
-              id: true,
-              title: true,
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+        })
+      ),
+      fetchWithTiming('tasks', () =>
+        prisma.task.findMany({
+          ...(taskWhere && { where: taskWhere }),
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            projectId: true,
+            status: true,
+            priority: true,
+            dueDate: true,
+            createdBy: true,
+            createdAt: true,
+            updatedAt: true,
+            project: {
+              select: {
+                id: true,
+                title: true,
+              },
             },
-          },
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true,
+              },
             },
-          },
-          assignees: {
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  avatar: true,
+            assignees: {
+              select: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatar: true,
+                  },
                 },
               },
             },
-          },
-          tags: {
-            select: {
-              id: true,
-              tag: true,
-            },
-            take: 10,
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1000,
-      })
-    );
-
-    const customers = await fetchWithTiming('customers', () =>
-      prisma.customer.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 500,
-      })
-    );
-
-    const timeEntries = await fetchWithTiming('timeEntries', () =>
-      prisma.timeEntry.findMany({
-        where: timeEntryWhere,
-        select: {
-          id: true,
-          customerId: true,
-          projectId: true,
-          taskId: true,
-          description: true,
-          startTime: true,
-          endTime: true,
-          duration: true,
-          hourlyRate: true,
-          income: true,
-          userId: true,
-          createdAt: true,
-          updatedAt: true,
-          customer: {
-            select: {
-              id: true,
-              name: true,
+            tags: {
+              select: {
+                id: true,
+                tag: true,
+              },
+              take: 10,
             },
           },
-          task: {
-            select: {
-              id: true,
-              title: true,
+          orderBy: { createdAt: 'desc' },
+          take: 1000,
+        })
+      ),
+      fetchWithTiming('customers', () =>
+        prisma.customer.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+        })
+      ),
+      fetchWithTiming('timeEntries', () =>
+        prisma.timeEntry.findMany({
+          where: timeEntryWhere,
+          select: {
+            id: true,
+            customerId: true,
+            projectId: true,
+            taskId: true,
+            description: true,
+            startTime: true,
+            endTime: true,
+            duration: true,
+            hourlyRate: true,
+            income: true,
+            userId: true,
+            createdAt: true,
+            updatedAt: true,
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            task: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true,
+              },
             },
           },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
+          orderBy: { createdAt: 'desc' },
+          take: 1000,
+        })
+      ),
+      fetchWithTiming('incomes', () =>
+        prisma.income.findMany({
+          include: {
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1000,
-      })
-    );
-
-    const incomes = await fetchWithTiming('incomes', () =>
-      prisma.income.findMany({
-        include: {
-          customer: {
-            select: {
-              id: true,
-              name: true,
+          orderBy: { createdAt: 'desc' },
+          take: 1000,
+        })
+      ),
+      fetchWithTiming('notifications', () =>
+        prisma.notification.findMany({
+          where: notificationWhere,
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            message: true,
+            userId: true,
+            read: true,
+            relatedId: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1000,
-      })
-    );
-
-    const notifications = await fetchWithTiming('notifications', () =>
-      prisma.notification.findMany({
-        where: notificationWhere,
-        select: {
-          id: true,
-          type: true,
-          title: true,
-          message: true,
-          userId: true,
-          read: true,
-          relatedId: true,
-          createdAt: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+        })
+      ),
+      fetchWithTiming('activities', () =>
+        prisma.activity.findMany({
+          where: activityWhere,
+          select: {
+            id: true,
+            type: true,
+            description: true,
+            userId: true,
+            projectId: true,
+            taskId: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      })
-    );
-
-    const activities = await fetchWithTiming('activities', () =>
-      prisma.activity.findMany({
-        where: activityWhere,
-        select: {
-          id: true,
-          type: true,
-          description: true,
-          userId: true,
-          projectId: true,
-          taskId: true,
-          createdAt: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 200,
-      })
-    );
+          orderBy: { createdAt: 'desc' },
+          take: 200,
+        })
+      ),
+    ]);
 
     const users: any[] = [];
 

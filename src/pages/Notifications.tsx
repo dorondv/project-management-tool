@@ -1,17 +1,23 @@
 import { motion } from 'framer-motion';
-import { Bell, Check, Settings } from 'lucide-react';
+import { Bell, Check, Settings, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { formatDateTime } from '../utils/dateUtils';
 import toast from 'react-hot-toast';
 import { Locale } from '../types';
+import { api } from '../utils/api';
+import { useState } from 'react';
 
 const translations: Record<Locale, {
   pageTitle: string;
   pageSubtitle: string;
   markAllRead: string;
   settings: string;
+  refresh: string;
+  refreshing: string;
+  refreshSuccess: string;
+  refreshError: string;
   total: string;
   unread: string;
   read: string;
@@ -27,6 +33,10 @@ const translations: Record<Locale, {
     pageSubtitle: 'Stay updated with your project activities',
     markAllRead: 'Mark All Read',
     settings: 'Settings',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing...',
+    refreshSuccess: 'Notifications refreshed',
+    refreshError: 'Failed to refresh notifications',
     total: 'Total',
     unread: 'Unread',
     read: 'Read',
@@ -42,6 +52,10 @@ const translations: Record<Locale, {
     pageSubtitle: 'הישאר מעודכן עם פעילויות הפרויקטים שלך',
     markAllRead: 'סמן הכל כנקרא',
     settings: 'הגדרות',
+    refresh: 'רענן',
+    refreshing: 'מרענן...',
+    refreshSuccess: 'התראות רועננו',
+    refreshError: 'נכשל ברענון ההתראות',
     total: 'סה"כ',
     unread: 'לא נקראו',
     read: 'נקראו',
@@ -59,6 +73,26 @@ export default function Notifications() {
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      const userId = state.user?.id;
+      const notifications = await api.notifications.getAll(
+        userId ? { userId } : undefined
+      );
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
+      toast.success(t.refreshSuccess);
+    } catch (error) {
+      console.error('Failed to refresh notifications:', error);
+      toast.error(t.refreshError);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleMarkAsRead = (notificationId: string) => {
     dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
@@ -106,6 +140,17 @@ export default function Notifications() {
               </p>
             </div>
             <div className="flex items-center gap-3 flex-row-reverse justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                loading={isRefreshing}
+                icon={<RefreshCw size={16} />}
+                className="flex-row-reverse"
+              >
+                {isRefreshing ? t.refreshing : t.refresh}
+              </Button>
               {unreadCount > 0 && (
                 <Button
                   variant="outline"
@@ -138,6 +183,16 @@ export default function Notifications() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                loading={isRefreshing}
+                icon={<RefreshCw size={16} />}
+              >
+                {isRefreshing ? t.refreshing : t.refresh}
+              </Button>
               {unreadCount > 0 && (
                 <Button
                   variant="outline"
