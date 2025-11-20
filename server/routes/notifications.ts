@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../index.js';
+import { checkAllUpcomingDeadlines } from '../utils/notificationService.js';
 
 const router = Router();
 
@@ -76,6 +77,26 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Notification not found' });
     }
     res.status(500).json({ error: 'Failed to delete notification' });
+  }
+});
+
+// POST /api/notifications/check-deadlines - Check all upcoming deadlines and create reminders
+// This endpoint can be called periodically (e.g., via cron job) to check for upcoming deadlines
+router.post('/check-deadlines', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const remindersCreated = await checkAllUpcomingDeadlines(userId);
+    res.json({ 
+      success: true, 
+      remindersCreated,
+      message: `Checked upcoming deadlines and created ${remindersCreated} reminder(s)`
+    });
+  } catch (error: any) {
+    console.error('❌ Failed to check deadlines:', error);
+    res.status(500).json({ 
+      error: 'Failed to check deadlines', 
+      details: error.message 
+    });
   }
 });
 

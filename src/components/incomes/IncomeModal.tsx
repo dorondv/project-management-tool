@@ -103,6 +103,7 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
     vatRate: 0.18,
     amountBeforeVat: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize form when income changes
   useEffect(() => {
@@ -143,8 +144,13 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
     };
   }, [formData.amountBeforeVat, formData.vatRate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
 
     if (!formData.customerId) {
       toast.error(locale === 'he' ? 'אנא בחר לקוח' : 'Please select a client');
@@ -156,34 +162,57 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
       return;
     }
 
-    const customer = selectedCustomer!;
-    const amountBeforeVat = parseFloat(formData.amountBeforeVat);
-    const vatAmount = calculations.vatAmount;
-    const finalAmount = calculations.finalAmount;
+    setIsSubmitting(true);
 
-    const incomeData: Income = {
-      id: income?.id || `income-${Date.now()}`,
-      customerId: formData.customerId,
-      customerName: customer.name,
-      incomeDate: new Date(formData.incomeDate),
-      invoiceNumber: formData.invoiceNumber || undefined,
-      vatRate: formData.vatRate,
-      amountBeforeVat,
-      vatAmount,
-      finalAmount,
-      createdAt: income?.createdAt || new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      const customer = selectedCustomer!;
+      const amountBeforeVat = parseFloat(formData.amountBeforeVat);
+      const vatAmount = calculations.vatAmount;
+      const finalAmount = calculations.finalAmount;
 
-    if (isEditing) {
-      dispatch({ type: 'UPDATE_INCOME', payload: incomeData });
-      toast.success(locale === 'he' ? 'הכנסה עודכנה בהצלחה' : 'Income updated successfully');
-    } else {
-      dispatch({ type: 'ADD_INCOME', payload: incomeData });
-      toast.success(locale === 'he' ? 'הכנסה נוספה בהצלחה' : 'Income added successfully');
+      const incomeData: Partial<Income> = {
+        customerId: formData.customerId,
+        customerName: customer.name,
+        incomeDate: new Date(formData.incomeDate),
+        invoiceNumber: formData.invoiceNumber || undefined,
+        vatRate: formData.vatRate,
+        amountBeforeVat,
+        vatAmount,
+        finalAmount,
+      };
+
+      if (isEditing && income) {
+        // Update existing income
+        const updatedIncome = { ...income, ...incomeData, updatedAt: new Date() };
+        dispatch({ type: 'UPDATE_INCOME', payload: updatedIncome });
+        toast.success(locale === 'he' ? 'הכנסה עודכנה בהצלחה' : 'Income updated successfully');
+      } else {
+        // Create new income - call API first, then update local state with response
+        const { api } = await import('../../utils/api');
+        const createdIncome = await api.incomes.create(incomeData);
+        dispatch({ type: 'ADD_INCOME', payload: createdIncome });
+        toast.success(locale === 'he' ? 'הכנסה נוספה בהצלחה' : 'Income added successfully');
+      }
+
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to save income:', error);
+      
+      // Handle duplicate income error
+      if (error.status === 409 || error.message?.includes('Duplicate')) {
+        toast.error(
+          locale === 'he' 
+            ? 'הכנסה עם פרטים זהים כבר קיימת' 
+            : 'An income with the same details already exists'
+        );
+      } else {
+        toast.error(
+          error.message || (locale === 'he' ? 'שגיאה בשמירת ההכנסה' : 'Failed to save income')
+        );
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onClose();
   };
 
   const alignStart = isRTL ? 'text-right' : 'text-left';
@@ -323,11 +352,14 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
 
         {/* Buttons */}
         <div className={`flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 ${buttonFlex}`}>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             {t.buttons.cancel}
           </Button>
-          <Button type="submit" variant="primary">
-            {isEditing ? t.buttons.update : t.buttons.add}
+          <Button type="submit" variant="primary" disabled={isSubmitting}>
+            {isSubmitting 
+              ? (locale === 'he' ? 'שומר...' : 'Saving...') 
+              : (isEditing ? t.buttons.update : t.buttons.add)
+            }
           </Button>
         </div>
       </form>
