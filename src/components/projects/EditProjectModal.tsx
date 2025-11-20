@@ -142,6 +142,26 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
 
       // Update local state (API call is already done above)
       dispatch({ type: 'UPDATE_PROJECT', payload: transformedProject });
+      
+      // Add activity for project update
+      const statusChanged = project.status !== transformedProject.status;
+      const activityDescription = statusChanged
+        ? `updated project "${transformedProject.title}" status to ${transformedProject.status}`
+        : `updated project "${transformedProject.title}"`;
+      
+      dispatch({
+        type: 'ADD_ACTIVITY',
+        payload: {
+          id: Date.now().toString(),
+          type: 'project_updated',
+          description: activityDescription,
+          userId: state.user!.id,
+          user: state.user!,
+          projectId: transformedProject.id,
+          createdAt: new Date()
+        }
+      });
+      
       onClose();
       
       toast.success(locale === 'he' ? 'הפרויקט עודכן בהצלחה' : 'Project updated successfully');

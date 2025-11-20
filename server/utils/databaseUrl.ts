@@ -75,8 +75,8 @@ export function ensureDatabaseUrlForPrisma(
         ensureSearchParam(
           url,
           'connection_limit',
-          '1',
-          'Set connection_limit=1 for Prisma compatibility',
+          '10',
+          'Set connection_limit=10 for better parallel query performance (safe with pgbouncer transaction mode)',
           result.messages
         ) || result.changed;
       result.changed =
