@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../index.js';
+import { createDeadlineReminder } from '../utils/notificationService.js';
 
 const router = Router();
 
@@ -260,6 +261,22 @@ router.post('/', async (req, res) => {
       console.error('Failed to update project progress after task creation:', err)
     );
     
+    // Check if deadline reminder should be created
+    const taskUserId = createdBy || task.assignees[0]?.userId;
+    if (taskUserId) {
+      console.log(`🔔 Attempting to create deadline reminder for task "${task.title}" (due: ${parsedDueDate.toISOString()}, userId: ${taskUserId})`);
+      createDeadlineReminder(
+        task.id,
+        task.title,
+        parsedDueDate,
+        taskUserId
+      ).catch(err => 
+        console.error('❌ Failed to create deadline reminder after task creation:', err)
+      );
+    } else {
+      console.log(`⚠️ Cannot create deadline reminder: no userId found (createdBy: ${createdBy}, assignees: ${task.assignees.length})`);
+    }
+    
     console.log('✅ Task created successfully:', transformedTask.id);
     res.status(201).json(transformedTask);
   } catch (error: any) {
@@ -283,66 +300,98 @@ router.put('/:id', async (req, res) => {
   try {
     const { title, description, status, priority, dueDate, assignedTo, tags } = req.body;
     
-    // Use transaction for atomic updates
-    const updatedTask = await prisma.$transaction(async (tx) => {
-      // Update task
-      await tx.task.update({
-        where: { id: req.params.id },
-        data: {
-          ...(title && { title }),
-          ...(description && { description }),
-          ...(status && { status }),
-          ...(priority && { priority }),
-          ...(dueDate && { dueDate: new Date(dueDate) }),
-        },
+    console.log(`📝 Updating task ${req.params.id}:`, { title, description, status, priority, dueDate, assignedTo, tags });
+    
+    // Build update data object - only include fields that are provided
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (status !== undefined) updateData.status = status; // Allow status updates even if empty string
+    if (priority !== undefined) updateData.priority = priority;
+    if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
+    
+    console.log(`📝 Update data:`, updateData);
+    
+    // Update task (without transaction to avoid pgbouncer timeout issues)
+    await prisma.task.update({
+      where: { id: req.params.id },
+      data: updateData,
+    });
+    
+    console.log(`✅ Task ${req.params.id} updated successfully`);
+    
+    // Update assignees if provided
+    if (assignedTo && Array.isArray(assignedTo)) {
+      // Get current assignees
+      const currentAssignees = await prisma.taskAssignee.findMany({
+        where: { taskId: req.params.id },
+        select: { userId: true },
       });
+      const currentUserIds = new Set(currentAssignees.map(a => a.userId));
+      const newUserIds = new Set(assignedTo);
       
-      // Update assignees if provided
-      if (assignedTo) {
-        await tx.taskAssignee.deleteMany({
-          where: { taskId: req.params.id },
-        });
-        await tx.taskAssignee.createMany({
-          data: assignedTo.map((userId: string) => ({
+      // Find assignees to add and remove
+      const toAdd = assignedTo.filter((userId: string) => !currentUserIds.has(userId));
+      const toRemove = currentAssignees
+        .map(a => a.userId)
+        .filter((userId: string) => !newUserIds.has(userId));
+      
+      // Remove assignees that are no longer assigned
+      if (toRemove.length > 0) {
+        await prisma.taskAssignee.deleteMany({
+          where: {
             taskId: req.params.id,
-            userId,
-          })),
+            userId: { in: toRemove },
+          },
         });
       }
       
-      // Update tags if provided
-      if (tags) {
-        await tx.taskTag.deleteMany({
-          where: { taskId: req.params.id },
+      // Add new assignees (only if they don't already exist)
+      if (toAdd.length > 0) {
+        await prisma.taskAssignee.createMany({
+          data: toAdd.map((userId: string) => ({
+            taskId: req.params.id,
+            userId,
+          })),
+          skipDuplicates: true, // Prevent unique constraint errors
         });
-        await tx.taskTag.createMany({
+      }
+    }
+    
+    // Update tags if provided
+    if (tags && Array.isArray(tags)) {
+      await prisma.taskTag.deleteMany({
+        where: { taskId: req.params.id },
+      });
+      if (tags.length > 0) {
+        await prisma.taskTag.createMany({
           data: tags.map((tag: string) => ({
             taskId: req.params.id,
             tag,
           })),
         });
       }
-      
-      // Fetch updated task
-      return await tx.task.findUnique({
-        where: { id: req.params.id },
-        include: {
-          project: true,
-          creator: true,
-          assignees: {
-            include: {
-              user: true,
-            },
+    }
+    
+    // Fetch updated task
+    const updatedTask = await prisma.task.findUnique({
+      where: { id: req.params.id },
+      include: {
+        project: true,
+        creator: true,
+        assignees: {
+          include: {
+            user: true,
           },
-          comments: {
-            include: {
-              user: true,
-            },
-          },
-          attachments: true,
-          tags: true,
         },
-      });
+        comments: {
+          include: {
+            user: true,
+          },
+        },
+        attachments: true,
+        tags: true,
+      },
     });
     
     if (!updatedTask) {
@@ -364,6 +413,21 @@ router.put('/:id', async (req, res) => {
       updateProjectProgress(updatedTask.projectId).catch(err => 
         console.error('Failed to update project progress after task update:', err)
       );
+    }
+    
+    // Check if deadline reminder should be created (if dueDate changed and task not completed)
+    if (dueDate && updatedTask.status !== 'completed') {
+      const taskUserId = updatedTask.createdBy || updatedTask.assignees[0]?.userId;
+      if (taskUserId) {
+        createDeadlineReminder(
+          updatedTask.id,
+          updatedTask.title,
+          new Date(dueDate),
+          taskUserId
+        ).catch(err => 
+          console.error('Failed to create deadline reminder after task update:', err)
+        );
+      }
     }
     
     res.json(transformedTask);

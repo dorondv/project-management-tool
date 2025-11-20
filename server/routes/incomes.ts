@@ -45,6 +45,26 @@ router.post('/', async (req, res) => {
   try {
     const { customerId, customerName, incomeDate, invoiceNumber, vatRate, amountBeforeVat } = req.body;
     
+    // Check for duplicate income (same customer, date, and invoice number if provided)
+    // This prevents accidental double submissions
+    if (invoiceNumber) {
+      const existingIncome = await prisma.income.findFirst({
+        where: {
+          customerId,
+          invoiceNumber,
+          incomeDate: new Date(incomeDate),
+        },
+      });
+      
+      if (existingIncome) {
+        return res.status(409).json({ 
+          error: 'Duplicate income', 
+          message: 'An income with the same invoice number, customer, and date already exists',
+          existingIncome 
+        });
+      }
+    }
+    
     const vatAmount = amountBeforeVat * (vatRate || 0.18);
     const finalAmount = amountBeforeVat + vatAmount;
     
@@ -65,6 +85,12 @@ router.post('/', async (req, res) => {
     });
     res.status(201).json(income);
   } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ 
+        error: 'Duplicate income', 
+        message: 'An income with these details already exists' 
+      });
+    }
     res.status(500).json({ error: 'Failed to create income', details: error.message });
   }
 });
