@@ -40,6 +40,9 @@ export function Button({
 
   const widthClass = fullWidth ? 'w-full' : '';
 
+  // Check if flex-row-reverse is in className to determine RTL
+  const isRTL = className.includes('flex-row-reverse');
+  
   return (
     <motion.button
       whileHover={{ scale: 1.02 }}
@@ -50,10 +53,19 @@ export function Button({
     >
       {loading ? (
         <LoadingSpinner size="sm" />
+      ) : isRTL && icon ? (
+        <>
+          {children}
+          {icon}
+        </>
       ) : icon ? (
-        icon
-      ) : null}
-      {children}
+        <>
+          {icon}
+          {children}
+        </>
+      ) : (
+        children
+      )}
     </motion.button>
   );
 }

@@ -75,7 +75,9 @@ export default function Dashboard() {
 
     // Calculate averages
     const averageIncomePerCustomer = activeCustomers > 0 ? totalIncome / activeCustomers : 0;
-    const averageIncomePerHour = totalWorkHours > 0 ? totalIncome / totalWorkHours : 0;
+    // Average income per hour should only use income from time entries (which corresponds to hours worked)
+    // Income records are separate and shouldn't be included in this calculation
+    const averageIncomePerHour = totalWorkHours > 0 ? totalIncomeFromTimeEntries / totalWorkHours : 0;
 
     return {
       totalIncome,

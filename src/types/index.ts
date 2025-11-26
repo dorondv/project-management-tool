@@ -113,6 +113,7 @@ export interface Customer {
   customerScore: number;
   notes?: string;
   referralSource?: string;
+  userId: string;
   tags: string[];
 }
 

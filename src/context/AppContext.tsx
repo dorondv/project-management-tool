@@ -434,10 +434,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, customers: normalizedCustomers };
 
     case 'ADD_CUSTOMER':
+      // Check if customer already exists to prevent duplicates
+      const customerExists = state.customers.some(c => c.id === action.payload.id);
+      if (customerExists) {
+        console.warn('⚠️ AppContext: Customer already exists, skipping ADD_CUSTOMER:', action.payload.id);
+        return state;
+      }
       const newCustomers = normalizeCustomers([action.payload, ...state.customers]);
       storage.set('customers', newCustomers);
-      // Sync with API
-      api.customers.create(action.payload).catch(err => console.warn('Failed to sync customer to API:', err));
+      // Note: API call is already made in CreateCustomerModal before dispatching this action
       return { ...state, customers: newCustomers };
 
     case 'UPDATE_CUSTOMER':
@@ -447,15 +452,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
         )
       );
       storage.set('customers', updatedCustomers);
-      // Sync with API
-      api.customers.update(action.payload.id, action.payload).catch(err => console.warn('Failed to sync customer update to API:', err));
+      // Note: API call is already made in CreateCustomerModal before dispatching this action
       return { ...state, customers: updatedCustomers };
 
     case 'DELETE_CUSTOMER':
       const filteredCustomers = state.customers.filter(customer => customer.id !== action.payload);
       storage.set('customers', filteredCustomers);
-      // Sync with API
-      api.customers.delete(action.payload).catch(err => console.warn('Failed to sync customer deletion to API:', err));
+      // Note: API call is already made in Customers page before dispatching this action
       return { ...state, customers: filteredCustomers };
 
     case 'SET_TIME_ENTRIES':

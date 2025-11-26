@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Users, FileText, Target, Building2 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -55,9 +55,11 @@ const translations = {
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  preSelectedCustomerId?: string;
+  onProjectCreated?: (projectId: string) => void;
 }
 
-export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
+export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onProjectCreated }: CreateProjectModalProps) {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
@@ -73,6 +75,13 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     members: [] as string[]
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Set pre-selected customer when modal opens
+  useEffect(() => {
+    if (isOpen && preSelectedCustomerId) {
+      setFormData(prev => ({ ...prev, customerId: preSelectedCustomerId }));
+    }
+  }, [isOpen, preSelectedCustomerId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +146,11 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
       
       onClose();
       
+      // Call callback if provided with the new project ID
+      if (onProjectCreated) {
+        onProjectCreated(newProject.id);
+      }
+      
       // Reset form
       setFormData({
         title: '',
@@ -145,7 +159,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         endDate: '',
         status: 'planning',
         priority: 'medium',
-        customerId: '',
+        customerId: preSelectedCustomerId || '',
         members: []
       });
     } catch (error: any) {
@@ -182,7 +196,8 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
             <select
               value={formData.customerId}
               onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
+              disabled={!!preSelectedCustomerId}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'} ${preSelectedCustomerId ? 'opacity-60 cursor-not-allowed' : ''}`}
               required
             >
               <option value="">{t.selectClient}</option>

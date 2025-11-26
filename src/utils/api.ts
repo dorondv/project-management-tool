@@ -104,10 +104,14 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }).then(handleResponse),
-    delete: (id: string) =>
-      fetch(`${API_URL}/api/customers/${id}`, {
+    delete: (id: string, userId?: string) => {
+      const url = userId 
+        ? `${API_URL}/api/customers/${id}?userId=${encodeURIComponent(userId)}`
+        : `${API_URL}/api/customers/${id}`;
+      return fetch(url, {
         method: 'DELETE',
-      }).then(() => null),
+      }).then(() => null);
+    },
   },
 
   // Time Entries
