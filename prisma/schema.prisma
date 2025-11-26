@@ -34,6 +34,7 @@ model User {
   taskAssignees   TaskAssignee[]
   comments        Comment[]
   attachments     Attachment[]
+  customers       Customer[]
 
   @@map("users")
 }
@@ -199,10 +200,12 @@ model Customer {
   customerScore   Int      @default(0)
   notes           String?
   referralSource  String?
+  userId          String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects    Project[]
   timeEntries TimeEntry[]
   incomes     Income[]
