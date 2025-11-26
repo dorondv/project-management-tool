@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Square, Pause, Plus, FileText, Clock, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -7,6 +7,7 @@ import { TimeEntry, Locale, Customer, Project, Task } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { timerService } from '../utils/timerService';
+import { CreateProjectModal } from '../components/projects/CreateProjectModal';
 
 const translations = {
   en: {
@@ -110,6 +111,9 @@ export default function Timer() {
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [description, setDescription] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<string>('current');
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
 
   // Get timer state from context
   const activeTimer = state.activeTimer;
@@ -128,14 +132,10 @@ export default function Timer() {
   }, [activeTimer?.id]); // Only restore when timer ID changes
 
   // Get filtered projects based on selected customer
-  // Since projects don't have a direct customerId, we show all projects
-  // When a customer is selected, we can optionally filter by projects used with that customer
-  // For now, we show all projects to allow maximum flexibility
   const availableProjects = useMemo(() => {
-    // Show all projects - users can select any project with any customer
-    // This matches the database schema where projects and customers are linked via TimeEntry
-    return state.projects;
-  }, [state.projects]);
+    if (!selectedCustomerId) return [];
+    return state.projects.filter(project => project.customerId === selectedCustomerId);
+  }, [state.projects, selectedCustomerId]);
 
   // Get filtered tasks based on selected project
   const availableTasks = useMemo(() => {
@@ -287,6 +287,34 @@ export default function Timer() {
     toast.info(isRTL ? 'פונקציה זו תתווסף בקרוב' : 'This feature will be added soon');
   };
 
+  const handleCreateProject = () => {
+    setIsCreateProjectModalOpen(true);
+    setIsProjectDropdownOpen(false);
+  };
+
+  const handleProjectCreated = (projectId: string) => {
+    setIsCreateProjectModalOpen(false);
+    // Automatically select the newly created project
+    setSelectedProjectId(projectId);
+    setSelectedTaskId('');
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false);
+      }
+    };
+
+    if (isProjectDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isProjectDropdownOpen]);
+
   const hasProjects = state.projects.length > 0;
   const canStart = selectedCustomerId && selectedProjectId && !isRunning;
   const alignStart = isRTL ? 'text-right' : 'text-left';
@@ -352,6 +380,7 @@ export default function Timer() {
                   setSelectedCustomerId(e.target.value);
                   setSelectedProjectId('');
                   setSelectedTaskId('');
+                  setIsProjectDropdownOpen(false);
                 }}
                 disabled={isRunning}
                 className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} appearance-none`}
@@ -371,24 +400,70 @@ export default function Timer() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t.selectProject}
             </label>
-            <div className="relative">
-              <select
-                value={selectedProjectId}
-                onChange={(e) => {
-                  setSelectedProjectId(e.target.value);
-                  setSelectedTaskId('');
+            <div className="relative" ref={projectDropdownRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isRunning && selectedCustomerId) {
+                    setIsProjectDropdownOpen(!isProjectDropdownOpen);
+                  }
                 }}
-                disabled={isRunning}
-                className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} appearance-none`}
+                disabled={isRunning || !selectedCustomerId}
+                className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} text-left disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between`}
               >
-                <option value="">{t.selectProject}</option>
-                {availableProjects.map(project => (
-                  <option key={project.id} value={project.id}>
-                    {project.title}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className={`absolute ${isRTL ? 'left-2' : 'right-2'} top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none`} size={16} />
+                <span className={selectedProjectId ? '' : 'text-gray-500 dark:text-gray-400'}>
+                  {selectedProjectId
+                    ? availableProjects.find(p => p.id === selectedProjectId)?.title || t.selectProject
+                    : t.selectProject}
+                </span>
+                <ChevronDown className={`text-gray-400 ${isProjectDropdownOpen ? 'transform rotate-180' : ''} transition-transform`} size={16} />
+              </button>
+              
+              {isProjectDropdownOpen && selectedCustomerId && !isRunning && (
+                <div className={`absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-lg max-h-60 overflow-auto`}>
+                  {availableProjects.length === 0 ? (
+                    <div className="p-3">
+                      <button
+                        type="button"
+                        onClick={handleCreateProject}
+                        className={`w-full px-4 py-3 text-sm font-medium text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg flex items-center justify-center gap-2 ${flexDirection}`}
+                      >
+                        <Plus size={16} />
+                        {isRTL ? 'פרויקט חדש' : 'New Project'}
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {availableProjects.map(project => (
+                        <button
+                          key={project.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedProjectId(project.id);
+                            setSelectedTaskId('');
+                            setIsProjectDropdownOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-600 ${alignStart} ${
+                            selectedProjectId === project.id ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {project.title}
+                        </button>
+                      ))}
+                      <div className="border-t border-gray-200 dark:border-gray-600 p-2">
+                        <button
+                          type="button"
+                          onClick={handleCreateProject}
+                          className={`w-full px-4 py-2 text-sm font-medium text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg flex items-center justify-center gap-2 ${flexDirection}`}
+                        >
+                          <Plus size={16} />
+                          {isRTL ? '+ פרויקט חדש' : '+ New Project'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -660,6 +735,14 @@ export default function Timer() {
           </table>
         </div>
       </div>
+
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => setIsCreateProjectModalOpen(false)}
+        preSelectedCustomerId={selectedCustomerId}
+        onProjectCreated={handleProjectCreated}
+      />
     </div>
   );
 }

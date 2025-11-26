@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, DollarSign, FileText, Calculator, Users, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, X, DollarSign, FileText, Calculator, Users, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Modal } from '../common/Modal';
@@ -15,6 +15,7 @@ interface CreateCustomerModalProps {
   onClose: () => void;
   customer?: Customer | null;
   onCustomerCreated?: (customerId: string) => void;
+  onDelete?: (customerId: string) => void;
 }
 
 const translations = {
@@ -156,6 +157,7 @@ const translations = {
     cancel: 'ביטול',
     addCustomer: 'הוסף לקוח',
     updateCustomer: 'עדכן לקוח',
+    deleteCustomer: 'מחק לקוח',
     active: 'פעיל',
     inactive: 'לא פעיל',
     trial: 'ניסיון',
@@ -164,7 +166,81 @@ const translations = {
   },
 } as const;
 
-export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreated }: CreateCustomerModalProps) {
+// Full list of countries with English and Hebrew names
+const countries = [
+  { code: 'AF', en: 'Afghanistan', he: 'אפגניסטן' },
+  { code: 'AL', en: 'Albania', he: 'אלבניה' },
+  { code: 'DZ', en: 'Algeria', he: 'אלג\'יריה' },
+  { code: 'AR', en: 'Argentina', he: 'ארגנטינה' },
+  { code: 'AU', en: 'Australia', he: 'אוסטרליה' },
+  { code: 'AT', en: 'Austria', he: 'אוסטריה' },
+  { code: 'BH', en: 'Bahrain', he: 'בחריין' },
+  { code: 'BD', en: 'Bangladesh', he: 'בנגלדש' },
+  { code: 'BE', en: 'Belgium', he: 'בלגיה' },
+  { code: 'BR', en: 'Brazil', he: 'ברזיל' },
+  { code: 'BG', en: 'Bulgaria', he: 'בולגריה' },
+  { code: 'CA', en: 'Canada', he: 'קנדה' },
+  { code: 'CL', en: 'Chile', he: 'צ\'ילה' },
+  { code: 'CN', en: 'China', he: 'סין' },
+  { code: 'CO', en: 'Colombia', he: 'קולומביה' },
+  { code: 'HR', en: 'Croatia', he: 'קרואטיה' },
+  { code: 'CZ', en: 'Czech Republic', he: 'צ\'כיה' },
+  { code: 'DK', en: 'Denmark', he: 'דנמרק' },
+  { code: 'EG', en: 'Egypt', he: 'מצרים' },
+  { code: 'EE', en: 'Estonia', he: 'אסטוניה' },
+  { code: 'FI', en: 'Finland', he: 'פינלנד' },
+  { code: 'FR', en: 'France', he: 'צרפת' },
+  { code: 'DE', en: 'Germany', he: 'גרמניה' },
+  { code: 'GR', en: 'Greece', he: 'יוון' },
+  { code: 'HK', en: 'Hong Kong', he: 'הונג קונג' },
+  { code: 'HU', en: 'Hungary', he: 'הונגריה' },
+  { code: 'IN', en: 'India', he: 'הודו' },
+  { code: 'ID', en: 'Indonesia', he: 'אינדונזיה' },
+  { code: 'IE', en: 'Ireland', he: 'אירלנד' },
+  { code: 'IL', en: 'Israel', he: 'ישראל' },
+  { code: 'IT', en: 'Italy', he: 'איטליה' },
+  { code: 'JP', en: 'Japan', he: 'יפן' },
+  { code: 'JO', en: 'Jordan', he: 'ירדן' },
+  { code: 'KE', en: 'Kenya', he: 'קניה' },
+  { code: 'KW', en: 'Kuwait', he: 'כווית' },
+  { code: 'LV', en: 'Latvia', he: 'לטביה' },
+  { code: 'LB', en: 'Lebanon', he: 'לבנון' },
+  { code: 'LT', en: 'Lithuania', he: 'ליטא' },
+  { code: 'LU', en: 'Luxembourg', he: 'לוקסמבורג' },
+  { code: 'MY', en: 'Malaysia', he: 'מלזיה' },
+  { code: 'MX', en: 'Mexico', he: 'מקסיקו' },
+  { code: 'MA', en: 'Morocco', he: 'מרוקו' },
+  { code: 'NL', en: 'Netherlands', he: 'הולנד' },
+  { code: 'NZ', en: 'New Zealand', he: 'ניו זילנד' },
+  { code: 'NG', en: 'Nigeria', he: 'ניגריה' },
+  { code: 'NO', en: 'Norway', he: 'נורווגיה' },
+  { code: 'OM', en: 'Oman', he: 'עומאן' },
+  { code: 'PK', en: 'Pakistan', he: 'פקיסטן' },
+  { code: 'PE', en: 'Peru', he: 'פרו' },
+  { code: 'PH', en: 'Philippines', he: 'הפיליפינים' },
+  { code: 'PL', en: 'Poland', he: 'פולין' },
+  { code: 'PT', en: 'Portugal', he: 'פורטוגל' },
+  { code: 'QA', en: 'Qatar', he: 'קטאר' },
+  { code: 'RO', en: 'Romania', he: 'רומניה' },
+  { code: 'RU', en: 'Russia', he: 'רוסיה' },
+  { code: 'SA', en: 'Saudi Arabia', he: 'ערב הסעודית' },
+  { code: 'SG', en: 'Singapore', he: 'סינגפור' },
+  { code: 'ZA', en: 'South Africa', he: 'דרום אפריקה' },
+  { code: 'KR', en: 'South Korea', he: 'דרום קוריאה' },
+  { code: 'ES', en: 'Spain', he: 'ספרד' },
+  { code: 'SE', en: 'Sweden', he: 'שוודיה' },
+  { code: 'CH', en: 'Switzerland', he: 'שווייץ' },
+  { code: 'TW', en: 'Taiwan', he: 'טייוואן' },
+  { code: 'TH', en: 'Thailand', he: 'תאילנד' },
+  { code: 'TR', en: 'Turkey', he: 'טורקיה' },
+  { code: 'UA', en: 'Ukraine', he: 'אוקראינה' },
+  { code: 'AE', en: 'United Arab Emirates', he: 'איחוד האמירויות הערביות' },
+  { code: 'GB', en: 'United Kingdom', he: 'בריטניה' },
+  { code: 'US', en: 'United States', he: 'ארצות הברית' },
+  { code: 'VN', en: 'Vietnam', he: 'וייטנאם' },
+];
+
+export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreated, onDelete }: CreateCustomerModalProps) {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
@@ -197,6 +273,12 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Reset submitting state when modal opens/closes
+    if (!isOpen) {
+      setIsSubmitting(false);
+      return;
+    }
+
     if (customer) {
       setFormData({
         name: customer.name,
@@ -266,13 +348,24 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
 
     if (!formData.name.trim()) {
       toast.error(isRTL ? 'יש להזין שם לקוח' : 'Customer name is required');
       return;
     }
 
-    if (isSubmitting) return; // Prevent double submission
+    // Prevent double submission - check state and return early if already submitting
+    if (isSubmitting) {
+      console.warn('⚠️ CreateCustomerModal: Submission already in progress, ignoring duplicate submit');
+      return;
+    }
+
+    // Ensure we have a user ID
+    if (!state.user?.id) {
+      toast.error(isRTL ? 'שגיאה: לא נמצא משתמש מחובר' : 'Error: No user logged in');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -298,6 +391,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
         customerScore: formData.customerScore,
         notes: formData.notes || null,
         referralSource: formData.referralSource || null,
+        userId: state.user.id, // Always include userId
       };
 
       if (customer) {
@@ -317,12 +411,38 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
         }
       }
 
+      // Close modal after successful save
       onClose();
     } catch (error: any) {
       console.error('Failed to save customer:', error);
       toast.error(error.message || (isRTL ? 'שגיאה בשמירת הלקוח' : 'Failed to save customer'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!customer || !customer.id || !onDelete) {
+      return;
+    }
+
+    const projectCount = state.projects.filter(p => p.customerId === customer.id).length;
+    const confirmMessage = isRTL
+      ? projectCount > 0
+        ? `האם אתה בטוח שברצונך למחוק את הלקוח "${customer.name}"? יש ${projectCount} פרויקט(ים) המשויכים ללקוח זה.`
+        : `האם אתה בטוח שברצונך למחוק את הלקוח "${customer.name}"?`
+      : projectCount > 0
+        ? `Are you sure you want to delete the customer "${customer.name}"? There are ${projectCount} project(s) associated with this customer.`
+        : `Are you sure you want to delete the customer "${customer.name}"?`;
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        onDelete(customer.id);
+        onClose();
+      } catch (error: any) {
+        console.error('Failed to delete customer:', error);
+        toast.error(error.message || (isRTL ? 'שגיאה במחיקת הלקוח' : 'Failed to delete customer'));
+      }
     }
   };
 
@@ -341,7 +461,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
       titleIcon={<Plus className="w-5 h-5 text-primary-500" />}
       size="xl"
     >
-      <form onSubmit={handleSubmit} className={`space-y-6 ${alignStart}`} dir={isRTL ? 'rtl' : 'ltr'}>
+      <form onSubmit={handleSubmit} className={`space-y-6 ${alignStart}`} dir={isRTL ? 'rtl' : 'ltr'} noValidate>
         {/* Basic Information */}
         <div className="space-y-4">
           <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${flexDirection}`}>
@@ -446,14 +566,11 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${alignStart}`}
               >
                 <option value="">{t.selectCountry}</option>
-                <option value="israel">{t.israel}</option>
-                <option value="usa">{t.usa}</option>
-                <option value="uk">{t.uk}</option>
-                <option value="germany">{t.germany}</option>
-                <option value="france">{t.france}</option>
-                <option value="canada">{t.canada}</option>
-                <option value="australia">{t.australia}</option>
-                <option value="other">{t.other}</option>
+                {countries.map((country) => (
+                  <option key={country.code} value={locale === 'he' ? country.he : country.en}>
+                    {locale === 'he' ? country.he : country.en}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -690,29 +807,43 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
           />
         </div>
 
-        <div className={`flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700 ${flexDirection}`}>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            {t.cancel}
-          </Button>
-          <Button 
-            type="submit" 
-            className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <span className={`flex items-center gap-2 ${flexDirection}`}>
-                <LoadingSpinner size="sm" />
-                {isRTL ? 'שומר...' : 'Saving...'}
-              </span>
-            ) : (
-              customer ? t.updateCustomer : t.addCustomer
-            )}
-          </Button>
+        <div className={`flex justify-between items-center pt-6 border-t border-gray-200 dark:border-gray-700 ${flexDirection}`}>
+          {customer && onDelete && (
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700"
+            >
+              <Trash2 size={16} className="mr-2" />
+              {t.deleteCustomer}
+            </Button>
+          )}
+          <div className={`flex gap-3 ${flexDirection} ${customer && onDelete ? '' : 'ml-auto'}`}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              {t.cancel}
+            </Button>
+            <Button 
+              type="submit" 
+              className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className={`flex items-center gap-2 ${flexDirection}`}>
+                  <LoadingSpinner size="sm" />
+                  {isRTL ? 'שומר...' : 'Saving...'}
+                </span>
+              ) : (
+                customer ? t.updateCustomer : t.addCustomer
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Modal>

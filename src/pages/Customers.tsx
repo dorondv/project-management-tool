@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
-import { LayoutGrid, LayoutList, Plus, Search, FolderOpen } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { LayoutGrid, LayoutList, Plus, Search, FolderOpen, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, User, Building, Clock, CreditCard, MoreVertical, CheckSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
@@ -7,6 +7,8 @@ import { Badge } from '../components/common/Badge';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Customer, CustomerStatus, PaymentMethod, BillingModel, PaymentFrequency, Locale } from '../types';
 import { CreateCustomerModal } from '../components/customers/CreateCustomerModal';
+import { api } from '../utils/api';
+import toast from 'react-hot-toast';
 
 type ViewMode = 'list' | 'grid';
 type StatusFilter = 'all' | CustomerStatus;
@@ -27,9 +29,9 @@ const statusLabels: Record<Locale, Record<CustomerStatus, string>> = {
   },
   he: {
     active: 'פעיל',
-    trial: 'בפיילוט',
+    trial: 'ניסיון',
     paused: 'מושהה',
-    churned: 'בוטל',
+    churned: 'נטש',
   },
 };
 
@@ -124,6 +126,7 @@ const translations: Record<
       hoursPerMonth: string;
       referralSource: string;
       details: string;
+      delete: string;
       noResults: string;
       referralFallback: string;
     };
@@ -137,6 +140,8 @@ const translations: Record<
       activeProjects: string;
       viewProjects: string;
       detailsButton: string;
+      tasksToDo: string;
+      delete: string;
       empty: string;
     };
   }
@@ -170,6 +175,7 @@ const translations: Record<
       hoursPerMonth: 'Hours / Month',
       referralSource: 'Lead Source',
       details: 'Details',
+      delete: 'Delete',
       noResults: 'No matching customers found',
       referralFallback: '—',
     },
@@ -183,6 +189,8 @@ const translations: Record<
       activeProjects: 'Active Projects',
       viewProjects: 'View Projects',
       detailsButton: 'Customer Details',
+      tasksToDo: 'Tasks to do',
+      delete: 'Delete',
       empty: 'No customers to display',
     },
   },
@@ -215,6 +223,7 @@ const translations: Record<
       hoursPerMonth: 'שעות לחודש',
       referralSource: 'מקור הגעה',
       details: 'פרטים',
+      delete: 'מחק',
       noResults: 'לא נמצאו לקוחות תואמים לחיפוש',
       referralFallback: '—',
     },
@@ -228,6 +237,8 @@ const translations: Record<
       activeProjects: 'פרויקטים פעילים',
       viewProjects: 'צפה בפרויקטים',
       detailsButton: 'פרטי לקוח',
+      tasksToDo: 'משימות לביצוע',
+      delete: 'מחק',
       empty: 'לא נמצאו לקוחות תואמים להצגה',
     },
   },
@@ -275,18 +286,21 @@ interface CustomersMetrics {
 }
 
 export default function Customers() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const navigate = useNavigate();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
 
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Set loading state based on whether customers are loaded
   useEffect(() => {
@@ -299,8 +313,144 @@ export default function Customers() {
     }
   }, [state.loading]);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId) {
+        const menuRef = menuRefs.current[openMenuId];
+        if (menuRef && !menuRef.contains(event.target as Node)) {
+          setOpenMenuId(null);
+        }
+      }
+    };
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuId]);
+
   const getCustomerProjectCount = (customerId: string) => {
     return state.projects.filter(p => p.customerId === customerId).length;
+  };
+
+  const getCustomerTodoTasksCount = (customerId: string) => {
+    const customerProjects = state.projects.filter(p => p.customerId === customerId);
+    const projectIds = customerProjects.map(p => p.id);
+    return state.tasks.filter(t => projectIds.includes(t.projectId) && t.status === 'todo').length;
+  };
+
+  // Helper functions for customer score calculation (based on mockup)
+  const getTotalRevenueForCustomer = (customerId: string) => {
+    const customerTimeEntries = state.timeEntries?.filter(entry => entry.customerId === customerId) || [];
+    return customerTimeEntries.reduce((sum, entry) => sum + (entry.income || 0), 0);
+  };
+
+  const getCustomerSeniority = (customer: Customer) => {
+    if (!customer.joinDate) return 0;
+    const joinDate = new Date(customer.joinDate);
+    const now = new Date();
+    const years = now.getFullYear() - joinDate.getFullYear();
+    const months = now.getMonth() - joinDate.getMonth();
+    const days = now.getDate() - joinDate.getDate();
+    let totalMonths = years * 12 + months;
+    if (days >= 0) {
+      const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      totalMonths += days / daysInCurrentMonth;
+    } else {
+      totalMonths -= 1;
+      const daysInPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+      totalMonths += (daysInPreviousMonth + days) / daysInPreviousMonth;
+    }
+    return Math.max(0, totalMonths);
+  };
+
+  const getReferralsCountForCustomer = (customerId: string) => {
+    // Check if customer has referralSource that matches another customer's name or ID
+    // For now, return 0 as we don't have a direct referred_by field
+    // This can be enhanced if referral tracking is added
+    return state.customers?.filter(c => c.referralSource === customerId || c.referralSource === state.customers.find(c2 => c2.id === customerId)?.name).length || 0;
+  };
+
+  const getIncomeFromReferrals = (customerId: string) => {
+    const referredCustomers = state.customers?.filter(c => c.referralSource === customerId || c.referralSource === state.customers.find(c2 => c2.id === customerId)?.name) || [];
+    if (referredCustomers.length === 0) return 0;
+    return referredCustomers.reduce((sum, referredCustomer) => {
+      return sum + getTotalRevenueForCustomer(referredCustomer.id);
+    }, 0);
+  };
+
+  const getCustomerMonthlyIncome = (customer: Customer) => {
+    switch(customer.billingModel) {
+      case 'retainer':
+        return customer.monthlyRetainer || 0;
+      case 'hourly':
+        const assumedMonthlyHours = 160;
+        // Calculate hourly rate from monthlyRetainer if available, or use a default
+        const hourlyRate = customer.monthlyRetainer > 0 ? customer.monthlyRetainer : (customer.hoursPerMonth > 0 ? customer.monthlyRetainer / customer.hoursPerMonth : 0);
+        return hourlyRate * assumedMonthlyHours;
+      case 'project':
+        if (customer.hoursPerMonth && customer.annualFee) {
+          const monthlyHours = 160;
+          const hourlyFromProject = customer.annualFee / customer.hoursPerMonth;
+          return hourlyFromProject * monthlyHours;
+        }
+        return 0;
+      default:
+        return 0;
+    }
+  };
+
+  const getCustomerHourlyRate = (customer: Customer) => {
+    if (customer.billingModel === 'hourly') {
+      return customer.monthlyRetainer || 0; // In hourly model, monthlyRetainer stores the hourly rate
+    } else if (customer.billingModel === 'retainer' && customer.hoursPerMonth > 0) {
+      return customer.monthlyRetainer / customer.hoursPerMonth;
+    } else if (customer.billingModel === 'project' && customer.hoursPerMonth > 0) {
+      return customer.annualFee / customer.hoursPerMonth;
+    }
+    return 0;
+  };
+
+  const calculateCustomerScore = (customer: Customer): string => {
+    const activeCustomers = state.customers?.filter(c => c.joinDate) || [];
+    if (activeCustomers.length === 0) return 'C';
+
+    const customerMetrics = {
+      monthlyIncome: getCustomerMonthlyIncome(customer),
+      hourlyRate: getCustomerHourlyRate(customer),
+      seniority: getCustomerSeniority(customer),
+      referralsCount: getReferralsCountForCustomer(customer.id),
+      totalRevenue: getTotalRevenueForCustomer(customer.id),
+      referredRevenue: getIncomeFromReferrals(customer.id)
+    };
+
+    const averages = {
+      monthlyIncome: activeCustomers.reduce((sum, c) => sum + getCustomerMonthlyIncome(c), 0) / activeCustomers.length,
+      hourlyRate: activeCustomers.reduce((sum, c) => sum + getCustomerHourlyRate(c), 0) / activeCustomers.length,
+      seniority: activeCustomers.reduce((sum, c) => sum + getCustomerSeniority(c), 0) / activeCustomers.length,
+      referralsCount: activeCustomers.reduce((sum, c) => sum + getReferralsCountForCustomer(c.id), 0) / activeCustomers.length,
+      totalRevenue: activeCustomers.reduce((sum, c) => sum + getTotalRevenueForCustomer(c.id), 0) / activeCustomers.length,
+      referredRevenue: activeCustomers.reduce((sum, c) => sum + getIncomeFromReferrals(c.id), 0) / activeCustomers.length
+    };
+
+    const scores = {
+      monthlyIncome: averages.monthlyIncome > 0 ? Math.min(customerMetrics.monthlyIncome / averages.monthlyIncome, 2) : 0,
+      hourlyRate: averages.hourlyRate > 0 ? Math.min(customerMetrics.hourlyRate / averages.hourlyRate, 2) : 0,
+      seniority: averages.seniority > 0 ? Math.min(customerMetrics.seniority / averages.seniority, 2) : 0,
+      referralsCount: averages.referralsCount > 0 ? Math.min(customerMetrics.referralsCount / averages.referralsCount, 2) : 0,
+      totalRevenue: averages.totalRevenue > 0 ? Math.min(customerMetrics.totalRevenue / averages.totalRevenue, 2) : 0,
+      referredRevenue: averages.referredRevenue > 0 ? Math.min(customerMetrics.referredRevenue / averages.referredRevenue, 2) : 0
+    };
+
+    const totalScore = (scores.monthlyIncome + scores.hourlyRate + scores.seniority + scores.referralsCount + scores.totalRevenue + scores.referredRevenue) / 6;
+
+    if (totalScore >= 1.2) return 'A';
+    if (totalScore >= 0.8) return 'B';
+    return 'C';
   };
 
   const handleViewProjects = (customerId: string) => {
@@ -320,6 +470,48 @@ export default function Customers() {
   const handleNewCustomer = () => {
     setEditingCustomer(null);
     setIsCustomerModalOpen(true);
+  };
+
+  const handleDeleteCustomer = async (customer: Customer) => {
+    // Ensure we have a valid customer with an ID
+    if (!customer || !customer.id) {
+      console.error('Invalid customer provided to handleDeleteCustomer:', customer);
+      toast.error(locale === 'he' ? 'שגיאה: לקוח לא תקין' : 'Error: Invalid customer');
+      return;
+    }
+
+    const customerId = customer.id;
+    const customerName = customer.name;
+    
+    // Find the customer in state to ensure we have the latest data
+    const customerFromState = state.customers.find(c => c.id === customerId);
+    if (!customerFromState) {
+      console.error('Customer not found in state:', customerId);
+      toast.error(locale === 'he' ? 'שגיאה: לקוח לא נמצא' : 'Error: Customer not found');
+      return;
+    }
+
+    const projectCount = getCustomerProjectCount(customerId);
+    
+    const confirmMessage = locale === 'he'
+      ? projectCount > 0
+        ? `האם אתה בטוח שברצונך למחוק את הלקוח "${customerName}"? יש ${projectCount} פרויקט(ים) המשויכים ללקוח זה.`
+        : `האם אתה בטוח שברצונך למחוק את הלקוח "${customerName}"?`
+      : projectCount > 0
+        ? `Are you sure you want to delete the customer "${customerName}"? There are ${projectCount} project(s) associated with this customer.`
+        : `Are you sure you want to delete the customer "${customerName}"?`;
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        console.log('🗑️ Deleting customer:', { id: customerId, name: customerName });
+        await api.customers.delete(customerId, state.user?.id);
+        dispatch({ type: 'DELETE_CUSTOMER', payload: customerId });
+        toast.success(locale === 'he' ? 'הלקוח נמחק בהצלחה' : 'Customer deleted successfully');
+      } catch (error: any) {
+        console.error('Failed to delete customer:', error);
+        toast.error(error.message || (locale === 'he' ? 'שגיאה במחיקת הלקוח' : 'Failed to delete customer'));
+      }
+    }
   };
 
   const metrics = useMemo<CustomersMetrics>(() => {
@@ -479,9 +671,47 @@ export default function Customers() {
       )}
 
       {!isLoading && viewMode === 'list' ? (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className={`min-w-full divide-y divide-gray-200 dark:divide-gray-700 ${alignStart}`}>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
+          {/* Custom Scroll Controls */}
+          <div className={`flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900/20 border-b border-gray-200 dark:border-gray-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {isRTL ? 'גלול ימינה/שמאלה כדי לראות את כל העמודות' : 'Scroll left/right to see all columns'}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (tableScrollRef.current) {
+                    tableScrollRef.current.scrollBy({ left: isRTL ? 200 : -200, behavior: 'smooth' });
+                  }
+                }}
+                className="p-1.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                aria-label={isRTL ? 'גלול ימינה' : 'Scroll left'}
+              >
+                <ChevronLeft size={16} className="text-gray-600 dark:text-gray-300" />
+              </button>
+              <button
+                onClick={() => {
+                  if (tableScrollRef.current) {
+                    tableScrollRef.current.scrollBy({ left: isRTL ? -200 : 200, behavior: 'smooth' });
+                  }
+                }}
+                className="p-1.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                aria-label={isRTL ? 'גלול שמאלה' : 'Scroll right'}
+              >
+                <ChevronRight size={16} className="text-gray-600 dark:text-gray-300" />
+              </button>
+            </div>
+          </div>
+          <div 
+            ref={tableScrollRef}
+            className="overflow-x-auto"
+            style={{ 
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgb(107 114 128) rgb(243 244 246)',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <table className={`divide-y divide-gray-200 dark:divide-gray-700 ${alignStart}`} style={{ width: '1600px', minWidth: '1600px' }}>
               <thead className="bg-gray-50 dark:bg-gray-900/20 text-gray-600 dark:text-gray-300 text-xs uppercase tracking-wide">
                 <tr>
                   <th scope="col" className={`px-4 py-3 font-semibold ${alignStart}`}>
@@ -539,6 +769,7 @@ export default function Customers() {
                   const tenure = calculateTenureMonths(customer.joinDate);
                   const statusVariant = statusVariants[customer.status];
                   const statusLabel = statusLabels[locale][customer.status];
+                  const customerScore = calculateCustomerScore(customer);
 
                   return (
                     <tr
@@ -560,7 +791,7 @@ export default function Customers() {
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{tenure}</td>
                       <td className={`px-4 py-4 text-gray-900 dark:text-white font-semibold ${alignStart}`}>
-                        {customer.customerScore}
+                        {customerScore}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{customer.taxId}</td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{customer.country}</td>
@@ -604,6 +835,15 @@ export default function Customers() {
                           >
                             {t.table.details}
                           </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteCustomer(customer)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                          >
+                            <Trash2 size={14} className="mr-1" />
+                            {t.table.delete}
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -621,74 +861,186 @@ export default function Customers() {
           </div>
         </div>
       ) : !isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredCustomers.map((customer) => {
             const tenure = calculateTenureMonths(customer.joinDate);
             const statusVariant = statusVariants[customer.status];
             const statusLabel = statusLabels[locale][customer.status];
+            const projectCount = getCustomerProjectCount(customer.id);
+            const todoTasksCount = getCustomerTodoTasksCount(customer.id);
+            const customerScore = calculateCustomerScore(customer);
+            
+            // Calculate hourly rate based on billing model
+            const getPaymentInfo = () => {
+              let rate = 0;
+              let typeText = '';
+              let color = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+              let isCalculated = false;
+              const pinkColor = 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-200';
+
+              if (customer.billingModel === 'hourly') {
+                rate = customer.monthlyRetainer || 0;
+                typeText = billingModelLabels[locale].hourly;
+                color = pinkColor;
+              } else if (customer.billingModel === 'retainer') {
+                typeText = billingModelLabels[locale].retainer;
+                color = pinkColor;
+                if (customer.hoursPerMonth && customer.hoursPerMonth > 0) {
+                  rate = Math.round(customer.monthlyRetainer / customer.hoursPerMonth);
+                  isCalculated = true;
+                }
+              } else if (customer.billingModel === 'project') {
+                typeText = billingModelLabels[locale].project;
+                color = pinkColor;
+                if (customer.hoursPerMonth && customer.hoursPerMonth > 0) {
+                  rate = Math.round(customer.annualFee / customer.hoursPerMonth);
+                  isCalculated = true;
+                }
+              } else {
+                typeText = t.grid.industryFallback;
+                color = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+              }
+              
+              const valueText = rate > 0 
+                ? `${customer.currency || '₪'}${rate.toLocaleString()}/${locale === 'he' ? 'שעה' : 'hr'}${isCalculated ? (locale === 'he' ? ' (מחושב)' : ' (calc)') : ''}` 
+                : (locale === 'he' ? 'לא הוגדר תעריף' : 'Rate not set');
+              
+              return { text: typeText, value: valueText, color };
+            };
+
+            const paymentInfo = getPaymentInfo();
 
             return (
               <div
                 key={customer.id}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                className="glass-effect border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex flex-col rounded-xl overflow-hidden"
+                dir={isRTL ? 'rtl' : 'ltr'}
               >
-                <div className={`flex items-start justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className={alignStart}>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{customer.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {customer.industry || t.grid.industryFallback}
-                    </p>
+                <div className="p-6 flex-grow flex flex-col">
+                  {/* Header with Avatar, Name, Tax ID, and Menu */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-white">{customer.name}</h3>
+                        {customer.taxId && (
+                          <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-sm">
+                            <Building className="w-3 h-3" />
+                            {locale === 'he' ? 'ח״פ:' : 'Tax ID:'} {customer.taxId}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="relative" ref={(el) => { menuRefs.current[customer.id] = el; }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === customer.id ? null : customer.id);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {openMenuId === customer.id && (
+                        <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10`}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(null);
+                              handleEditCustomer(customer);
+                            }}
+                            className={`w-full px-4 py-2 ${isRTL ? 'text-right flex-row-reverse' : 'text-left'} text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2`}
+                          >
+                            {t.table.details}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setOpenMenuId(null);
+                              handleDeleteCustomer(customer);
+                            }}
+                            className={`w-full px-4 py-2 ${isRTL ? 'text-right flex-row-reverse' : 'text-left'} text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700`}
+                          >
+                            <Trash2 size={16} />
+                            {t.grid.delete}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant={statusVariant}>{statusLabel}</Badge>
-                </div>
 
-                <div className={`mt-4 space-y-3 text-sm text-gray-700 dark:text-gray-200 ${alignStart}`}>
-                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-gray-500 dark:text-gray-400">{t.table.joinDate}</span>
-                    <span>{formatDate(customer.joinDate, locale)}</span>
+                  {/* Details Button and Status Badge */}
+                  <div className="flex justify-start items-center gap-3 mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditCustomer(customer)}
+                      className="bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                      {t.grid.detailsButton}
+                    </Button>
+                    <Badge variant={statusVariant} className="flex items-center gap-1.5 py-1 px-3">
+                      {statusLabel}
+                    </Badge>
+                    <Badge className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 flex items-center gap-1.5 py-1 px-3">
+                      <span className="font-bold text-sm">{t.grid.scoreLabel}: {customerScore}</span>
+                    </Badge>
                   </div>
-                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-gray-500 dark:text-gray-400">{t.grid.tenureLabel}</span>
-                    <span>
-                      {tenure} {t.grid.tenureUnit}
-                    </span>
-                  </div>
-                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {customer.billingModel === 'hourly' ? t.grid.hourlyRateLabel : t.grid.monthlyRetainerLabel}
-                    </span>
-                    <span>{formatCurrency(customer.monthlyRetainer, customer.currency, locale)}</span>
-                  </div>
-                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-gray-500 dark:text-gray-400">{t.grid.scoreLabel}</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{customer.customerScore}</span>
-                  </div>
-                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <FolderOpen size={14} />
-                      {t.grid.activeProjects}
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {getCustomerProjectCount(customer.id)}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="mt-5 flex gap-2">
-                  <Button 
-                    className="flex-1" 
-                    variant="outline"
-                    onClick={() => handleViewProjects(customer.id)}
-                  >
-                    {t.grid.viewProjects}
-                  </Button>
-                  <Button 
-                    className="flex-1" 
-                    variant="outline"
-                    onClick={() => handleEditCustomer(customer)}
-                  >
-                    {t.grid.detailsButton}
-                  </Button>
+                  {/* Seniority */}
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-4">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {t.grid.tenureLabel}: {tenure.toFixed(1)} {t.grid.tenureUnit}
+                    </span>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div className="mb-4 flex-grow">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.table.paymentMethod}:</span>
+                    </div>
+                    <Badge className={`${paymentInfo.color} mb-2`}>
+                      {paymentInfo.text}
+                    </Badge>
+                    {paymentInfo.value && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-pink-700 dark:text-pink-300">{paymentInfo.value}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stats Section */}
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
+                    <Button 
+                      variant="outline"
+                      size="sm" 
+                      className="w-full justify-between rounded-xl hover:bg-pink-100 dark:hover:bg-pink-900/20 transition-all"
+                      onClick={() => handleViewProjects(customer.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                        <span>{t.grid.viewProjects}</span>
+                      </div>
+                      <Badge className="bg-pink-200 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200">{projectCount}</Badge>
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm" 
+                      className="w-full justify-between rounded-xl hover:bg-pink-100 dark:hover:bg-pink-900/20 transition-all"
+                      onClick={() => navigate(`/tasks?status=todo&customerId=${customer.id}`)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                        <span>{t.grid.tasksToDo}</span>
+                      </div>
+                      <Badge className="bg-pink-200 dark:bg-pink-900/30 text-pink-800 dark:text-pink-200">{todoTasksCount}</Badge>
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
@@ -706,6 +1058,12 @@ export default function Customers() {
         isOpen={isCustomerModalOpen}
         onClose={handleCloseModal}
         customer={editingCustomer}
+        onDelete={(customerId: string) => {
+          const customerToDelete = state.customers.find(c => c.id === customerId);
+          if (customerToDelete) {
+            handleDeleteCustomer(customerToDelete);
+          }
+        }}
       />
     </div>
   );
