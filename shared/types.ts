@@ -106,6 +106,7 @@ export interface Customer {
   customerScore: number;
   notes?: string | null;
   referralSource?: string | null;
+  userId: string;
   tags: string[];
   createdAt: Date;
   updatedAt: Date;

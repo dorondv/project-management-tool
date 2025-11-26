@@ -156,6 +156,7 @@ router.get('/initial-data', async (req, res) => {
       ),
       fetchWithTiming('customers', () =>
         prisma.customer.findMany({
+          ...(userId && { where: { userId } }),
           orderBy: { createdAt: 'desc' },
           take: 500,
         })
