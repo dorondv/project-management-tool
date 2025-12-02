@@ -39,21 +39,51 @@ const translations: Record<Locale, {
   },
 };
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  tasks?: Task[];
+  onEdit?: (task: Task) => void;
+  onDelete?: (task: Task) => void;
+}
+
+export function KanbanBoard({ tasks, onEdit, onDelete }: KanbanBoardProps = { tasks: undefined }) {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
   const countMarginClass = isRTL ? 'mr-2' : 'ml-2';
   const baseColumns = [
-    { id: 'todo', title: t.columns.todo, color: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'in-progress', title: t.columns.inProgress, color: 'bg-blue-100 dark:bg-blue-900/20' },
-    { id: 'completed', title: t.columns.completed, color: 'bg-green-100 dark:bg-green-900/20' }
+    { 
+      id: 'todo', 
+      title: t.columns.todo, 
+      bgColor: 'bg-pink-50 dark:bg-pink-900/20',
+      textColor: 'text-pink-600 dark:text-pink-400',
+      dragColor: 'bg-pink-100 dark:bg-pink-900/20',
+      borderColor: 'border-pink-300'
+    },
+    { 
+      id: 'in-progress', 
+      title: t.columns.inProgress, 
+      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+      textColor: 'text-orange-600 dark:text-orange-400',
+      dragColor: 'bg-orange-100 dark:bg-orange-900/20',
+      borderColor: 'border-orange-300'
+    },
+    { 
+      id: 'completed', 
+      title: t.columns.completed, 
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
+      textColor: 'text-green-600 dark:text-green-400',
+      dragColor: 'bg-green-100 dark:bg-green-900/20',
+      borderColor: 'border-green-300'
+    }
   ] as const;
   // Keep original order for RTL so "לביצוע" (To Do) appears first (on the right)
   const columns = baseColumns;
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  
+  // Use provided tasks or fall back to all tasks
+  const tasksToUse = tasks || state.tasks;
 
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
@@ -62,7 +92,7 @@ export function KanbanBoard() {
 
     if (source.droppableId === destination.droppableId) return;
 
-    const task = state.tasks.find(t => t.id === draggableId);
+    const task = tasksToUse.find(t => t.id === draggableId);
     if (!task) return;
 
     const newStatus = destination.droppableId as 'todo' | 'in-progress' | 'completed';
@@ -98,7 +128,7 @@ export function KanbanBoard() {
   };
 
   const getTasksByStatus = (status: string) => {
-    return state.tasks.filter(task => task.status === status);
+    return tasksToUse.filter(task => task.status === status);
   };
 
   return (
@@ -107,11 +137,11 @@ export function KanbanBoard() {
         <div className={`flex overflow-x-auto pb-4 gap-6 w-full`}>
           {columns.map((column) => (
             <div key={column.id} className={`flex-shrink-0 w-80 ${isRTL ? 'text-right' : ''}`}>
-              <div className={`mb-4 ${isRTL ? 'text-right' : ''}`}>
-                <h3 className={`font-semibold text-gray-900 dark:text-white ${isRTL ? 'text-right' : ''}`}>
-                  {column.title}
-                  <span className={`${countMarginClass} text-sm text-gray-500 dark:text-gray-400`}>
-                    ({getTasksByStatus(column.id).length})
+              <div className={`${column.bgColor} rounded-2xl p-4 mb-4`} dir={isRTL ? 'rtl' : 'ltr'}>
+                <h3 className={`font-bold text-lg flex items-center gap-2 ${column.textColor}`}>
+                  <span>{column.title}</span>
+                  <span className="text-sm bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full px-3 py-1 shadow-sm">
+                    {getTasksByStatus(column.id).length}
                   </span>
                 </h3>
               </div>
@@ -121,8 +151,8 @@ export function KanbanBoard() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`min-h-[200px] p-4 rounded-lg transition-colors ${
-                      snapshot.isDraggingOver ? column.color : 'bg-gray-50 dark:bg-gray-800/50'
+                    className={`min-h-[300px] p-2 rounded-lg transition-all duration-200 ${
+                      snapshot.isDraggingOver ? `${column.dragColor} border-2 ${column.borderColor} border-dashed` : ''
                     }`}
                   >
                     <div className="space-y-3">
@@ -138,6 +168,8 @@ export function KanbanBoard() {
                                 task={task}
                                 onClick={() => setSelectedTask(task)}
                                 isDragging={snapshot.isDragging}
+                                onEdit={onEdit}
+                                onDelete={onDelete}
                               />
                             </div>
                           )}
