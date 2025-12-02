@@ -9,9 +9,10 @@ interface ModalProps {
   titleIcon?: ReactNode;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  dir?: 'ltr' | 'rtl';
 }
 
-export function Modal({ isOpen, onClose, title, titleIcon, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, titleIcon, children, size = 'md', dir }: ModalProps) {
   const sizeClasses = {
     sm: 'max-w-md',
     md: 'max-w-lg',
@@ -52,12 +53,13 @@ export function Modal({ isOpen, onClose, title, titleIcon, children, size = 'md'
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.2 }}
             className={`relative w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl`}
+            dir={dir}
           >
             {title && (
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
                   {titleIcon && <div className="text-gray-600 dark:text-gray-400">{titleIcon}</div>}
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
                     {title}
                   </h3>
                 </div>

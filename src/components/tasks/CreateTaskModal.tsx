@@ -27,6 +27,7 @@ const translations = {
     createTask: 'Create Task',
     errorSelectProject: 'Please select a project',
     successCreated: 'Task created successfully!',
+    activityCreated: 'created task "{title}"',
   },
   he: {
     title: 'יצירת משימה חדשה',
@@ -47,6 +48,7 @@ const translations = {
     createTask: 'צור משימה',
     errorSelectProject: 'אנא בחר פרויקט',
     successCreated: 'המשימה נוצרה בהצלחה!',
+    activityCreated: 'נוצרה משימה "{title}"',
   },
 } as const;
 
@@ -137,7 +139,7 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
         payload: {
           id: Date.now().toString(),
           type: 'task_created',
-          description: `created task "${newTask.title}"`,
+          description: t.activityCreated.replace('{title}', newTask.title),
           userId: state.user!.id,
           user: state.user!,
           projectId: newTask.projectId,

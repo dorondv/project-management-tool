@@ -8,6 +8,7 @@ import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { UpcomingDeadlines } from '../components/dashboard/UpcomingDeadlines';
 import { IncomePerHourChart } from '../components/dashboard/IncomePerHourChart';
 import { MonthlyTrendsChart } from '../components/dashboard/MonthlyTrendsChart';
+import { DetailedCustomerReport } from '../components/dashboard/DetailedCustomerReport';
 
 const dashboardTranslations = {
   en: {
@@ -231,6 +232,8 @@ export default function Dashboard() {
       </div>
 
       <UpcomingDeadlines />
+
+      <DetailedCustomerReport />
     </div>
   );
 }
