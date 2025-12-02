@@ -298,14 +298,15 @@ router.post('/', async (req, res) => {
 // PUT /api/tasks/:id - Update task
 router.put('/:id', async (req, res) => {
   try {
-    const { title, description, status, priority, dueDate, assignedTo, tags } = req.body;
+    const { title, description, projectId, status, priority, dueDate, assignedTo, tags } = req.body;
     
-    console.log(`📝 Updating task ${req.params.id}:`, { title, description, status, priority, dueDate, assignedTo, tags });
+    console.log(`📝 Updating task ${req.params.id}:`, { title, description, projectId, status, priority, dueDate, assignedTo, tags });
     
     // Build update data object - only include fields that are provided
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
+    if (projectId !== undefined) updateData.projectId = projectId;
     if (status !== undefined) updateData.status = status; // Allow status updates even if empty string
     if (priority !== undefined) updateData.priority = priority;
     if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
@@ -327,11 +328,17 @@ router.put('/:id', async (req, res) => {
         where: { taskId: req.params.id },
         select: { userId: true },
       });
+      // Normalize assignedTo to array of user ID strings
+      const userIds = assignedTo.map((item: any) => {
+        // If it's already a string, use it; if it's an object, extract the id
+        return typeof item === 'string' ? item : (item?.id || item);
+      }).filter(Boolean); // Remove any null/undefined values
+      
       const currentUserIds = new Set(currentAssignees.map(a => a.userId));
-      const newUserIds = new Set(assignedTo);
+      const newUserIds = new Set(userIds);
       
       // Find assignees to add and remove
-      const toAdd = assignedTo.filter((userId: string) => !currentUserIds.has(userId));
+      const toAdd = userIds.filter((userId: string) => !currentUserIds.has(userId));
       const toRemove = currentAssignees
         .map(a => a.userId)
         .filter((userId: string) => !newUserIds.has(userId));

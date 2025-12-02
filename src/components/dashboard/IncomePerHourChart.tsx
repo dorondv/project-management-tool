@@ -53,10 +53,10 @@ export function IncomePerHourChart() {
   const hasData = chartData.length > 0 && chartData.some(d => d.averageIncomePerHour > 0);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className={`flex items-center gap-2 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <Calculator size={20} className="text-primary-500 dark:text-primary-300" />
-        <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="flex items-center gap-2 mb-4">
+        <Calculator size={20} className={isRTL ? "text-pink-500 dark:text-pink-300" : "text-primary-500 dark:text-primary-300"} />
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           {t.title}
         </h3>
       </div>

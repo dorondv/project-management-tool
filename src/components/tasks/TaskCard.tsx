@@ -1,19 +1,79 @@
-// import { motion } from 'framer-motion';
-import { MessageSquare, Paperclip, MoreHorizontal } from 'lucide-react';
-import { Task } from '../../types';
+import { useState, useRef, useEffect } from 'react';
+import { MessageSquare, Paperclip, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Task, Locale } from '../../types';
 import { formatDate, getDeadlineStatus } from '../../utils/dateUtils';
 import { getPriorityColor, getStatusColor } from '../../utils/colorUtils';
 import { Badge } from '../common/Badge';
 import { Card } from '../common/Card';
+import { useApp } from '../../context/AppContext';
+
+const translations: Record<Locale, {
+  edit: string;
+  delete: string;
+  deleteConfirm: string;
+}> = {
+  en: {
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteConfirm: 'Are you sure you want to delete this task?',
+  },
+  he: {
+    edit: 'עריכה',
+    delete: 'מחיקה',
+    deleteConfirm: 'האם אתה בטוח שברצונך למחוק משימה זו?',
+  },
+};
 
 interface TaskCardProps {
   task: Task;
   onClick: () => void;
   isDragging?: boolean;
+  onEdit?: (task: Task) => void;
+  onDelete?: (task: Task) => void;
 }
 
-export function TaskCard({ task, onClick, isDragging = false }: TaskCardProps) {
+export function TaskCard({ task, onClick, isDragging = false, onEdit, onDelete }: TaskCardProps) {
+  const { state } = useApp();
+  const locale: Locale = state.locale ?? 'en';
+  const isRTL = locale === 'he';
+  const t = translations[locale];
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const deadlineStatus = getDeadlineStatus(task.dueDate);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    if (onEdit) {
+      onEdit(task);
+    }
+  };
+
+  const handleDeleteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    if (onDelete) {
+      if (window.confirm(t.deleteConfirm)) {
+        onDelete(task);
+      }
+    }
+  };
 
   return (
     <Card
@@ -32,9 +92,39 @@ export function TaskCard({ task, onClick, isDragging = false }: TaskCardProps) {
             {task.description}
           </p>
         </div>
-        <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-          <MoreHorizontal size={14} />
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(!isMenuOpen);
+            }}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <MoreHorizontal size={14} />
+          </button>
+          {isMenuOpen && (
+            <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10`}>
+              {onEdit && (
+                <button
+                  onClick={handleEditClick}
+                  className={`w-full px-4 py-2 ${isRTL ? 'text-right flex-row-reverse' : 'text-left'} text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2`}
+                >
+                  <Edit size={16} />
+                  {t.edit}
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={handleDeleteClick}
+                  className={`w-full px-4 py-2 ${isRTL ? 'text-right flex-row-reverse' : 'text-left'} text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700`}
+                >
+                  <Trash2 size={16} />
+                  {t.delete}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between mb-3">
