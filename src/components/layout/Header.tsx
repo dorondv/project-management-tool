@@ -76,24 +76,8 @@ export function Header() {
         <div className="flex items-center justify-between h-full px-6">
           {isRTL ? (
             <>
-              {/* Search - RTL: on left */}
-              <div className="flex-1 max-w-md text-right">
-                <form onSubmit={handleSearch}>
-                  <div className="relative">
-                    <Search
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                      size={20}
-                    />
-                    <input
-                      type="text"
-                      placeholder={t.searchPlaceholder}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pr-10 pl-4 text-right py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </form>
-              </div>
+              {/* Spacer to push actions to the right */}
+              <div className="flex-1"></div>
               {/* Actions - RTL: on right, order reversed */}
               <div className="flex items-center gap-4 flex-row-reverse" dir="ltr">
                 {/* Theme Toggle */}
@@ -115,7 +99,11 @@ export function Header() {
 
                 {/* Notifications */}
                 <div className="relative">
-                  <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" aria-label={t.notifications}>
+                  <button 
+                    onClick={() => navigate('/notifications')}
+                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" 
+                    aria-label={t.notifications}
+                  >
                     <Bell size={20} />
                   </button>
                   {unreadNotifications > 0 && (
@@ -179,24 +167,8 @@ export function Header() {
             </>
           ) : (
             <>
-              {/* Search - LTR: on left */}
-              <div className="flex-1 max-w-md text-left">
-                <form onSubmit={handleSearch}>
-                  <div className="relative">
-                    <Search
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                      size={20}
-                    />
-                    <input
-                      type="text"
-                      placeholder={t.searchPlaceholder}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </form>
-              </div>
+              {/* Spacer to push actions to the right */}
+              <div className="flex-1"></div>
 
               {/* Actions - LTR: on right */}
               <div className="flex items-center gap-4">
@@ -219,7 +191,11 @@ export function Header() {
 
                 {/* Notifications */}
                 <div className="relative">
-                  <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" aria-label={t.notifications}>
+                  <button 
+                    onClick={() => navigate('/notifications')}
+                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" 
+                    aria-label={t.notifications}
+                  >
                     <Bell size={20} />
                   </button>
                   {unreadNotifications > 0 && (

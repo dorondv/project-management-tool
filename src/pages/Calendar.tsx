@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -17,6 +17,11 @@ const translations: Record<Locale, {
   due: string;
   more: string;
   dayNames: string[];
+  priorities: {
+    high: string;
+    medium: string;
+    low: string;
+  };
 }> = {
   en: {
     pageTitle: 'Calendar',
@@ -27,6 +32,11 @@ const translations: Record<Locale, {
     due: 'Due',
     more: 'more',
     dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    priorities: {
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+    },
   },
   he: {
     pageTitle: 'לוח שנה',
@@ -37,6 +47,11 @@ const translations: Record<Locale, {
     due: 'מועד',
     more: 'נוספות',
     dayNames: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
+    priorities: {
+      high: 'גבוהה',
+      medium: 'בינונית',
+      low: 'נמוכה',
+    },
   },
 };
 
@@ -94,41 +109,13 @@ export default function Calendar() {
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
-      <div className="flex items-center justify-between">
-        {isRTL ? (
-          <>
-            <div className={alignStart}>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t.pageTitle}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t.pageSubtitle}
-              </p>
-            </div>
-            <Button
-              icon={<Plus size={16} />}
-              className="flex-row-reverse"
-            >
-              {t.addEvent}
-            </Button>
-          </>
-        ) : (
-          <>
-            <div className={alignStart}>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t.pageTitle}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t.pageSubtitle}
-              </p>
-            </div>
-            <Button
-              icon={<Plus size={16} />}
-            >
-              {t.addEvent}
-            </Button>
-          </>
-        )}
+      <div className={alignStart}>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {t.pageTitle}
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          {t.pageSubtitle}
+        </p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -223,32 +210,45 @@ export default function Calendar() {
       </div>
 
       {/* Upcoming Tasks */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className={`text-lg font-semibold text-gray-900 dark:text-white mb-4 ${alignStart}`}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6" dir={isRTL ? 'rtl' : 'ltr'}>
+        <h3 className={`text-lg font-semibold text-gray-900 dark:text-white mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
           {t.upcomingTasks}
         </h3>
         <div className="space-y-3">
-          {state.tasks
-            .filter(task => task.status !== 'completed')
-            .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-            .slice(0, 5)
-            .map(task => (
-              <div key={task.id} className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
-                  <CalendarIcon size={16} className="text-gray-400" />
-                  <div className={alignStart}>
-                    <p className="font-medium text-gray-900 dark:text-white">
+          {(isRTL 
+            ? [...state.tasks
+                .filter(task => task.status !== 'completed')
+                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                .slice(0, 5)].reverse()
+            : state.tasks
+                .filter(task => task.status !== 'completed')
+                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                .slice(0, 5)
+          ).map((task, index) => (
+              <motion.div
+                key={task.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                    <CalendarIcon size={16} className="text-primary-500 dark:text-primary-300" />
+                  </div>
+                  <div>
+                    <p className={`text-sm font-medium text-gray-900 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}>
                       {task.title}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t.due}: {formatDate(task.dueDate)}
+                    <p className={`text-xs text-gray-500 dark:text-gray-400 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {formatDate(task.dueDate, locale)}
                     </p>
                   </div>
                 </div>
                 <Badge variant="secondary" className={getPriorityColor(task.priority)}>
-                  {task.priority}
+                  {t.priorities[task.priority] || task.priority}
                 </Badge>
-              </div>
+              </motion.div>
             ))}
         </div>
       </div>

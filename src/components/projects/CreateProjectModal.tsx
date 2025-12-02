@@ -28,6 +28,7 @@ const translations = {
     priorityHigh: 'High',
     cancel: 'Cancel',
     createProject: 'Create Project',
+    activityCreated: 'created project "{title}"',
   },
   he: {
     title: 'יצירת פרויקט חדש',
@@ -49,6 +50,7 @@ const translations = {
     priorityHigh: 'גבוהה',
     cancel: 'ביטול',
     createProject: 'צור פרויקט',
+    activityCreated: 'נוצר פרויקט "{title}"',
   },
 } as const;
 
@@ -136,7 +138,7 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
         payload: {
           id: Date.now().toString(),
           type: 'project_created',
-          description: `created project "${newProject.title}"`,
+          description: t.activityCreated.replace('{title}', newProject.title),
           userId: state.user!.id,
           user: state.user!,
           projectId: newProject.id,
