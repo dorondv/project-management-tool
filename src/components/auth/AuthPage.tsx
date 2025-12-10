@@ -50,21 +50,6 @@ export function AuthPage() {
           )}
         </div>
       </motion.div>
-
-      {/* Developer Credit */}
-      <div className="absolute bottom-6 left-6 text-sm text-gray-500 dark:text-gray-400">
-        <p>
-          Built by{' '}
-          <a
-            href="https://github.com/ajay-dhangar"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium"
-          >
-            Ajay Dhangar
-          </a>
-        </p>
-      </div>
     </div>
   );
 }

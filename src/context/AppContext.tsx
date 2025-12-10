@@ -829,9 +829,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🟣 AppContext: SIGNED_IN event, fetching user profile from backend...');
-        // Set loading to true while fetching user data
-        dispatch({ type: 'SET_LOADING', payload: true });
+        // Only refetch if this is a new user or if we don't have data yet
+        const isNewUser = !state.user || state.user.id !== session.user.id;
+        
+        console.log('🟣 AppContext: SIGNED_IN event', { 
+          isNewUser, 
+          currentUserId: state.user?.id, 
+          sessionUserId: session.user.id 
+        });
+        
+        // Only show loading screen and refetch for actual new sign-ins
+        if (isNewUser) {
+          console.log('🟣 AppContext: New user sign-in, fetching user profile from backend...');
+          // Set loading to true while fetching user data
+          dispatch({ type: 'SET_LOADING', payload: true });
         
         // User signed in - fetch their profile from backend
         try {
@@ -904,6 +915,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'SET_AUTHENTICATED', payload: true });
           // Fetch user data after setting user (loading will be set to false inside fetchUserData)
           fetchUserData(session.user.id);
+        }
+        } else {
+          // Same user, just ensure authenticated state is set
+          console.log('🟣 AppContext: Same user, skipping refetch');
+          dispatch({ type: 'SET_AUTHENTICATED', payload: true });
         }
       } else if (event === 'SIGNED_OUT') {
         // User signed out - clear everything
