@@ -217,7 +217,7 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
 
   const alignStart = isRTL ? 'text-right' : 'text-left';
   const inputAlign = isRTL ? 'text-right' : 'text-left';
-  const buttonFlex = isRTL ? 'flex-row-reverse' : '';
+  const flexDirection = isRTL ? 'flex-row-reverse' : '';
 
   return (
     <Modal
@@ -351,16 +351,34 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
         </div>
 
         {/* Buttons */}
-        <div className={`flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 ${buttonFlex}`}>
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-            {t.buttons.cancel}
-          </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting 
-              ? (locale === 'he' ? 'שומר...' : 'Saving...') 
-              : (isEditing ? t.buttons.update : t.buttons.add)
-            }
-          </Button>
+        <div className={`flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700 ${flexDirection}`}>
+          <div className={`flex gap-3 ${flexDirection}`}>
+            {isRTL ? (
+              <>
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                  {isSubmitting 
+                    ? (locale === 'he' ? 'שומר...' : 'Saving...') 
+                    : (isEditing ? t.buttons.update : t.buttons.add)
+                  }
+                </Button>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                  {t.buttons.cancel}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                  {t.buttons.cancel}
+                </Button>
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                  {isSubmitting 
+                    ? (locale === 'he' ? 'שומר...' : 'Saving...') 
+                    : (isEditing ? t.buttons.update : t.buttons.add)
+                  }
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </form>
     </Modal>

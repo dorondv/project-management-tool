@@ -45,7 +45,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/users - Create user
 router.post('/', async (req, res) => {
   try {
-    const { id, name, email, role, avatar, isOnline } = req.body;
+    const { id, name, email, role, avatar, isOnline, preferredLanguage } = req.body;
     
     // If ID is provided, use upsert (create or update)
     if (id) {
@@ -57,6 +57,7 @@ router.post('/', async (req, res) => {
           role: role || undefined,
           avatar: avatar !== undefined ? avatar : undefined,
           isOnline: isOnline !== undefined ? isOnline : undefined,
+          preferredLanguage: preferredLanguage || undefined,
         },
         create: {
           id,
@@ -65,6 +66,7 @@ router.post('/', async (req, res) => {
           role: role || 'contributor',
           avatar,
           isOnline: isOnline ?? false,
+          preferredLanguage: preferredLanguage || 'he',
         },
       });
       return res.status(201).json(user);
@@ -78,6 +80,7 @@ router.post('/', async (req, res) => {
         role: role || 'contributor',
         avatar,
         isOnline: isOnline ?? false,
+        preferredLanguage: preferredLanguage || 'he',
       },
     });
     res.status(201).json(user);
@@ -92,7 +95,7 @@ router.post('/', async (req, res) => {
 // PUT /api/users/:id - Update user
 router.put('/:id', async (req, res) => {
   try {
-    const { name, email, role, avatar, isOnline } = req.body;
+    const { name, email, role, avatar, isOnline, preferredLanguage } = req.body;
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: {
@@ -101,6 +104,7 @@ router.put('/:id', async (req, res) => {
         ...(role && { role }),
         ...(avatar !== undefined && { avatar }),
         ...(isOnline !== undefined && { isOnline }),
+        ...(preferredLanguage && { preferredLanguage }),
       },
     });
     res.json(user);

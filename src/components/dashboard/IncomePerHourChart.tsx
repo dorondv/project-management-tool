@@ -15,17 +15,29 @@ const translations = {
   },
 } as const;
 
-export function IncomePerHourChart() {
+interface IncomePerHourChartProps {
+  dateRange?: { start: Date; end: Date };
+}
+
+export function IncomePerHourChart({ dateRange }: IncomePerHourChartProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
 
   const chartData = useMemo(() => {
+    // Filter time entries by date range if provided
+    const entries = dateRange
+      ? state.timeEntries.filter(entry => {
+          const entryDate = new Date(entry.startTime);
+          return entryDate >= dateRange.start && entryDate <= dateRange.end;
+        })
+      : state.timeEntries;
+
     // Group time entries by month
     const monthlyData: Record<string, { totalIncome: number; totalHours: number; monthLabel: string }> = {};
 
-    state.timeEntries.forEach((entry) => {
+    entries.forEach((entry) => {
       const date = new Date(entry.startTime);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
@@ -48,7 +60,7 @@ export function IncomePerHourChart() {
       }))
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
       .map(({ sortKey, ...rest }) => rest);
-  }, [state.timeEntries]);
+  }, [state.timeEntries, dateRange]);
 
   const hasData = chartData.length > 0 && chartData.some(d => d.averageIncomePerHour > 0);
 

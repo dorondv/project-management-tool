@@ -16,6 +16,7 @@ const translations = {
     description: 'Description',
     startDate: 'Start Date',
     endDate: 'End Date',
+    noEndDate: 'No End Date (Ongoing)',
     status: 'Status',
     selectStatus: 'Select Status',
     statusPlanning: 'Planning',
@@ -38,6 +39,7 @@ const translations = {
     description: 'תיאור הפרויקט',
     startDate: 'תאריך התחלה',
     endDate: 'תאריך סיום',
+    noEndDate: 'ללא תאריך סיום (שוטף)',
     status: 'סטטוס',
     selectStatus: 'בחר סטטוס',
     statusPlanning: 'בתכנון',
@@ -66,11 +68,17 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    startDate: '',
+    startDate: getTodayDate(),
     endDate: '',
+    noEndDate: false, // false = has end date, true = no end date
     status: 'planning' as 'planning' | 'in-progress' | 'completed' | 'on-hold',
     priority: 'medium' as 'low' | 'medium' | 'high',
     customerId: '',
@@ -78,10 +86,14 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Set pre-selected customer when modal opens
+  // Set pre-selected customer when modal opens and reset form
   useEffect(() => {
-    if (isOpen && preSelectedCustomerId) {
-      setFormData(prev => ({ ...prev, customerId: preSelectedCustomerId }));
+    if (isOpen) {
+      if (preSelectedCustomerId) {
+        setFormData(prev => ({ ...prev, customerId: preSelectedCustomerId, startDate: getTodayDate() }));
+      } else {
+        setFormData(prev => ({ ...prev, startDate: getTodayDate() }));
+      }
     }
   }, [isOpen, preSelectedCustomerId]);
 
@@ -96,7 +108,7 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
       title: formData.title,
       description: formData.description,
       startDate: formData.startDate,
-      endDate: formData.endDate,
+      endDate: formData.noEndDate ? null : formData.endDate,
       status: formData.status,
       progress: 0,
       priority: formData.priority,
@@ -116,7 +128,7 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
         title: createdProject.title,
         description: createdProject.description,
         startDate: new Date(createdProject.startDate),
-        endDate: new Date(createdProject.endDate),
+        endDate: createdProject.endDate ? new Date(createdProject.endDate) : null,
         status: createdProject.status,
         progress: createdProject.progress,
         priority: createdProject.priority,
@@ -157,8 +169,9 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
       setFormData({
         title: '',
         description: '',
-        startDate: '',
+        startDate: getTodayDate(),
         endDate: '',
+        noEndDate: false,
         status: 'planning',
         priority: 'medium',
         customerId: preSelectedCustomerId || '',
@@ -242,13 +255,26 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t.endDate}
             </label>
-            <input
-              type="date"
-              value={formData.endDate}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              required
-            />
+            <div className="space-y-2">
+              {!formData.noEndDate && (
+                <input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  required={!formData.noEndDate}
+                />
+              )}
+              <label className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''} cursor-pointer`}>
+                <input
+                  type="checkbox"
+                  checked={formData.noEndDate}
+                  onChange={(e) => setFormData({ ...formData, noEndDate: e.target.checked, endDate: e.target.checked ? '' : formData.endDate })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t.noEndDate}</span>
+              </label>
+            </div>
           </div>
 
           <div>
@@ -286,27 +312,55 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
         </div>
 
         <div className={`flex ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} gap-3`}>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            {t.cancel}
-          </Button>
-          <Button 
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <LoadingSpinner size="sm" />
-                {isRTL ? 'יוצר...' : 'Creating...'}
-              </span>
-            ) : (
-              t.createProject
-            )}
-          </Button>
+          {isRTL ? (
+            <>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2 flex-row-reverse">
+                    <LoadingSpinner size="sm" />
+                    יוצר...
+                  </span>
+                ) : (
+                  t.createProject
+                )}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                {t.cancel}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                {t.cancel}
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Creating...
+                  </span>
+                ) : (
+                  t.createProject
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </form>
     </Modal>

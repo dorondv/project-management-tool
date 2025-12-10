@@ -271,27 +271,55 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
         </div>
 
         <div className={`flex ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} gap-3`}>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            {t.cancel}
-          </Button>
-          <Button 
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <LoadingSpinner size="sm" />
-                {isRTL ? 'יוצר...' : 'Creating...'}
-              </span>
-            ) : (
-              t.createTask
-            )}
-          </Button>
+          {isRTL ? (
+            <>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2 flex-row-reverse">
+                    <LoadingSpinner size="sm" />
+                    יוצר...
+                  </span>
+                ) : (
+                  t.createTask
+                )}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                {t.cancel}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                {t.cancel}
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Creating...
+                  </span>
+                ) : (
+                  t.createTask
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </form>
     </Modal>

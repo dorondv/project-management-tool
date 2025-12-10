@@ -3,11 +3,20 @@ import { prisma } from '../index.js';
 
 const router = Router();
 
-// GET /api/incomes - Get all incomes
+// GET /api/incomes - Get all incomes (filtered by userId if provided)
 router.get('/', async (req, res) => {
   try {
-    const { customerId } = req.query;
-    const where = customerId ? { customerId: customerId as string } : {};
+    const { customerId, userId } = req.query;
+    const where: any = {};
+    
+    if (customerId) {
+      where.customerId = customerId as string;
+    } else if (userId) {
+      // Filter by customer's userId if no specific customerId is provided
+      where.customer = {
+        userId: userId as string,
+      };
+    }
     
     const incomes = await prisma.income.findMany({
       where,

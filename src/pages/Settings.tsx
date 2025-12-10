@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, DollarSign, Pen, Folder, ArrowLeft, Download, Upload } from 'lucide-react';
+import { Star, DollarSign, Pen, Folder, ArrowLeft, Download, Upload, Globe, Save } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Locale } from '../types';
+import toast from 'react-hot-toast';
 
 const translations: Record<Locale, {
   pageTitle: string;
@@ -30,6 +31,15 @@ const translations: Record<Locale, {
   businessField: string;
   businessNamePlaceholder: string;
   businessFieldPlaceholder: string;
+  languagePreference: string;
+  languageDescription: string;
+  currentLanguage: string;
+  changeLanguage: string;
+  english: string;
+  hebrew: string;
+  languageUpdated: string;
+  languageSaveFailed: string;
+  saveLanguage: string;
   save: string;
   cancel: string;
 }> = {
@@ -56,6 +66,15 @@ const translations: Record<Locale, {
     businessField: 'Field of Business',
     businessNamePlaceholder: 'Example: Digital Solutions Ltd.',
     businessFieldPlaceholder: 'Example: Software Development',
+    languagePreference: 'Language Preference',
+    languageDescription: 'Select your preferred language for the application',
+    currentLanguage: 'Current Language',
+    changeLanguage: 'Change Language',
+    english: 'English',
+    hebrew: 'Hebrew (עברית)',
+    languageUpdated: 'Language preference updated successfully',
+    languageSaveFailed: 'Failed to save language preference',
+    saveLanguage: 'Save Language',
     save: 'Save',
     cancel: 'Cancel',
   },
@@ -82,6 +101,15 @@ const translations: Record<Locale, {
     businessField: 'תחום עיסוק',
     businessNamePlaceholder: 'לדוגמה: פתרונות דיגיטל בע"מ',
     businessFieldPlaceholder: 'לדוגמה: פיתוח תוכנה',
+    languagePreference: 'העדפת שפה',
+    languageDescription: 'בחר את השפה המועדפת עליך לאפליקציה',
+    currentLanguage: 'שפה נוכחית',
+    changeLanguage: 'שנה שפה',
+    english: 'אנגלית (English)',
+    hebrew: 'עברית',
+    languageUpdated: 'העדפת השפה עודכנה בהצלחה',
+    languageSaveFailed: 'שגיאה בשמירת העדפת השפה',
+    saveLanguage: 'שמור שפה',
     save: 'שמור',
     cancel: 'ביטול',
   },
@@ -96,11 +124,50 @@ interface CountdownTimer {
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
   const alignStart = isRTL ? 'text-right' : 'text-left';
+
+  // Language preference
+  const [selectedLanguage, setSelectedLanguage] = useState<Locale>(locale);
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
+
+  // Sync selectedLanguage with locale when locale changes
+  useEffect(() => {
+    setSelectedLanguage(locale);
+  }, [locale]);
+
+  const handleLanguageSelect = (newLocale: Locale) => {
+    setSelectedLanguage(newLocale);
+  };
+
+  const handleSaveLanguage = async () => {
+    setIsSavingLanguage(true);
+    
+    try {
+      // Save to user profile in backend first
+      if (state.user) {
+        const { api } = await import('../utils/api');
+        await api.users.update(state.user.id, {
+          preferredLanguage: selectedLanguage,
+        });
+      }
+      
+      // Update UI after successful save
+      dispatch({ type: 'SET_LOCALE', payload: selectedLanguage });
+      
+      const currentT = translations[selectedLanguage];
+      toast.success(currentT.languageUpdated);
+    } catch (error) {
+      console.error('Failed to update language preference:', error);
+      const currentT = translations[selectedLanguage];
+      toast.error(currentT.languageSaveFailed);
+    } finally {
+      setIsSavingLanguage(false);
+    }
+  };
 
   // Mock subscription data - will be replaced with real data later
   const subscriptionEndDate = new Date();
@@ -207,6 +274,82 @@ export default function Settings() {
           {t.pageSubtitle}
         </p>
       </div>
+
+      {/* Language Preference */}
+      <Card className="p-6">
+        <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
+          <Globe size={20} className="text-primary-500" />
+          <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+            {t.languagePreference}
+          </h3>
+        </div>
+
+        <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
+          {t.languageDescription}
+        </p>
+
+        {/* Language Options - Smaller width */}
+        <div className="space-y-3 max-w-md">
+          <button
+            onClick={() => handleLanguageSelect('he')}
+            disabled={isSavingLanguage}
+            className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+              selectedLanguage === 'he'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+            } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <span className={`font-medium ${selectedLanguage === 'he' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+              {t.hebrew}
+            </span>
+            {selectedLanguage === 'he' && (
+              <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-white"></div>
+              </div>
+            )}
+          </button>
+
+          <button
+            onClick={() => handleLanguageSelect('en')}
+            disabled={isSavingLanguage}
+            className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+              selectedLanguage === 'en'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+            } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <span className={`font-medium ${selectedLanguage === 'en' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+              {t.english}
+            </span>
+            {selectedLanguage === 'en' && (
+              <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-white"></div>
+              </div>
+            )}
+          </button>
+        </div>
+
+        {/* Save Button */}
+        <div className={`mt-4 max-w-md ${alignStart}`}>
+          <Button
+            variant="primary"
+            onClick={handleSaveLanguage}
+            disabled={isSavingLanguage || selectedLanguage === locale}
+            className={`${isRTL ? 'flex-row-reverse' : ''}`}
+          >
+            <Save size={16} />
+            {t.saveLanguage}
+          </Button>
+          {selectedLanguage !== locale && (
+            <p className={`text-xs text-amber-600 dark:text-amber-400 mt-2 ${alignStart}`}>
+              {isRTL 
+                ? 'לחץ על "שמור שפה" כדי לשמור את הבחירה שלך'
+                : 'Click "Save Language" to save your selection'
+              }
+            </p>
+          )}
+        </div>
+      </Card>
 
       {/* Subscription Status */}
       <Card className="p-6">

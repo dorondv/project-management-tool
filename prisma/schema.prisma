@@ -14,14 +14,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  role      String   @default("contributor") // admin, manager, contributor
-  avatar    String?
-  isOnline  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  role              String   @default("contributor") // admin, manager, contributor
+  avatar            String?
+  isOnline          Boolean  @default(false)
+  preferredLanguage String   @default("he") // en, he
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   createdProjects Project[]       @relation("ProjectCreator")
@@ -44,7 +45,7 @@ model Project {
   title       String
   description String
   startDate   DateTime
-  endDate     DateTime
+  endDate     DateTime?
   status      String   @default("planning") // planning, in-progress, completed, on-hold
   progress    Int      @default(0)
   priority    String   @default("medium") // low, medium, high

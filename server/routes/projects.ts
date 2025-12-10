@@ -6,9 +6,22 @@ const router = Router();
 // GET /api/projects - Get all projects
 router.get('/', async (req, res) => {
   try {
-    console.log('📝 Fetching all projects...');
-    const { customerId } = req.query;
-    const where = customerId ? { customerId: customerId as string } : {};
+    const { userId, customerId } = req.query;
+    console.log('📝 Fetching projects...', userId ? `for user: ${userId}` : 'for all users');
+    
+    // Build where clause with user filtering
+    const where: any = {};
+    
+    if (userId) {
+      where.OR = [
+        { createdBy: userId as string },
+        { members: { some: { userId: userId as string } } },
+      ];
+    }
+    
+    if (customerId) {
+      where.customerId = customerId as string;
+    }
     
     // Optimized: Don't include tasks by default - they're fetched separately
     // This significantly reduces query time and data transfer
@@ -140,31 +153,48 @@ router.post('/', async (req, res) => {
     });
     
     // Validate required fields
-    if (!title || !startDate || !endDate || !createdBy) {
+    if (!title || !startDate || !createdBy) {
       return res.status(400).json({ 
         error: 'Missing required fields', 
-        required: ['title', 'startDate', 'endDate', 'createdBy'],
-        received: { title: !!title, startDate: !!startDate, endDate: !!endDate, createdBy: !!createdBy }
+        required: ['title', 'startDate', 'createdBy'],
+        received: { title: !!title, startDate: !!startDate, createdBy: !!createdBy }
       });
     }
     
+    const projectData: any = {
+      title,
+      description: description || '',
+      startDate: new Date(startDate),
+      status: status || 'planning',
+      progress: progress || 0,
+      priority: priority || 'medium',
+      createdBy,
+      customerId: customerId || null,
+    };
+
+    // Only include endDate if it's provided (not null)
+    if (endDate !== null && endDate !== undefined) {
+      projectData.endDate = new Date(endDate);
+    }
+
+    // Create project first
     const project = await prisma.project.create({
-      data: {
-        title,
-        description: description || '',
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        status: status || 'planning',
-        progress: progress || 0,
-        priority: priority || 'medium',
-        createdBy,
-        customerId: customerId || null,
-        members: {
-          create: (members || []).map((userId: string) => ({
-            userId,
-          })),
-        },
-      },
+      data: projectData,
+    });
+
+    // Add members if any
+    if (members && members.length > 0) {
+      await prisma.projectMember.createMany({
+        data: members.map((userId: string) => ({
+          projectId: project.id,
+          userId,
+        })),
+      });
+    }
+
+    // Fetch the complete project with relations
+    const projectWithRelations = await prisma.project.findUnique({
+      where: { id: project.id },
       include: {
         creator: true,
         customer: true,
@@ -176,9 +206,13 @@ router.post('/', async (req, res) => {
       },
     });
     
+    if (!projectWithRelations) {
+      throw new Error('Failed to fetch created project');
+    }
+
     const transformedProject = {
-      ...project,
-      members: project.members.map(m => m.user),
+      ...projectWithRelations,
+      members: projectWithRelations.members.map(m => m.user),
       tasks: [],
     };
     
@@ -203,9 +237,9 @@ router.put('/:id', async (req, res) => {
         where: { id: req.params.id },
         data: {
           ...(title && { title }),
-          ...(description && { description }),
+          ...(description !== undefined && { description }),
           ...(startDate && { startDate: new Date(startDate) }),
-          ...(endDate && { endDate: new Date(endDate) }),
+          ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
           ...(status && { status }),
           ...(progress !== undefined && { progress }),
           ...(priority && { priority }),
