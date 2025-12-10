@@ -1,13 +1,65 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Mail, Camera, Save, X } from 'lucide-react';
+import { User, Mail, Camera, Save, X, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Avatar } from '../components/common/Avatar';
 import { Locale } from '../types';
 import toast from 'react-hot-toast';
+
+// Compress image to reduce file size
+const compressImage = (file: File, maxSizeMB: number = 0.5): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions (max 800x800)
+        const maxDimension = 800;
+        if (width > height && width > maxDimension) {
+          height = (height * maxDimension) / width;
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width = (width * maxDimension) / height;
+          height = maxDimension;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress to JPEG with quality adjustment
+        let quality = 0.8;
+        let result = canvas.toDataURL('image/jpeg', quality);
+        
+        // If still too large, reduce quality
+        while (result.length > maxSizeMB * 1024 * 1024 && quality > 0.3) {
+          quality -= 0.1;
+          result = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        resolve(result);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+  });
+};
 
 const translations: Record<Locale, {
   pageTitle: string;
@@ -19,6 +71,7 @@ const translations: Record<Locale, {
   role: string;
   save: string;
   cancel: string;
+  saving: string;
   profileUpdated: string;
   admin: string;
   manager: string;
@@ -34,6 +87,7 @@ const translations: Record<Locale, {
     role: 'Role',
     save: 'Save',
     cancel: 'Cancel',
+    saving: 'Saving...',
     profileUpdated: 'Profile updated successfully',
     admin: 'Admin',
     manager: 'Manager',
@@ -49,10 +103,11 @@ const translations: Record<Locale, {
     role: 'תפקיד',
     save: 'שמור',
     cancel: 'ביטול',
+    saving: 'שומר...',
     profileUpdated: 'הפרופיל עודכן בהצלחה',
     admin: 'מנהל',
     manager: 'מנהל פרויקט',
-    contributor: 'תורם',
+    contributor: 'חבר צוות',
   },
 };
 
@@ -72,21 +127,34 @@ export default function Profile() {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Show loading toast
+        const loadingToast = toast.loading(isRTL ? 'מעבד תמונה...' : 'Processing image...');
+        
+        // Compress the image
+        const compressedDataUrl = await compressImage(file, 0.5); // Max 500KB
+        
+        setAvatarFile(file);
+        setAvatarPreview(compressedDataUrl);
+        
+        toast.dismiss(loadingToast);
+        toast.success(isRTL ? 'תמונה נטענה בהצלחה' : 'Image loaded successfully');
+      } catch (error) {
+        console.error('Failed to process image:', error);
+        toast.error(isRTL ? 'שגיאה בעיבוד התמונה' : 'Failed to process image');
+      }
     }
   };
 
   const handleSave = async () => {
-    if (state.user) {
+    if (state.user && !isSaving) {
+      setIsSaving(true);
+      
       const updatedUser = {
         ...state.user,
         name: profileData.name,
@@ -95,10 +163,7 @@ export default function Profile() {
         avatar: avatarPreview || state.user.avatar,
       };
       
-      // Update local state
-      dispatch({ type: 'SET_USER', payload: updatedUser });
-      
-      // Sync to backend API
+      // Sync to backend API first
       try {
         const { api } = await import('../utils/api');
         await api.users.update(state.user.id, {
@@ -108,22 +173,24 @@ export default function Profile() {
           avatar: updatedUser.avatar,
         });
         
+        // Update local state after successful API call
+        dispatch({ type: 'SET_USER', payload: updatedUser });
+        
         toast.success(t.profileUpdated);
+        // Navigate back after successful save
+        setTimeout(() => navigate(-1), 500);
       } catch (error) {
         console.error('Failed to sync profile to API:', error);
-        toast.error('Failed to save profile. Please try again.');
+        toast.error(isRTL ? 'שגיאה בשמירת הפרופיל' : 'Failed to save profile. Please try again.');
+      } finally {
+        setIsSaving(false);
       }
     }
   };
 
   const handleCancel = () => {
-    setProfileData({
-      name: state.user?.name || '',
-      email: state.user?.email || '',
-      role: state.user?.role || 'contributor',
-    });
-    setAvatarFile(null);
-    setAvatarPreview(null);
+    // Navigate back to previous page
+    navigate(-1);
   };
 
   const getRoleLabel = (role: string) => {
@@ -193,8 +260,8 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Form Fields */}
-        <div className="space-y-4">
+        {/* Form Fields - Max width for better layout */}
+        <div className="space-y-4 max-w-xl">
           <div>
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
               {t.name}
@@ -203,7 +270,8 @@ export default function Profile() {
               type="text"
               value={profileData.name}
               onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
+              disabled={isSaving}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed ${alignStart}`}
             />
           </div>
 
@@ -215,7 +283,8 @@ export default function Profile() {
               type="email"
               value={profileData.email}
               onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
+              disabled={isSaving}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed ${alignStart}`}
             />
           </div>
 
@@ -226,30 +295,39 @@ export default function Profile() {
             <select
               value={profileData.role}
               onChange={(e) => setProfileData({ ...profileData, role: e.target.value })}
-              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
+              disabled={isSaving}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed ${alignStart}`}
             >
               <option value="contributor">{t.contributor}</option>
               <option value="manager">{t.manager}</option>
               <option value="admin">{t.admin}</option>
             </select>
-            <p className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${alignStart}`}>
-              {getRoleLabel(profileData.role)}
-            </p>
           </div>
 
-          <div className={`flex ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} pt-2`}>
+          <div className={`flex gap-3 pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Button
               variant="primary"
               onClick={handleSave}
-              className={isRTL ? 'flex-row-reverse' : ''}
+              disabled={isSaving}
+              className={`${isRTL ? 'flex-row-reverse' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              <Save size={16} />
-              {t.save}
+              {isSaving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t.saving}
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  {t.save}
+                </>
+              )}
             </Button>
             <Button
               variant="outline"
               onClick={handleCancel}
-              className={isRTL ? 'flex-row-reverse' : ''}
+              disabled={isSaving}
+              className={`${isRTL ? 'flex-row-reverse' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <X size={16} />
               {t.cancel}

@@ -43,9 +43,36 @@ async function updateProjectProgress(projectId: string) {
 // GET /api/tasks - Get all tasks
 router.get('/', async (req, res) => {
   try {
-    console.log('📝 Fetching all tasks...');
-    const { projectId } = req.query;
-    const where = projectId ? { projectId: projectId as string } : {};
+    const { userId, projectId } = req.query;
+    console.log('📝 Fetching tasks...', userId ? `for user: ${userId}` : 'for all users');
+    
+    // Build where clause with user filtering
+    const where: any = {};
+    
+    if (userId) {
+      where.OR = [
+        { createdBy: userId as string },
+        { assignees: { some: { userId: userId as string } } },
+      ];
+    }
+    
+    if (projectId) {
+      // If filtering by projectId, combine with userId filter
+      if (userId) {
+        where.AND = [
+          { projectId: projectId as string },
+          {
+            OR: [
+              { createdBy: userId as string },
+              { assignees: { some: { userId: userId as string } } },
+            ],
+          },
+        ];
+        delete where.OR; // Remove OR since we're using AND
+      } else {
+        where.projectId = projectId as string;
+      }
+    }
     
     // Optimized: Exclude comments and attachments by default (load on demand)
     // This significantly reduces query time and data transfer

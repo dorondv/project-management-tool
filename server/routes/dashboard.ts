@@ -205,6 +205,13 @@ router.get('/initial-data', async (req, res) => {
       ),
       fetchWithTiming('incomes', () =>
         prisma.income.findMany({
+          ...(userId && {
+            where: {
+              customer: {
+                userId: userId,
+              },
+            },
+          }),
           include: {
             customer: {
               select: {

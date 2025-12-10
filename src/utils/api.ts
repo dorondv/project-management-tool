@@ -41,7 +41,13 @@ export const api = {
 
   // Projects
   projects: {
-    getAll: () => fetch(`${API_URL}/api/projects`).then(handleResponse),
+    getAll: (userId?: string, customerId?: string) => {
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId);
+      if (customerId) params.append('customerId', customerId);
+      const query = params.toString();
+      return fetch(`${API_URL}/api/projects${query ? `?${query}` : ''}`).then(handleResponse);
+    },
     getById: (id: string) => fetch(`${API_URL}/api/projects/${id}`).then(handleResponse),
     create: (data: any) =>
       fetch(`${API_URL}/api/projects`, {
@@ -63,11 +69,12 @@ export const api = {
 
   // Tasks
   tasks: {
-    getAll: (projectId?: string) => {
-      const url = projectId
-        ? `${API_URL}/api/tasks?projectId=${projectId}`
-        : `${API_URL}/api/tasks`;
-      return fetch(url).then(handleResponse);
+    getAll: (filters?: { userId?: string; projectId?: string }) => {
+      const params = new URLSearchParams();
+      if (filters?.userId) params.append('userId', filters.userId);
+      if (filters?.projectId) params.append('projectId', filters.projectId);
+      const query = params.toString();
+      return fetch(`${API_URL}/api/tasks${query ? `?${query}` : ''}`).then(handleResponse);
     },
     getById: (id: string) => fetch(`${API_URL}/api/tasks/${id}`).then(handleResponse),
     create: (data: any) =>
@@ -90,7 +97,12 @@ export const api = {
 
   // Customers
   customers: {
-    getAll: () => fetch(`${API_URL}/api/customers`).then(handleResponse),
+    getAll: (userId?: string) => {
+      const url = userId 
+        ? `${API_URL}/api/customers?userId=${encodeURIComponent(userId)}`
+        : `${API_URL}/api/customers`;
+      return fetch(url).then(handleResponse);
+    },
     getById: (id: string) => fetch(`${API_URL}/api/customers/${id}`).then(handleResponse),
     create: (data: any) =>
       fetch(`${API_URL}/api/customers`, {

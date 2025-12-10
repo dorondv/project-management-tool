@@ -73,7 +73,7 @@ const initialState: AppState = {
   incomes: [],
   activeTimer: null,
   timerElapsedSeconds: 0,
-  locale: 'en',
+  locale: 'he',
   theme: 'light',
   loading: false,
   error: null,
@@ -621,30 +621,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(data.incomes || []) });
         dispatch({ type: 'SET_NOTIFICATIONS', payload: data.notifications || [] });
         dispatch({ type: 'SET_ACTIVITIES', payload: data.activities || [] });
+        
+        // Set loading to false after data is fetched
+        dispatch({ type: 'SET_LOADING', payload: false });
       } catch (error) {
         console.error('❌ AppContext: Failed to fetch user data:', error);
-        // Fallback to individual API calls if optimized endpoint fails
-        console.warn('⚠️ Falling back to individual API calls (sequential)...');
-        try {
-          const projects = await safeFetch<Project[]>('projects.getAll', () => api.projects.getAll(), []);
-          const tasks = await safeFetch<Task[]>('tasks.getAll', () => api.tasks.getAll(), []);
-          const customers = await safeFetch<Customer[]>('customers.getAll', () => api.customers.getAll(), []);
-          const timeEntries = await safeFetch<TimeEntry[]>('timeEntries.getAll', () => api.timeEntries.getAll(), []);
-          const incomes = await safeFetch<Income[]>('incomes.getAll', () => api.incomes.getAll(), []);
-          const notifications = await safeFetch<Notification[]>('notifications.getAll', () => api.notifications.getAll(), []);
-          const activities = await safeFetch<Activity[]>('activities.getAll', () => api.activities.getAll(), []);
+        // Fallback to individual API calls if optimized endpoint fails (only if we have a userId)
+        if (effectiveUserId) {
+          console.warn('⚠️ Falling back to individual API calls with userId...');
+          try {
+            const projects = await safeFetch<Project[]>(
+              'projects.getAll', 
+              () => api.projects.getAll(effectiveUserId), 
+              []
+            );
+            const tasks = await safeFetch<Task[]>(
+              'tasks.getAll', 
+              () => api.tasks.getAll({ userId: effectiveUserId }), 
+              []
+            );
+            const customers = await safeFetch<Customer[]>(
+              'customers.getAll', 
+              () => api.customers.getAll(effectiveUserId), 
+              []
+            );
+            const timeEntries = await safeFetch<TimeEntry[]>(
+              'timeEntries.getAll', 
+              () => api.timeEntries.getAll({ userId: effectiveUserId }), 
+              []
+            );
+            const incomes = await safeFetch<Income[]>(
+              'incomes.getAll', 
+              () => api.incomes.getAll(), 
+              []
+            );
+            const notifications = await safeFetch<Notification[]>(
+              'notifications.getAll', 
+              () => api.notifications.getAll({ userId: effectiveUserId }), 
+              []
+            );
+            const activities = await safeFetch<Activity[]>(
+              'activities.getAll', 
+              () => api.activities.getAll({ userId: effectiveUserId }), 
+              []
+            );
 
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          const validProjects = projects.filter((p: any) => uuidRegex.test(p.id));
-          dispatch({ type: 'SET_PROJECTS', payload: validProjects });
-          dispatch({ type: 'SET_TASKS', payload: normalizeTasks(tasks) });
-          dispatch({ type: 'SET_CUSTOMERS', payload: customers });
-          dispatch({ type: 'SET_TIME_ENTRIES', payload: normalizeTimeEntries(timeEntries) });
-          dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(incomes) });
-          dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
-          dispatch({ type: 'SET_ACTIVITIES', payload: activities });
-        } catch (fallbackError) {
-          console.error('❌ AppContext: Fallback also failed:', fallbackError);
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const validProjects = projects.filter((p: any) => uuidRegex.test(p.id));
+            dispatch({ type: 'SET_PROJECTS', payload: validProjects });
+            dispatch({ type: 'SET_TASKS', payload: normalizeTasks(tasks) });
+            dispatch({ type: 'SET_CUSTOMERS', payload: customers });
+            dispatch({ type: 'SET_TIME_ENTRIES', payload: normalizeTimeEntries(timeEntries) });
+            dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(incomes) });
+            dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
+            dispatch({ type: 'SET_ACTIVITIES', payload: activities });
+            
+            // Set loading to false after fallback data is fetched
+            dispatch({ type: 'SET_LOADING', payload: false });
+          } catch (fallbackError) {
+            console.error('❌ AppContext: Fallback also failed:', fallbackError);
+            // Set loading to false even if fallback fails
+            dispatch({ type: 'SET_LOADING', payload: false });
+          }
+        } else {
+          console.warn('⚠️ Cannot fallback without userId');
+          // Set loading to false if no userId
+          dispatch({ type: 'SET_LOADING', payload: false });
         }
       } finally {
         // Clear the ref when done
@@ -728,111 +770,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
               };
               dispatch({ type: 'SET_USER', payload: authenticatedUser });
               dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+              
+              // Set user's preferred language if available
+              if (userProfile.preferredLanguage) {
+                dispatch({ type: 'SET_LOCALE', payload: userProfile.preferredLanguage as Locale });
+              }
             }
           } catch (error) {
             console.warn('Failed to fetch/create user profile:', error);
           }
         }
         
-        // Set loading to false once we have authenticated user (don't wait for all API calls)
+        // Set loading to false once we have authenticated user (keep loading true until data is fetched)
         if (authenticatedUser) {
-          dispatch({ type: 'SET_LOADING', payload: false });
-          // Fetch user data if authenticated
+          // Don't set loading to false yet - wait for data to be fetched
+          // dispatch({ type: 'SET_LOADING', payload: false });
+          // Fetch user data if authenticated (loading will be set to false inside fetchUserData)
           fetchUserData(authenticatedUser.id);
         } else {
-          // Try to load data from API first (non-blocking) - only if not authenticated
-          try {
-            const users = await safeFetch<User[]>('users.getAll', () => api.users.getAll(), []);
-            const projects = await safeFetch<Project[]>('projects.getAll', () => api.projects.getAll(), []);
-            const tasks = await safeFetch<Task[]>('tasks.getAll', () => api.tasks.getAll(), []);
-            const customers = await safeFetch<Customer[]>('customers.getAll', () => api.customers.getAll(), []);
-            const timeEntries = await safeFetch<TimeEntry[]>('timeEntries.getAll', () => api.timeEntries.getAll(), []);
-            const incomes = await safeFetch<Income[]>('incomes.getAll', () => api.incomes.getAll(), []);
-            const notifications = await safeFetch<Notification[]>('notifications.getAll', () => api.notifications.getAll(), []);
-            const activities = await safeFetch<Activity[]>('activities.getAll', () => api.activities.getAll(), []);
-
-            if (users.length > 0 || projects.length > 0 || tasks.length > 0) {
-              dispatch({ type: 'SET_USER', payload: users[0] || null });
-              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-              const validProjects = projects.filter((p: any) => uuidRegex.test(p.id));
-              if (validProjects.length !== projects.length) {
-                console.warn(`⚠️ Filtered out ${projects.length - validProjects.length} projects with invalid IDs`);
-              }
-              dispatch({ type: 'SET_PROJECTS', payload: validProjects });
-              dispatch({ type: 'SET_TASKS', payload: normalizeTasks(tasks) });
-              dispatch({ type: 'SET_CUSTOMERS', payload: customers });
-              dispatch({ type: 'SET_TIME_ENTRIES', payload: normalizeTimeEntries(timeEntries) });
-              dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(incomes) });
-              dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
-              dispatch({ type: 'SET_ACTIVITIES', payload: activities });
-            } else {
-              // Fallback to localStorage or mock data (only if not authenticated)
-              if (!authenticatedUser) {
-                const storedUser = storage.get<User>('user');
-                const storedProjects = storage.get<Project[]>('projects');
-                const storedTasks = storage.get<Task[]>('tasks');
-                const storedCustomers = storage.get<Customer[]>('customers');
-                const storedTimeEntries = storage.get<TimeEntry[]>('timeEntries');
-                const storedIncomes = storage.get<Income[]>('incomes');
-                const storedNotifications = storage.get<Notification[]>('notifications');
-                const storedActivities = storage.get<Activity[]>('activities');
-
-                if (!storedUser) {
-                  // Use mock data if nothing stored
-                  dispatch({ type: 'SET_USER', payload: mockUsers[0] });
-                  dispatch({ type: 'SET_PROJECTS', payload: mockProjects });
-                  dispatch({ type: 'SET_TASKS', payload: mockTasks });
-                  dispatch({ type: 'SET_CUSTOMERS', payload: mockCustomers });
-                  dispatch({ type: 'SET_TIME_ENTRIES', payload: mockTimeEntries });
-                  dispatch({ type: 'SET_INCOMES', payload: mockIncomes });
-                  dispatch({ type: 'SET_NOTIFICATIONS', payload: mockNotifications });
-                  dispatch({ type: 'SET_ACTIVITIES', payload: mockActivities });
-                } else {
-                  // Use stored data
-                  dispatch({ type: 'SET_USER', payload: storedUser });
-                  dispatch({ type: 'SET_PROJECTS', payload: storedProjects || [] });
-                  dispatch({ type: 'SET_TASKS', payload: storedTasks || [] });
-                  dispatch({ type: 'SET_CUSTOMERS', payload: storedCustomers || [] });
-                  dispatch({ type: 'SET_TIME_ENTRIES', payload: storedTimeEntries || [] });
-                  dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(storedIncomes || []) });
-                  dispatch({ type: 'SET_NOTIFICATIONS', payload: storedNotifications || [] });
-                  dispatch({ type: 'SET_ACTIVITIES', payload: storedActivities || [] });
-                }
-              }
-            }
-          } catch (apiError) {
-            console.warn('API connection failed, using localStorage/mock data:', apiError);
-            if (!authenticatedUser) {
-              const storedUser = storage.get<User>('user');
-              const storedProjects = storage.get<Project[]>('projects');
-              const storedTasks = storage.get<Task[]>('tasks');
-              const storedCustomers = storage.get<Customer[]>('customers');
-              const storedTimeEntries = storage.get<TimeEntry[]>('timeEntries');
-              const storedIncomes = storage.get<Income[]>('incomes');
-              const storedNotifications = storage.get<Notification[]>('notifications');
-              const storedActivities = storage.get<Activity[]>('activities');
-
-              if (!storedUser) {
-                dispatch({ type: 'SET_USER', payload: mockUsers[0] });
-                dispatch({ type: 'SET_PROJECTS', payload: mockProjects });
-                dispatch({ type: 'SET_TASKS', payload: mockTasks });
-                dispatch({ type: 'SET_CUSTOMERS', payload: mockCustomers });
-                dispatch({ type: 'SET_TIME_ENTRIES', payload: mockTimeEntries });
-                dispatch({ type: 'SET_INCOMES', payload: mockIncomes });
-                dispatch({ type: 'SET_NOTIFICATIONS', payload: mockNotifications });
-                dispatch({ type: 'SET_ACTIVITIES', payload: mockActivities });
-              } else {
-                dispatch({ type: 'SET_USER', payload: storedUser });
-                dispatch({ type: 'SET_PROJECTS', payload: storedProjects || [] });
-                dispatch({ type: 'SET_TASKS', payload: storedTasks || [] });
-                dispatch({ type: 'SET_CUSTOMERS', payload: storedCustomers || [] });
-                dispatch({ type: 'SET_TIME_ENTRIES', payload: storedTimeEntries || [] });
-                dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(storedIncomes || []) });
-                dispatch({ type: 'SET_NOTIFICATIONS', payload: storedNotifications || [] });
-                dispatch({ type: 'SET_ACTIVITIES', payload: storedActivities || [] });
-              }
-            }
-          }
+          // No authenticated user - don't fetch any data from API
+          console.log('🔵 AppContext: No authenticated user, showing login page');
         }
 
         // Load theme and locale from localStorage (these stay local)
@@ -842,7 +799,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (storedTheme) {
           dispatch({ type: 'SET_THEME', payload: storedTheme });
         }
-        dispatch({ type: 'SET_LOCALE', payload: storedLocale || 'en' });
+        dispatch({ type: 'SET_LOCALE', payload: storedLocale || 'he' });
         
         // Ensure loading is false if not already set
         if (!authenticatedUser) {
@@ -873,6 +830,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('🟣 AppContext: SIGNED_IN event, fetching user profile from backend...');
+        // Set loading to true while fetching user data
+        dispatch({ type: 'SET_LOADING', payload: true });
+        
         // User signed in - fetch their profile from backend
         try {
           let userProfile = null;
@@ -919,7 +879,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
             dispatch({ type: 'SET_USER', payload: user });
             dispatch({ type: 'SET_AUTHENTICATED', payload: true });
             console.log('🟣 AppContext: User set successfully');
-            // Fetch user data after setting user
+            
+            // Set user's preferred language if available
+            if (userProfile.preferredLanguage) {
+              dispatch({ type: 'SET_LOCALE', payload: userProfile.preferredLanguage as Locale });
+            }
+            
+            // Fetch user data after setting user (loading will be set to false inside fetchUserData)
             fetchUserData(session.user.id);
           }
         } catch (error) {
@@ -936,7 +902,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.log('🟣 AppContext: Using fallback user:', fallbackUser);
           dispatch({ type: 'SET_USER', payload: fallbackUser });
           dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-          // Fetch user data after setting user
+          // Fetch user data after setting user (loading will be set to false inside fetchUserData)
           fetchUserData(session.user.id);
         }
       } else if (event === 'SIGNED_OUT') {

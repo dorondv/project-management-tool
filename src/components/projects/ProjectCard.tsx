@@ -12,12 +12,14 @@ const translations = {
     deleteProject: 'Delete Project',
     estimatedHours: 'Estimated Hours',
     hours: 'hours',
+    ongoing: 'Ongoing',
   },
   he: {
     editProject: 'ערוך פרויקט',
     deleteProject: 'מחק פרויקט',
     estimatedHours: 'שעות מוערכות',
     hours: 'שעות',
+    ongoing: 'שוטף',
   },
 } as const;
 
@@ -174,12 +176,17 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
             </div>
           )}
           
-          {project.endDate && (
+          {project.endDate ? (
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
               <Calendar className="w-4 h-4" />
               <span className="text-sm">
                 {format(new Date(project.endDate), 'dd MMM yyyy', { locale: locale === 'he' ? he : undefined })}
               </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm">{t.ongoing}</span>
             </div>
           )}
 

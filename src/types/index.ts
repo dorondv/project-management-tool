@@ -12,7 +12,7 @@ export interface Project {
   title: string;
   description: string;
   startDate: Date;
-  endDate: Date;
+  endDate?: Date | null;
   status: 'planning' | 'in-progress' | 'completed' | 'on-hold';
   progress: number;
   priority: 'low' | 'medium' | 'high';

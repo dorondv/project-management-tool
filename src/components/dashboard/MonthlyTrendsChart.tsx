@@ -19,18 +19,37 @@ const translations = {
   },
 } as const;
 
-export function MonthlyTrendsChart() {
+interface MonthlyTrendsChartProps {
+  dateRange?: { start: Date; end: Date };
+}
+
+export function MonthlyTrendsChart({ dateRange }: MonthlyTrendsChartProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
 
   const chartData = useMemo(() => {
+    // Filter time entries and incomes by date range if provided
+    const entries = dateRange
+      ? state.timeEntries.filter(entry => {
+          const entryDate = new Date(entry.startTime);
+          return entryDate >= dateRange.start && entryDate <= dateRange.end;
+        })
+      : state.timeEntries;
+
+    const incomes = dateRange
+      ? state.incomes.filter(income => {
+          const incomeDate = new Date(income.incomeDate);
+          return incomeDate >= dateRange.start && incomeDate <= dateRange.end;
+        })
+      : state.incomes;
+
     // Group time entries and incomes by month
     const monthlyData: Record<string, { totalIncome: number; totalHours: number; incomeFromIncomes: number; monthLabel: string }> = {};
 
     // Process time entries
-    state.timeEntries.forEach((entry) => {
+    entries.forEach((entry) => {
       const date = new Date(entry.startTime);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
@@ -45,7 +64,7 @@ export function MonthlyTrendsChart() {
     });
 
     // Process incomes
-    state.incomes.forEach((income) => {
+    incomes.forEach((income) => {
       const date = new Date(income.incomeDate);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
@@ -67,7 +86,7 @@ export function MonthlyTrendsChart() {
       }))
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
       .map(({ sortKey, ...rest }) => rest);
-  }, [state.timeEntries, state.incomes]);
+  }, [state.timeEntries, state.incomes, dateRange]);
 
   const hasData = chartData.length > 0 && (chartData.some(d => d.income > 0) || chartData.some(d => d.hours > 0));
 
@@ -120,7 +139,7 @@ export function MonthlyTrendsChart() {
               yAxisId="right"
               type="monotone" 
               dataKey="hours" 
-              stroke="#3B82F6" 
+              stroke="#6B7280" 
               strokeWidth={2}
               name={t.hours}
             />
