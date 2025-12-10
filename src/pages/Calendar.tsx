@@ -77,6 +77,15 @@ export default function Calendar() {
     });
   };
 
+  const getCustomerNameForTask = (task: any) => {
+    const project = state.projects.find(p => p.id === task.projectId);
+    if (project && project.customerId) {
+      const customer = state.customers.find(c => c.id === project.customerId);
+      return customer?.name || '';
+    }
+    return '';
+  };
+
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
       const newDate = new Date(prev);
@@ -187,15 +196,23 @@ export default function Calendar() {
                     {day}
                   </div>
                   <div className="space-y-1">
-                    {tasksForDay.slice(0, 2).map(task => (
-                      <div
-                        key={task.id}
-                        className={`text-xs p-1 rounded truncate ${getPriorityColor(task.priority)} ${alignStart}`}
-                        title={task.title}
-                      >
-                        {task.title}
-                      </div>
-                    ))}
+                    {tasksForDay.slice(0, 2).map(task => {
+                      const customerName = getCustomerNameForTask(task);
+                      return (
+                        <div
+                          key={task.id}
+                          className={`text-xs p-1 rounded truncate ${getPriorityColor(task.priority)} ${alignStart}`}
+                          title={customerName ? `${task.title} - ${customerName}` : task.title}
+                        >
+                          {task.title}
+                          {customerName && (
+                            <span className="text-gray-600 dark:text-gray-400 ml-1">
+                              - {customerName}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                     {tasksForDay.length > 2 && (
                       <div className={`text-xs text-gray-500 dark:text-gray-400 ${alignStart}`}>
                         +{tasksForDay.length - 2} {t.more}
@@ -242,6 +259,10 @@ export default function Calendar() {
                     </p>
                     <p className={`text-xs text-gray-500 dark:text-gray-400 ${isRTL ? 'text-right' : 'text-left'}`}>
                       {formatDate(task.dueDate, locale)}
+                      {(() => {
+                        const customerName = getCustomerNameForTask(task);
+                        return customerName ? ` • ${customerName}` : '';
+                      })()}
                     </p>
                   </div>
                 </div>

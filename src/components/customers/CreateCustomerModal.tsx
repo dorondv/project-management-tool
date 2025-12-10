@@ -248,7 +248,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
 
   const [formData, setFormData] = useState({
     name: '',
-    status: 'active' as CustomerStatus,
+    status: 'active' as 'active' | 'inactive',
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -280,9 +280,11 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
     }
 
     if (customer) {
+      // Map customer status: 'active' stays 'active', everything else becomes 'inactive'
+      const mappedStatus = customer.status === 'active' ? 'active' : 'inactive';
       setFormData({
         name: customer.name,
-        status: customer.status,
+        status: mappedStatus,
         contactName: customer.contactName,
         contactEmail: customer.contactEmail,
         contactPhone: customer.contactPhone,
@@ -370,10 +372,23 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
     setIsSubmitting(true);
 
     try {
+      // Map 'inactive' status to 'paused' for database (preserve original status if editing)
+      let statusToSave: CustomerStatus;
+      if (formData.status === 'active') {
+        statusToSave = 'active';
+      } else {
+        // If editing and customer was not active, preserve original status; otherwise use 'paused'
+        if (customer && customer.status !== 'active') {
+          statusToSave = customer.status;
+        } else {
+          statusToSave = 'paused';
+        }
+      }
+
       // Prepare customer data matching Prisma schema
       const customerData: any = {
         name: formData.name,
-        status: formData.status,
+        status: statusToSave,
         contactName: formData.contactName,
         contactEmail: formData.contactEmail,
         contactPhone: formData.contactPhone,
@@ -464,10 +479,6 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
       <form onSubmit={handleSubmit} className={`space-y-6 ${alignStart}`} dir={isRTL ? 'rtl' : 'ltr'} noValidate>
         {/* Basic Information */}
         <div className="space-y-4">
-          <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${flexDirection}`}>
-            <FileText className="w-5 h-5 text-primary-500" />
-            {t.basicInfo}
-          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -488,13 +499,11 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => handleChange('status', e.target.value as CustomerStatus)}
+                onChange={(e) => handleChange('status', e.target.value as 'active' | 'inactive')}
                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${alignStart}`}
               >
                 <option value="active">{t.active}</option>
-                <option value="trial">{t.trial}</option>
-                <option value="paused">{t.paused}</option>
-                <option value="churned">{t.churned}</option>
+                <option value="inactive">{t.inactive}</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -578,7 +587,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
 
         {/* Contact Person Information */}
         <div className="space-y-4">
-          <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${flexDirection}`}>
+          <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${isRTL ? 'text-right justify-end flex-row-reverse' : 'text-left'} ${flexDirection}`}>
             <Users className="w-5 h-5 text-primary-500" />
             {t.contactPerson}
           </h3>
@@ -624,7 +633,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
 
         {/* Payment Settings */}
         <div className="space-y-4">
-          <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${flexDirection}`}>
+          <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${isRTL ? 'text-right justify-end flex-row-reverse' : 'text-left'} ${flexDirection}`}>
             <DollarSign className="w-5 h-5 text-primary-500" />
             {t.paymentSettings}
           </h3>
@@ -744,7 +753,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
 
         {/* Lead Source */}
         <div className="space-y-4">
-          <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${flexDirection}`}>
+          <h3 className={`font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-lg border-b pb-2 ${isRTL ? 'text-right justify-end flex-row-reverse' : 'text-left'} ${flexDirection}`}>
             <Users className="w-5 h-5 text-primary-500" />
             {t.leadSource}
           </h3>
@@ -808,6 +817,59 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
         </div>
 
         <div className={`flex justify-between items-center pt-6 border-t border-gray-200 dark:border-gray-700 ${flexDirection}`}>
+          <div className={`flex gap-3 ${flexDirection}`}>
+            {isRTL ? (
+              <>
+                <Button 
+                  type="submit" 
+                  className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <span className={`flex items-center gap-2 ${flexDirection}`}>
+                      <LoadingSpinner size="sm" />
+                      {isRTL ? 'שומר...' : 'Saving...'}
+                    </span>
+                  ) : (
+                    customer ? t.updateCustomer : t.addCustomer
+                  )}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  {t.cancel}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  {t.cancel}
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <span className={`flex items-center gap-2 ${flexDirection}`}>
+                      <LoadingSpinner size="sm" />
+                      {isRTL ? 'שומר...' : 'Saving...'}
+                    </span>
+                  ) : (
+                    customer ? t.updateCustomer : t.addCustomer
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
           {customer && onDelete && (
             <Button 
               type="button" 
@@ -816,34 +878,10 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
               disabled={isSubmitting}
               className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700"
             >
-              <Trash2 size={16} className="mr-2" />
+              <Trash2 size={16} className={isRTL ? 'ml-2' : 'mr-2'} />
               {t.deleteCustomer}
             </Button>
           )}
-          <div className={`flex gap-3 ${flexDirection} ${customer && onDelete ? '' : 'ml-auto'}`}>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              {t.cancel}
-            </Button>
-            <Button 
-              type="submit" 
-              className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <span className={`flex items-center gap-2 ${flexDirection}`}>
-                  <LoadingSpinner size="sm" />
-                  {isRTL ? 'שומר...' : 'Saving...'}
-                </span>
-              ) : (
-                customer ? t.updateCustomer : t.addCustomer
-              )}
-            </Button>
-          </div>
         </div>
       </form>
     </Modal>

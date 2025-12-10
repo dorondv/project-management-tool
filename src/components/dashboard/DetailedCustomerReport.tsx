@@ -41,7 +41,7 @@ const translations: Record<Locale, {
   noData: string;
 }> = {
   en: {
-    title: 'Detailed Customer Report',
+    title: 'Active Customers Report',
     columns: {
       client: 'Client',
       score: 'Score',
@@ -74,7 +74,7 @@ const translations: Record<Locale, {
     noData: 'No customer data available',
   },
   he: {
-    title: 'דוח לקוחות מפורט',
+    title: 'דוח לקוחות פעילים',
     columns: {
       client: 'לקוח',
       score: 'Score',
@@ -256,7 +256,10 @@ export function DetailedCustomerReport() {
   const clientStats = useMemo<ClientStat[]>(() => {
     const stats: ClientStat[] = [];
 
-    state.customers.forEach(customer => {
+    // Filter to only active customers
+    const activeCustomers = state.customers.filter(customer => customer.status === 'active');
+
+    activeCustomers.forEach(customer => {
       const scoreMetrics = {
         monthlyIncome: getClientMonthlyIncome(customer),
         hourlyRate: 0,

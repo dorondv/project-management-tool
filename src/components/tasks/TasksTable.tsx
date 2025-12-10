@@ -1,4 +1,4 @@
-import { Calendar, User, FolderOpen, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Calendar, User, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { Task, Locale, Project, Customer } from '../../types';
 import { formatDate } from '../../utils/dateUtils';
 import { Badge } from '../common/Badge';
@@ -298,10 +298,7 @@ function TaskRow({ task, overdue, locale, isRTL, t, getProjectName, getCustomerF
       </td>
 
       <td className="px-4 py-3 text-center">
-        <div className="flex items-center justify-center gap-2">
-          <FolderOpen className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-          <span className="text-gray-900 dark:text-white">{getProjectName(task.projectId)}</span>
-        </div>
+        <span className="text-gray-900 dark:text-white">{getProjectName(task.projectId)}</span>
       </td>
 
       <td className="px-4 py-3">

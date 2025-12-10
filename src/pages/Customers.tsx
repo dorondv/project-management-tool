@@ -11,7 +11,7 @@ import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 
 type ViewMode = 'list' | 'grid';
-type StatusFilter = 'all' | CustomerStatus;
+type StatusFilter = 'all' | 'active' | 'inactive';
 
 const statusVariants: Record<CustomerStatus, 'success' | 'warning' | 'secondary' | 'error'> = {
   active: 'success',
@@ -29,9 +29,9 @@ const statusLabels: Record<Locale, Record<CustomerStatus, string>> = {
   },
   he: {
     active: 'פעיל',
-    trial: 'ניסיון',
+    trial: 'בפיילוט',
     paused: 'מושהה',
-    churned: 'נטש',
+    churned: 'בוטל',
   },
 };
 
@@ -80,20 +80,16 @@ const statusFilterLabels: Record<Locale, Record<StatusFilter, string>> = {
   en: {
     all: 'All statuses',
     active: 'Active',
-    trial: 'Trial',
-    paused: 'Paused',
-    churned: 'Churned',
+    inactive: 'Inactive',
   },
   he: {
     all: 'כל הסטטוסים',
     active: 'פעיל',
-    trial: 'בפיילוט',
-    paused: 'מושהה',
-    churned: 'בוטל',
+    inactive: 'לא פעיל',
   },
 };
 
-const statusFilterOrder: StatusFilter[] = ['all', 'active', 'trial', 'paused', 'churned'];
+const statusFilterOrder: StatusFilter[] = ['all', 'active', 'inactive'];
 
 const translations: Record<
   Locale,
@@ -293,7 +289,7 @@ export default function Customers() {
   const t = translations[locale];
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -453,6 +449,15 @@ export default function Customers() {
     return 'C';
   };
 
+  const getScoreBadgeColor = (score: string): string => {
+    switch(score) {
+      case 'A': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'B': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'C': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
   const handleViewProjects = (customerId: string) => {
     navigate(`/projects?customer=${customerId}`);
   };
@@ -545,7 +550,15 @@ export default function Customers() {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     return state.customers.filter((customer) => {
-      const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
+      let matchesStatus = false;
+      if (statusFilter === 'all') {
+        matchesStatus = true;
+      } else if (statusFilter === 'active') {
+        matchesStatus = customer.status === 'active';
+      } else if (statusFilter === 'inactive') {
+        matchesStatus = customer.status !== 'active';
+      }
+      
       const searchableFields = [
         customer.name,
         customer.contactName,
@@ -630,7 +643,7 @@ export default function Customers() {
           </div>
 
           <div className="flex flex-1 items-center gap-3 justify-end min-w-[240px]">
-            <div className="relative w-full max-w-md">
+            <div className={`relative max-w-xs ${isRTL ? 'ml-auto' : ''}`}>
               <Search
                 size={18}
                 className={`absolute ${searchIconPosition} top-1/2 -translate-y-1/2 text-gray-400`}
@@ -790,8 +803,10 @@ export default function Customers() {
                         {formatDate(customer.joinDate, locale)}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{tenure}</td>
-                      <td className={`px-4 py-4 text-gray-900 dark:text-white font-semibold ${alignStart}`}>
-                        {customerScore}
+                      <td className={`px-4 py-4 ${alignStart}`}>
+                        <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getScoreBadgeColor(customerScore)}`}>
+                          {customerScore}
+                        </div>
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{customer.taxId}</td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{customer.country}</td>
@@ -985,7 +1000,7 @@ export default function Customers() {
                     <Badge variant={statusVariant} className="flex items-center gap-1.5 py-1 px-3">
                       {statusLabel}
                     </Badge>
-                    <Badge className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 flex items-center gap-1.5 py-1 px-3">
+                    <Badge className={`${getScoreBadgeColor(customerScore)} flex items-center gap-1.5 py-1 px-3`}>
                       <span className="font-bold text-sm">{t.grid.scoreLabel}: {customerScore}</span>
                     </Badge>
                   </div>

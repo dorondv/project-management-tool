@@ -257,7 +257,7 @@ export default function Tasks() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className={`px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${isRTL ? 'text-right' : 'text-left'} w-32`}
+                className={`px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 ${isRTL ? 'text-right' : 'text-left'} w-44`}
               >
                 <option value="all">{t.statusOptions.all}</option>
                 <option value="todo">{t.statusOptions.todo}</option>
