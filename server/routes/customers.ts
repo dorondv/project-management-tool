@@ -3,15 +3,22 @@ import { prisma } from '../index.js';
 
 const router = Router();
 
-// GET /api/customers - Get all customers (filtered by userId if provided)
+// GET /api/customers - Get all customers (requires userId)
 router.get('/', async (req, res) => {
   try {
     const userId = req.query.userId as string | undefined;
-    console.log('📝 Fetching customers...', userId ? `for user: ${userId}` : 'for all users');
     
-    const where = userId ? { userId } : {};
+    if (!userId) {
+      return res.status(400).json({ 
+        error: 'userId is required',
+        message: 'Please provide userId query parameter to fetch customers' 
+      });
+    }
+    
+    console.log('📝 Fetching customers for user:', userId);
+    
     const customers = await prisma.customer.findMany({
-      where,
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
     console.log(`✅ Found ${customers.length} customers`);

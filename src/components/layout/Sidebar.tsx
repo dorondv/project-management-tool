@@ -52,6 +52,10 @@ const menuLabels = {
     accessibility: 'Accessibility',
     support: 'Support',
     logout: 'Logout',
+    // Role translations
+    admin: 'Admin',
+    manager: 'Manager',
+    contributor: 'Contributor',
   },
   he: {
     dashboard: 'לוח בקרה',
@@ -67,6 +71,10 @@ const menuLabels = {
     accessibility: 'נגישות',
     support: 'תמיכה',
     logout: 'התנתק',
+    // Role translations
+    admin: 'מנהל',
+    manager: 'מנהל פרויקט',
+    contributor: 'חבר צוות',
   },
 } as const;
 
@@ -79,6 +87,19 @@ export function Sidebar() {
   const locale = state.locale;
   const isRTL = locale === 'he';
   const labels = menuLabels[locale];
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return labels.admin;
+      case 'manager':
+        return labels.manager;
+      case 'contributor':
+        return labels.contributor;
+      default:
+        return role;
+    }
+  };
 
   const handleLogout = () => {
     dispatch({ type: 'LOGOUT' });
@@ -99,11 +120,21 @@ export function Sidebar() {
           <div className={`flex items-center ${isCollapsed ? 'justify-center relative' : 'justify-between'}`}>
             {isCollapsed ? (
               <>
-                <img 
-                  src="/assets/png/solo logo small.png" 
-                  alt="SOLO" 
-                  className="h-8 w-8 object-contain"
-                />
+                <div className="rounded-lg p-1 bg-transparent">
+                  <img 
+                    src="/assets/png/solo transparent.png" 
+                    alt="SOLO" 
+                    className="h-8 w-8 object-contain"
+                    style={{ backgroundColor: 'transparent', background: 'transparent' }}
+                    onError={(e) => {
+                      // Fallback to small logo if transparent version doesn't exist
+                      const target = e.target as HTMLImageElement;
+                      if (target.src !== `${window.location.origin}/assets/png/solo logo small.png`) {
+                        target.src = '/assets/png/solo logo small.png';
+                      }
+                    }}
+                  />
+                </div>
                 <button
                   onClick={() => setIsCollapsed(!isCollapsed)}
                   className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-4 p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors`}
@@ -113,16 +144,24 @@ export function Sidebar() {
               </>
             ) : (
               <>
-                <div className={`flex items-center ${isRTL ? 'justify-end flex-row-reverse gap-2' : 'gap-2'}`}>
+                <div className={`flex items-center ${isRTL ? 'justify-end flex-row-reverse gap-2' : 'gap-2'} rounded-lg p-1 bg-transparent`}>
                   <img 
-                    src="/assets/png/solo logo wide.png" 
+                    src="/assets/png/solo transparent.png" 
                     alt="SOLO" 
                     className="h-8 object-contain"
+                    style={{ backgroundColor: 'transparent', background: 'transparent' }}
+                    onError={(e) => {
+                      // Fallback to wide logo if transparent version doesn't exist
+                      const target = e.target as HTMLImageElement;
+                      if (target.src !== `${window.location.origin}/assets/png/solo logo wide.png`) {
+                        target.src = '/assets/png/solo logo wide.png';
+                      }
+                    }}
                   />
                 </div>
                 <button
                   onClick={() => setIsCollapsed(!isCollapsed)}
-                  className="p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                  className="md:hidden p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
                 >
                   <X size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
@@ -231,8 +270,8 @@ export function Sidebar() {
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {state.user.name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                      {state.user.role}
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {getRoleLabel(state.user.role)}
                     </p>
                   </div>
                   <Avatar
@@ -255,8 +294,8 @@ export function Sidebar() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                         {state.user.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                        {state.user.role}
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {getRoleLabel(state.user.role)}
                       </p>
                     </div>
                   )}
