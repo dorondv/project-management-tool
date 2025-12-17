@@ -3,11 +3,15 @@ import { motion } from 'framer-motion';
 import { Play, Square, Pause, Plus, FileText, Clock, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
-import { TimeEntry, Locale, Customer, Project, Task } from '../types';
+import { TimeEntry, Locale, Customer } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { timerService } from '../utils/timerService';
 import { CreateProjectModal } from '../components/projects/CreateProjectModal';
+import { TimeEntryForm } from '../components/timer/TimeEntryForm';
+import { ClientReportModal } from '../components/timer/ClientReportModal';
+import { Modal } from '../components/common/Modal';
+import { Clock as ClockIcon } from 'lucide-react';
 
 const translations = {
   en: {
@@ -27,6 +31,7 @@ const translations = {
     timeLog: 'Time Entry Log',
     currentMonth: 'Current Month',
     addEntry: 'Add Entry',
+    addTimeRecord: 'Add Time Record',
     generateReport: 'Generate Client Hours Report',
     demoData: 'Demo Data',
     client: 'Client',
@@ -56,6 +61,7 @@ const translations = {
     timeLog: 'יומן רישומי זמן',
     currentMonth: 'חודש נוכחי',
     addEntry: 'הוסף רישום',
+    addTimeRecord: 'הוספת רישום זמן',
     generateReport: 'הפקת דוח שעות ללקוח',
     demoData: 'נתוני דמה',
     client: 'לקוח',
@@ -113,6 +119,9 @@ export default function Timer() {
   const [selectedMonth, setSelectedMonth] = useState<string>('current');
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [isTimeEntryModalOpen, setIsTimeEntryModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
 
   // Get timer state from context
@@ -176,6 +185,16 @@ export default function Timer() {
         return entryDate.getMonth() === now.getMonth() && 
                entryDate.getFullYear() === now.getFullYear();
       });
+    } else if (selectedMonth && selectedMonth !== 'current') {
+      // Handle format: "month-year" (e.g., "11-2024")
+      const [month, year] = selectedMonth.split('-').map(Number);
+      if (!isNaN(month) && !isNaN(year)) {
+        entries = entries.filter(entry => {
+          const entryDate = new Date(entry.startTime);
+          return entryDate.getMonth() === month && 
+                 entryDate.getFullYear() === year;
+        });
+      }
     }
     
     return entries.sort((a, b) => 
@@ -244,7 +263,7 @@ export default function Timer() {
           userId: timerLog.userId,
         };
 
-        const createdEntry = await api.timeEntries.create(timeEntryData);
+        const createdEntry = await api.timeEntries.create(timeEntryData) as any;
 
         // Convert API response to TimeEntry format
         const newEntry: TimeEntry = {
@@ -280,11 +299,89 @@ export default function Timer() {
   };
 
   const handleAddEntry = () => {
-    toast.info(isRTL ? 'פונקציה זו תתווסף בקרוב' : 'This feature will be added soon');
+    setEditingEntry(null);
+    setIsTimeEntryModalOpen(true);
+  };
+
+  const handleTimeEntrySubmit = async (data: {
+    customerId: string;
+    projectId: string;
+    taskId?: string;
+    description: string;
+    startTime: string;
+    endTime: string;
+    hourlyRate: number;
+  }) => {
+    try {
+      if (!state.user?.id) {
+        toast.error(isRTL ? 'משתמש לא מזוהה' : 'User not identified');
+        return;
+      }
+
+      const { api } = await import('../utils/api');
+      const timeEntryData = {
+        customerId: data.customerId,
+        projectId: data.projectId,
+        taskId: data.taskId,
+        description: data.description,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        hourlyRate: data.hourlyRate,
+        userId: state.user.id,
+      };
+
+      if (editingEntry) {
+        // Update existing entry
+        const updatedEntry = await api.timeEntries.update(editingEntry.id, timeEntryData) as any;
+        const newEntry: TimeEntry = {
+          id: updatedEntry.id,
+          customerId: updatedEntry.customerId,
+          projectId: updatedEntry.projectId,
+          taskId: updatedEntry.taskId,
+          description: updatedEntry.description,
+          startTime: new Date(updatedEntry.startTime),
+          endTime: new Date(updatedEntry.endTime),
+          duration: updatedEntry.duration,
+          hourlyRate: updatedEntry.hourlyRate,
+          income: updatedEntry.income,
+          userId: updatedEntry.userId,
+          createdAt: new Date(updatedEntry.createdAt),
+          updatedAt: new Date(updatedEntry.updatedAt),
+        };
+        dispatch({ type: 'UPDATE_TIME_ENTRY', payload: newEntry });
+        toast.success(isRTL ? 'רישום זמן עודכן בהצלחה' : 'Time entry updated successfully');
+      } else {
+        // Create new entry
+        const createdEntry = await api.timeEntries.create(timeEntryData) as any;
+        const newEntry: TimeEntry = {
+          id: createdEntry.id,
+          customerId: createdEntry.customerId,
+          projectId: createdEntry.projectId,
+          taskId: createdEntry.taskId,
+          description: createdEntry.description,
+          startTime: new Date(createdEntry.startTime),
+          endTime: new Date(createdEntry.endTime),
+          duration: createdEntry.duration,
+          hourlyRate: createdEntry.hourlyRate,
+          income: createdEntry.income,
+          userId: createdEntry.userId,
+          createdAt: new Date(createdEntry.createdAt),
+          updatedAt: new Date(createdEntry.updatedAt),
+        };
+        dispatch({ type: 'ADD_TIME_ENTRY', payload: newEntry });
+        toast.success(isRTL ? 'רישום זמן נוסף בהצלחה' : 'Time entry added successfully');
+      }
+
+      setIsTimeEntryModalOpen(false);
+      setEditingEntry(null);
+    } catch (error: any) {
+      console.error('Failed to save time entry:', error);
+      toast.error(error.message || (isRTL ? 'שגיאה בשמירת רישום זמן' : 'Failed to save time entry. Please try again.'));
+    }
   };
 
   const handleGenerateReport = () => {
-    toast.info(isRTL ? 'פונקציה זו תתווסף בקרוב' : 'This feature will be added soon');
+    setIsReportModalOpen(true);
   };
 
   const handleCreateProject = () => {
@@ -609,23 +706,20 @@ export default function Timer() {
       </div>
 
       {/* Time Log Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6">
         {/* Log Header */}
-        <div className={`flex items-center justify-between mb-6 ${flexDirection}`}>
+        <div className={`flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4 ${flexDirection}`}>
           <div className={`flex items-center gap-2 ${flexDirection}`}>
             <Clock size={20} className="text-gray-600 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
               {t.timeLog} - {format(new Date(), locale === 'he' ? 'MMMM yyyy' : 'MMMM yyyy')}
             </h2>
-            <span className="px-2 py-1 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-full">
-              {t.demoData}
-            </span>
           </div>
           <div className={`flex items-center gap-2 ${flexDirection}`}>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className={`px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} text-sm`}
+              className={`w-full md:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} text-sm`}
             >
               {monthOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -637,11 +731,12 @@ export default function Timer() {
         </div>
 
         {/* Action Buttons */}
-        <div className={`flex gap-3 mb-6 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+        <div className={`flex flex-col sm:flex-row gap-3 mb-6 ${isRTL ? 'sm:flex-row-reverse sm:justify-end' : ''}`}>
           <Button
             onClick={handleAddEntry}
             icon={<Plus size={16} />}
-            className={flexDirection}
+            className={`${flexDirection} w-full sm:w-auto`}
+            fullWidth
           >
             {t.addEntry}
           </Button>
@@ -649,14 +744,93 @@ export default function Timer() {
             onClick={handleGenerateReport}
             variant="outline"
             icon={<FileText size={16} />}
-            className={flexDirection}
+            className={`${flexDirection} w-full sm:w-auto`}
+            fullWidth
           >
             {t.generateReport}
           </Button>
         </div>
 
-        {/* Time Entries Table */}
-        <div className="overflow-x-auto">
+        {/* Time Entries - Mobile Card View */}
+        <div className="block md:hidden space-y-4">
+          {filteredTimeEntries.length === 0 ? (
+            <div className={`py-10 text-center text-gray-500 dark:text-gray-400 ${alignStart}`}>
+              <div className="flex flex-col items-center gap-2">
+                <Clock size={32} className="text-gray-400" />
+                <p className="font-medium">{t.noEntries}</p>
+                <p className="text-sm">{t.noEntriesSubtitle}</p>
+              </div>
+            </div>
+          ) : (
+            filteredTimeEntries.map((entry) => {
+              const customer = state.customers.find(c => c.id === entry.customerId);
+              const project = state.projects.find(p => p.id === entry.projectId);
+              
+              return (
+                <div
+                  key={entry.id}
+                  className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
+                >
+                  <div className={`space-y-3 ${alignStart}`}>
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.client}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {customer?.name || 'Unknown'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.project}</div>
+                      <div className="text-gray-700 dark:text-gray-200">
+                        {project?.title || 'Unknown'}
+                      </div>
+                    </div>
+                    {entry.description && (
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          {locale === 'he' ? 'תיאור' : 'Description'}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-300">
+                          {entry.description}
+                        </div>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.startTime}</div>
+                        <div className="text-sm text-gray-700 dark:text-gray-200">
+                          {format(new Date(entry.startTime), locale === 'he' ? 'dd/MM/yyyy HH:mm' : 'MM/dd/yyyy h:mm a')}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.endTime}</div>
+                        <div className="text-sm text-gray-700 dark:text-gray-200">
+                          {format(new Date(entry.endTime), locale === 'he' ? 'dd/MM/yyyy HH:mm' : 'MM/dd/yyyy h:mm a')}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.duration}</div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200">
+                          {formatDurationShort(entry.duration)}
+                        </span>
+                      </div>
+                      <div className={`${alignStart}`}>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.income}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {formatCurrency(entry.income, customer?.currency || '₪', locale)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Time Entries Table - Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
@@ -684,7 +858,6 @@ export default function Timer() {
               {filteredTimeEntries.map((entry) => {
                 const customer = state.customers.find(c => c.id === entry.customerId);
                 const project = state.projects.find(p => p.id === entry.projectId);
-                const task = entry.taskId ? state.tasks.find(t => t.id === entry.taskId) : null;
                 
                 return (
                   <tr key={entry.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50">
@@ -693,7 +866,7 @@ export default function Timer() {
                         <div className="font-medium text-gray-900 dark:text-white">
                           {customer?.name || 'Unknown'}
                         </div>
-                        {task && (
+                        {entry.description && (
                           <div className="text-sm text-gray-500 dark:text-gray-400">
                             {entry.description}
                           </div>
@@ -742,6 +915,34 @@ export default function Timer() {
         onClose={() => setIsCreateProjectModalOpen(false)}
         preSelectedCustomerId={selectedCustomerId}
         onProjectCreated={handleProjectCreated}
+      />
+
+      {/* Add Time Entry Modal */}
+      <Modal
+        isOpen={isTimeEntryModalOpen}
+        onClose={() => {
+          setIsTimeEntryModalOpen(false);
+          setEditingEntry(null);
+        }}
+        title={t.addTimeRecord}
+        titleIcon={<ClockIcon size={20} />}
+        size="lg"
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
+        <TimeEntryForm
+          entry={editingEntry}
+          onSubmit={handleTimeEntrySubmit}
+          onCancel={() => {
+            setIsTimeEntryModalOpen(false);
+            setEditingEntry(null);
+          }}
+        />
+      </Modal>
+
+      {/* Client Report Modal */}
+      <ClientReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
       />
     </div>
   );
