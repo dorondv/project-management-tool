@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
   FolderOpen,
@@ -78,7 +78,12 @@ const menuLabels = {
   },
 } as const;
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobileDrawerOpen?: boolean;
+  onMobileDrawerClose?: () => void;
+}
+
+export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAccessibilityModalOpen, setIsAccessibilityModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
@@ -87,6 +92,26 @@ export function Sidebar() {
   const locale = state.locale;
   const isRTL = locale === 'he';
   const labels = menuLabels[locale];
+
+  // Close mobile drawer when navigating
+  const handleLinkClick = () => {
+    if (onMobileDrawerClose) {
+      onMobileDrawerClose();
+    }
+  };
+
+  // Determine if we should use mobile animation (only on mobile screens)
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -106,23 +131,49 @@ export function Sidebar() {
   };
 
   return (
-    <motion.div
-      initial={{ x: isRTL ? 240 : -240 }}
-      animate={{ x: 0 }}
-      className={`fixed ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} top-0 h-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg z-40 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
-      dir={isRTL ? 'rtl' : 'ltr'}
-    >
+    <>
+      {/* Mobile drawer overlay */}
+      <AnimatePresence>
+        {isMobileDrawerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+            onClick={onMobileDrawerClose}
+          />
+        )}
+      </AnimatePresence>
+      
+      {/* Sidebar */}
+      <motion.div
+        initial={false}
+        animate={{ 
+          // Only animate on mobile, on desktop always show (x: 0)
+          x: isMobile && !isMobileDrawerOpen 
+            ? (isRTL ? '100%' : '-100%') 
+            : 0
+        }}
+        transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
+        className={`
+          fixed ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} top-0 h-full 
+          bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg 
+          z-40
+          ${isCollapsed ? 'w-16' : 'w-64'}
+          lg:!translate-x-0 lg:block
+        `}
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="pt-5 pb-5 px-4 border-b border-gray-200 dark:border-gray-700">
           <div className={`flex items-center ${isCollapsed ? 'justify-center relative' : 'justify-between'}`}>
             {isCollapsed ? (
               <>
                 <div className="rounded-lg p-1 bg-transparent">
                   <img 
-                    src="/assets/png/solo transparent.png" 
+                    src="/assets/png/sollo Inverted Color Transparent bg.svg" 
                     alt="SOLO" 
                     className="h-8 w-8 object-contain"
                     style={{ backgroundColor: 'transparent', background: 'transparent' }}
@@ -146,7 +197,7 @@ export function Sidebar() {
               <>
                 <div className={`flex items-center ${isRTL ? 'justify-end flex-row-reverse gap-2' : 'gap-2'} rounded-lg p-1 bg-transparent`}>
                   <img 
-                    src="/assets/png/solo transparent.png" 
+                    src="/assets/png/sollo Inverted Color Transparent bg.svg" 
                     alt="SOLO" 
                     className="h-8 object-contain"
                     style={{ backgroundColor: 'transparent', background: 'transparent' }}
@@ -160,8 +211,13 @@ export function Sidebar() {
                   />
                 </div>
                 <button
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  className="md:hidden p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                  onClick={() => {
+                    setIsCollapsed(!isCollapsed);
+                    if (onMobileDrawerClose) {
+                      onMobileDrawerClose();
+                    }
+                  }}
+                  className="lg:hidden p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
                 >
                   <X size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
@@ -179,6 +235,7 @@ export function Sidebar() {
                 <li key={item.path}>
                   <Link
                     to={item.path}
+                    onClick={handleLinkClick}
                     className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                       isCollapsed 
                         ? 'justify-center' 
@@ -191,6 +248,7 @@ export function Sidebar() {
                         : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-900/10 dark:hover:text-primary-200'
                     }`}
                   >
+                    <item.icon size={20} className={isRTL ? 'flex-shrink-0' : ''} />
                     {!isCollapsed && (
                       <span
                         className={`font-medium ${
@@ -200,7 +258,6 @@ export function Sidebar() {
                         {labels[item.key as keyof typeof labels]}
                       </span>
                     )}
-                    <item.icon size={20} className={isRTL ? 'flex-shrink-0' : ''} />
                   </Link>
                 </li>
               );
@@ -222,6 +279,7 @@ export function Sidebar() {
                       : ''
                 } text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-900/10 dark:hover:text-primary-200`}
               >
+                <Accessibility size={20} className={isRTL ? 'flex-shrink-0' : ''} />
                 {!isCollapsed && (
                   <span
                     className={`font-medium ${
@@ -231,7 +289,6 @@ export function Sidebar() {
                     {labels.accessibility}
                   </span>
                 )}
-                <Accessibility size={20} className={isRTL ? 'flex-shrink-0' : ''} />
               </button>
             </li>
             <li>
@@ -245,6 +302,7 @@ export function Sidebar() {
                       : ''
                 } text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-900/10 dark:hover:text-primary-200`}
               >
+                <HelpCircle size={20} className={isRTL ? 'flex-shrink-0' : ''} />
                 {!isCollapsed && (
                   <span
                     className={`font-medium ${
@@ -254,7 +312,6 @@ export function Sidebar() {
                     {labels.support}
                   </span>
                 )}
-                <HelpCircle size={20} className={isRTL ? 'flex-shrink-0' : ''} />
               </button>
             </li>
           </ul>
@@ -310,6 +367,7 @@ export function Sidebar() {
                 isRTL ? 'flex-row-reverse justify-end' : ''
               } text-gray-700 hover:bg-red-50 hover:text-red-600 dark:text-gray-300 dark:hover:bg-red-900/10 dark:hover:text-red-400`}
             >
+              <LogOut size={20} className={isRTL ? 'flex-shrink-0' : ''} />
               <span
                 className={`font-medium ${
                   isRTL ? 'flex-1 text-right' : 'flex-1 text-left'
@@ -317,7 +375,6 @@ export function Sidebar() {
               >
                 {labels.logout}
               </span>
-              <LogOut size={20} className={isRTL ? 'flex-shrink-0' : ''} />
             </button>
           )}
         </div>
@@ -333,5 +390,6 @@ export function Sidebar() {
         onClose={() => setIsSupportModalOpen(false)}
       />
     </motion.div>
+    </>
   );
 }

@@ -39,7 +39,7 @@ function AppContent() {
           {/* Logo */}
           <div className="mb-6 flex justify-center">
             <img 
-              src="/assets/png/solo transparent.png" 
+              src="/assets/png/sollo Inverted Color Transparent bg.svg" 
               alt="SOLO" 
               className="h-16 object-contain"
               onError={(e) => {
