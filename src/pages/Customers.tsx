@@ -288,7 +288,21 @@ export default function Customers() {
   const isRTL = locale === 'he';
   const t = translations[locale];
 
+  // Force grid view on mobile, allow both on desktop
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Force grid view on mobile
+  const effectiveViewMode = isMobile ? 'grid' : viewMode;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -584,8 +598,8 @@ export default function Customers() {
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className={`space-y-1 flex-1 ${alignStart}`}>
           <h1 className={`text-2xl font-bold text-gray-900 dark:text-white ${alignStart}`}>{t.pageTitle}</h1>
           <p className={`text-gray-600 dark:text-gray-400 ${alignStart}`}>{t.pageSubtitle}</p>
         </div>
@@ -593,6 +607,7 @@ export default function Customers() {
           variant="primary" 
           icon={<Plus size={16} />}
           onClick={handleNewCustomer}
+          className="w-full sm:w-auto"
         >
           {t.newCustomer}
         </Button>
@@ -617,7 +632,8 @@ export default function Customers() {
 
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 shadow-sm">
         <div className={`flex flex-wrap items-center justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className="flex items-center gap-2">
+          {/* View mode toggle - hidden on mobile */}
+          <div className="hidden lg:flex items-center gap-2">
             <button
               type="button"
               onClick={() => setViewMode('list')}
@@ -683,7 +699,7 @@ export default function Customers() {
         </div>
       )}
 
-      {!isLoading && viewMode === 'list' ? (
+      {!isLoading && effectiveViewMode === 'list' ? (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
           {/* Custom Scroll Controls */}
           <div className={`flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900/20 border-b border-gray-200 dark:border-gray-700 ${isRTL ? 'flex-row-reverse' : ''}`}>

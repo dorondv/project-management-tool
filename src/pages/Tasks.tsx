@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Filter, LayoutGrid, List, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -119,7 +119,21 @@ export default function Tasks() {
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
+  // Force kanban view on mobile, allow both on desktop
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Force kanban view on mobile
+  const effectiveViewMode = isMobile ? 'kanban' : viewMode;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -157,10 +171,10 @@ export default function Tasks() {
   return (
     <>
       <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {isRTL ? (
             <>
-              <div className={alignStart}>
+              <div className={`${alignStart} flex-1`}>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {t.pageTitle}
                 </h1>
@@ -168,50 +182,9 @@ export default function Tasks() {
                   {t.pageSubtitle}
                 </p>
               </div>
-              <div className="flex items-center gap-3 flex-row-reverse justify-start">
-                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 flex-row-reverse">
-                  <button
-                    onClick={() => setViewMode('kanban')}
-                    className={`p-2 rounded-md transition-colors ${
-                      viewMode === 'kanban'
-                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    <LayoutGrid size={16} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 rounded-md transition-colors ${
-                      viewMode === 'list'
-                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    <List size={16} />
-                  </button>
-                </div>
-                <Button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  icon={<Plus size={16} />}
-                  className="flex-row-reverse"
-                >
-                  {t.newTask}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className={alignStart}>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {t.pageTitle}
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {t.pageSubtitle}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-row-reverse justify-start lg:flex-row-reverse">
+                {/* View mode toggle - hidden on mobile */}
+                <div className="hidden lg:flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 flex-row-reverse">
                   <button
                     onClick={() => setViewMode('kanban')}
                     className={`p-2 rounded-md transition-colors ${
@@ -236,6 +209,50 @@ export default function Tasks() {
                 <Button
                   onClick={() => setIsCreateModalOpen(true)}
                   icon={<Plus size={16} />}
+                  className="flex-row-reverse w-full sm:w-auto"
+                >
+                  {t.newTask}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={`${alignStart} flex-1`}>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {t.pageTitle}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {t.pageSubtitle}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:items-center">
+                {/* View mode toggle - hidden on mobile */}
+                <div className="hidden lg:flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={`p-2 rounded-md transition-colors ${
+                      viewMode === 'kanban'
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <LayoutGrid size={16} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-2 rounded-md transition-colors ${
+                      viewMode === 'table'
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    <List size={16} />
+                  </button>
+                </div>
+                <Button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  icon={<Plus size={16} />}
+                  className="w-full sm:w-auto"
                 >
                   {t.newTask}
                 </Button>
@@ -345,7 +362,7 @@ export default function Tasks() {
           animate={{ opacity: 1 }}
           className={`min-h-[600px] ${isRTL ? 'text-right' : 'text-left'}`}
         >
-          {viewMode === 'kanban' ? (
+          {effectiveViewMode === 'kanban' ? (
             <KanbanBoard 
               tasks={kanbanTasks}
               onEdit={(task) => setSelectedTask(task)}

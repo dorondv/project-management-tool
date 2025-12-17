@@ -15,9 +15,13 @@ export function Avatar({ src, alt, size = 'md', className = '', isOnline }: Avat
     lg: 'w-12 h-12'
   };
 
+  // If className contains width/height overrides, use className only (it will override sizeClasses)
+  // Otherwise, combine sizeClasses with className
+  const hasSizeOverride = className.match(/(w-\[|h-\[|w-\d+|h-\d+|!w-|!h-)/);
+  
   return (
-    <div className={`relative ${className}`}>
-      <div className={`${sizeClasses[size]} rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center`}>
+    <div className="relative">
+      <div className={`${hasSizeOverride ? '' : sizeClasses[size]} ${className} rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center`}>
         {src ? (
           <img 
             src={src} 
