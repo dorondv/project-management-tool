@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, Search, Sun, Moon, LogOut, User, Languages } from 'lucide-react';
+import { Bell, Search, Sun, Moon, LogOut, User, Languages, Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Badge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
 import toast from 'react-hot-toast';
+
+interface HeaderProps {
+  onMobileMenuClick?: () => void;
+}
 
 const headerTranslations = {
   en: {
@@ -32,7 +36,7 @@ const headerTranslations = {
   },
 } as const;
 
-export function Header() {
+export function Header({ onMobileMenuClick }: HeaderProps = {}) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -71,11 +75,20 @@ export function Header() {
       <motion.header
         initial={{ y: -60 }}
         animate={{ y: 0 }}
-        className={`fixed top-0 ${isRTL ? 'right-64 left-0' : 'left-64 right-0'} h-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 z-30`}
+        className={`fixed top-0 ${isRTL ? 'right-0 lg:right-64 left-0' : 'left-0 lg:left-64 right-0'} h-16 lg:h-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 z-30`}
       >
-        <div className="flex items-center justify-between h-full px-6">
+        <div className="flex items-center justify-between h-full px-4 lg:px-6">
           {isRTL ? (
             <>
+              {/* Mobile menu button - RTL */}
+              <button
+                onClick={onMobileMenuClick}
+                className="lg:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu size={24} />
+              </button>
+              
               {/* Spacer to push actions to the right */}
               <div className="flex-1"></div>
               {/* Actions - RTL: on right, order reversed */}
@@ -85,7 +98,7 @@ export function Header() {
                   onClick={handleThemeToggle}
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  {state.theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                  {state.theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
                 </button>
 
                 {/* Locale Toggle */}
@@ -94,7 +107,7 @@ export function Header() {
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   aria-label={state.locale === 'he' ? headerTranslations.he.switchLocaleLabel : headerTranslations.en.switchLocaleLabel}
                 >
-                  <Languages size={20} />
+                  <Languages size={28} />
                 </button>
 
                 {/* Notifications */}
@@ -104,7 +117,7 @@ export function Header() {
                     className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" 
                     aria-label={t.notifications}
                   >
-                    <Bell size={20} />
+                    <Bell size={28} />
                   </button>
                   {unreadNotifications > 0 && (
                     <Badge
@@ -126,6 +139,7 @@ export function Header() {
                       src={state.user?.avatar}
                       alt={state.user?.name}
                       size="sm"
+                      className="!w-11 !h-11"
                       isOnline={state.user?.isOnline}
                     />
                   </button>
@@ -150,14 +164,14 @@ export function Header() {
                         }}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex-row-reverse text-right"
                       >
-                        <User size={16} />
+                        <User size={22} />
                         {t.profile}
                       </button>
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex-row-reverse text-right"
                       >
-                        <LogOut size={16} />
+                        <LogOut size={22} />
                         {t.logout}
                       </button>
                     </motion.div>
@@ -167,6 +181,15 @@ export function Header() {
             </>
           ) : (
             <>
+              {/* Mobile menu button - LTR */}
+              <button
+                onClick={onMobileMenuClick}
+                className="lg:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu size={24} />
+              </button>
+              
               {/* Spacer to push actions to the right */}
               <div className="flex-1"></div>
 
@@ -177,7 +200,7 @@ export function Header() {
                   onClick={handleThemeToggle}
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  {state.theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                  {state.theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
                 </button>
 
                 {/* Locale Toggle */}
@@ -186,7 +209,7 @@ export function Header() {
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   aria-label={state.locale === 'he' ? headerTranslations.he.switchLocaleLabel : headerTranslations.en.switchLocaleLabel}
                 >
-                  <Languages size={20} />
+                  <Languages size={28} />
                 </button>
 
                 {/* Notifications */}
@@ -196,7 +219,7 @@ export function Header() {
                     className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" 
                     aria-label={t.notifications}
                   >
-                    <Bell size={20} />
+                    <Bell size={28} />
                   </button>
                   {unreadNotifications > 0 && (
                     <Badge
@@ -218,6 +241,7 @@ export function Header() {
                       src={state.user?.avatar}
                       alt={state.user?.name}
                       size="sm"
+                      className="!w-11 !h-11"
                       isOnline={state.user?.isOnline}
                     />
                   </button>
@@ -242,14 +266,14 @@ export function Header() {
                         }}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                       >
-                        <User size={16} />
+                        <User size={22} />
                         {t.profile}
                       </button>
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                       >
-                        <LogOut size={16} />
+                        <LogOut size={22} />
                         {t.logout}
                       </button>
                     </motion.div>

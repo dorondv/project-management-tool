@@ -131,10 +131,10 @@ export default function Projects() {
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {isRTL ? (
           <>
-            <div className={alignStart}>
+            <div className={`${alignStart} flex-1`}>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {t.title}
               </h1>
@@ -144,15 +144,15 @@ export default function Projects() {
             </div>
             <Button
               onClick={() => setIsCreateModalOpen(true)}
-              icon={<Plus size={20} />}
-              className="flex-row-reverse"
+              icon={<Plus size={16} />}
+              className="flex-row-reverse w-full sm:w-auto"
             >
               {t.newProject}
             </Button>
           </>
         ) : (
           <>
-            <div className={alignStart}>
+            <div className={`${alignStart} flex-1`}>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {t.title}
               </h1>
@@ -162,7 +162,8 @@ export default function Projects() {
             </div>
             <Button
               onClick={() => setIsCreateModalOpen(true)}
-              icon={<Plus size={20} />}
+              icon={<Plus size={16} />}
+              className="w-full sm:w-auto"
             >
               {t.newProject}
             </Button>
@@ -172,11 +173,11 @@ export default function Projects() {
 
       {/* Filters */}
       <div className={`flex flex-col sm:flex-row gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-        <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
+        <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectAlign}`}
+            className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectAlign} text-sm`}
           >
             <option value="all">{t.status.all}</option>
             <option value="planning">{t.status.planning}</option>
@@ -187,7 +188,7 @@ export default function Projects() {
           <select
             value={customerFilter}
             onChange={(e) => setCustomerFilter(e.target.value)}
-            className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectAlign}`}
+            className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectAlign} text-sm`}
           >
             <option value="all">{t.customer.all}</option>
             {state.customers.map((customer) => (
@@ -199,7 +200,8 @@ export default function Projects() {
           <Button
             variant="outline"
             icon={<Filter size={16} />}
-            className={isRTL ? 'flex-row-reverse' : ''}
+            className={`${isRTL ? 'flex-row-reverse' : ''} text-sm`}
+            size="sm"
           >
             {t.moreFilters}
           </Button>
@@ -212,7 +214,7 @@ export default function Projects() {
               placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full ${searchPadding} py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent ${alignStart}`}
+              className={`w-full ${searchPadding} py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent ${alignStart} text-sm`}
             />
           </div>
         </div>

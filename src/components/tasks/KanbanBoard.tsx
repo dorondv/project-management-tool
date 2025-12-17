@@ -134,9 +134,10 @@ export function KanbanBoard({ tasks, onEdit, onDelete }: KanbanBoardProps = { ta
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="w-full">
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className={`flex overflow-x-auto pb-4 gap-6 w-full`}>
+        {/* Mobile: Stack columns vertically, Desktop: Horizontal scroll */}
+        <div className={`flex flex-col lg:flex-row overflow-x-auto pb-4 gap-4 lg:gap-6 w-full`}>
           {columns.map((column) => (
-            <div key={column.id} className={`flex-shrink-0 w-80 ${isRTL ? 'text-right' : ''}`}>
+            <div key={column.id} className={`flex-shrink-0 w-full lg:w-80 ${isRTL ? 'text-right' : ''}`}>
               <div className={`${column.bgColor} rounded-2xl p-4 mb-4`} dir={isRTL ? 'rtl' : 'ltr'}>
                 <h3 className={`font-bold text-lg flex items-center gap-2 ${column.textColor}`}>
                   <span>{column.title}</span>
