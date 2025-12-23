@@ -373,3 +373,4 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
     </form>
   );
 }
+

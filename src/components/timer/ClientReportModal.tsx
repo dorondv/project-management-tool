@@ -487,3 +487,4 @@ export function ClientReportModal({ isOpen, onClose }: ClientReportModalProps) {
     </Modal>
   );
 }
+
