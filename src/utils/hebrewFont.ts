@@ -69,3 +69,4 @@ export function addHebrewFontToPDFSimple(doc: any): void {
     console.warn('Failed to add Hebrew font:', error);
   }
 }
+
