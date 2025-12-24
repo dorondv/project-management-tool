@@ -36,27 +36,28 @@ model User {
   comments        Comment[]
   attachments     Attachment[]
   customers       Customer[]
+  subscription    Subscription?
 
   @@map("users")
 }
 
 model Project {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String
   description String
   startDate   DateTime
   endDate     DateTime?
-  status      String   @default("planning") // planning, in-progress, completed, on-hold
-  progress    Int      @default(0)
-  priority    String   @default("medium") // low, medium, high
+  status      String    @default("planning") // planning, in-progress, completed, on-hold
+  progress    Int       @default(0)
+  priority    String    @default("medium") // low, medium, high
   createdBy   String
   customerId  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
-  creator  User        @relation("ProjectCreator", fields: [createdBy], references: [id])
-  customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  creator  User            @relation("ProjectCreator", fields: [createdBy], references: [id])
+  customer Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
   tasks    Task[]
   members  ProjectMember[]
 
@@ -89,8 +90,8 @@ model Task {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator     User             @relation("TaskCreator", fields: [createdBy], references: [id])
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator     User           @relation("TaskCreator", fields: [createdBy], references: [id])
   assignees   TaskAssignee[]
   comments    Comment[]
   attachments Attachment[]
@@ -206,7 +207,7 @@ model Customer {
   updatedAt       DateTime @updatedAt
 
   // Relations
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects    Project[]
   timeEntries TimeEntry[]
   incomes     Income[]
@@ -241,15 +242,15 @@ model TimeEntry {
 model Income {
   id              String   @id @default(uuid())
   customerId      String
-  customerName     String
-  incomeDate       DateTime
-  invoiceNumber    String?
-  vatRate          Float   @default(0.18)
-  amountBeforeVat  Float
-  vatAmount        Float
-  finalAmount      Float
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  customerName    String
+  incomeDate      DateTime
+  invoiceNumber   String?
+  vatRate         Float    @default(0.18)
+  amountBeforeVat Float
+  vatAmount       Float
+  finalAmount     Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
@@ -267,8 +268,86 @@ model ActiveTimer {
   userId      String
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("active_timers")
 }
 
+model Subscription {
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  planType             String // 'monthly' | 'annual' | 'free' | 'trial'
+  status               String // 'trial' | 'active' | 'cancelled' | 'expired' | 'churned' | 'free'
+  paypalSubscriptionId String?   @unique // PayPal subscription ID
+  paypalPlanId         String? // PayPal plan ID (P-771756107T669132ENFBLY7Y, P-9EG97204XL0481249NFBMDTQ)
+  startDate            DateTime
+  endDate              DateTime? // Expiration date for free/trial subscriptions
+  trialEndDate         DateTime? // For trial period (legacy, use endDate for free users)
+  price                Float // Store actual price: 12.90 for monthly, 118.80 for annual, 0 for free
+  currency             String    @default("USD")
+  couponCode           String? // Coupon code used (e.g., "tryout30")
+  couponId             String? // Reference to Coupon model
+  isFreeAccess         Boolean   @default(false) // Manually granted free access
+  isTrialCoupon        Boolean   @default(false) // True if subscription was created via trial coupon
+  grantedByAdminId     String? // Admin user ID who granted free access
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon         Coupon?          @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  billingHistory BillingHistory[]
+
+  @@map("subscriptions")
+}
+
+model BillingHistory {
+  id                  String    @id @default(uuid())
+  subscriptionId      String
+  invoiceNumber       String
+  paypalTransactionId String?   @unique // PayPal transaction ID
+  paypalSaleId        String? // PayPal sale ID (for refund API)
+  amount              Float
+  currency            String    @default("USD")
+  status              String // 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_refunded'
+  paymentDate         DateTime
+  refundedAmount      Float? // Amount refunded (if any)
+  refundedDate        DateTime? // Date refund was issued
+  refundReason        String? // Reason for refund
+  invoiceUrl          String? // Link to invoice PDF
+  createdAt           DateTime  @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("billing_history")
+}
+
+model PaymentWebhook {
+  id            String    @id @default(uuid())
+  paypalEventId String    @unique
+  eventType     String // 'BILLING.SUBSCRIPTION.CREATED' | 'BILLING.SUBSCRIPTION.CANCELLED' | 'PAYMENT.SALE.COMPLETED' | etc.
+  payload       Json // Full webhook payload
+  processed     Boolean   @default(false)
+  processedAt   DateTime?
+  error         String?
+  createdAt     DateTime  @default(now())
+
+  @@map("payment_webhooks")
+}
+
+model Coupon {
+  id          String    @id @default(uuid())
+  code        String    @unique // e.g., "tryout30", "tryout7", "tryout14"
+  trialDays   Int // Number of free trial days (e.g., 30 for "tryout30")
+  description String? // Description of the trial offer
+  validFrom   DateTime  @default(now())
+  validUntil  DateTime? // Optional expiration date for coupon validity
+  maxUses     Int? // Maximum number of times coupon can be used
+  currentUses Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("coupons")
+}

@@ -16,6 +16,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+// Helper to add timeout to fetch requests
+function fetchWithTimeout(url: string, options: RequestInit = {}, timeout: number = 30000): Promise<Response> {
+  return Promise.race([
+    fetch(url, options),
+    new Promise<Response>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeout)
+    )
+  ]);
+}
+
 export const api = {
   // Users
   users: {
@@ -263,6 +273,205 @@ export const api = {
         ? `${API_URL}/api/dashboard/initial-data?userId=${encodeURIComponent(userId)}`
         : `${API_URL}/api/dashboard/initial-data`;
       return fetch(url).then(handleResponse);
+    },
+  },
+
+  // Subscriptions
+  subscriptions: {
+    getStatus: (userId?: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
+      return fetch(`${API_URL}/api/subscriptions/status`, { headers }).then(handleResponse);
+    },
+    getClientId: () => fetch(`${API_URL}/api/subscriptions/client-id`).then(handleResponse),
+    link: (data: { subscriptionID: string; planType: 'monthly' | 'annual' }, userId?: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
+      console.log('API: Linking subscription:', { data, userId });
+      return fetchWithTimeout(`${API_URL}/api/subscriptions/link`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      }, 30000).then(handleResponse).catch((error) => {
+        console.error('API: Error linking subscription:', error);
+        throw error;
+      });
+    },
+    cancel: (userId?: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
+      return fetch(`${API_URL}/api/subscriptions/cancel`, {
+        method: 'POST',
+        headers,
+      }).then(handleResponse);
+    },
+    getBillingHistory: (userId?: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
+      return fetch(`${API_URL}/api/subscriptions/billing-history`, { headers }).then(handleResponse);
+    },
+    redeemCoupon: (code: string, userId?: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
+      return fetch(`${API_URL}/api/subscriptions/redeem-coupon`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ code }),
+      }).then(handleResponse);
+    },
+    checkAccess: (userId?: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
+      return fetch(`${API_URL}/api/subscriptions/check-access`, { headers }).then(handleResponse);
+    },
+  },
+
+  // Admin API methods
+  admin: {
+    // Users
+    getUsers: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/users`, { headers }).then(handleResponse);
+    },
+    getUser: (id: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/users/${id}`, { headers }).then(handleResponse);
+    },
+    createUser: (data: any, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/users`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      }).then(handleResponse);
+    },
+    grantFreeAccess: (id: string, data: { endDate?: string; days?: number }, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/users/${id}/free-access`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(data),
+      }).then(handleResponse);
+    },
+    revokeFreeAccess: (id: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/users/${id}/free-access`, {
+        method: 'DELETE',
+        headers,
+      }).then(handleResponse);
+    },
+    updateUserRole: (id: string, role: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/users/${id}/role`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ role }),
+      }).then(handleResponse);
+    },
+    exportUsers: (userId: string) => {
+      const headers: HeadersInit = { 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/export/users`, { headers }).then((res) => res.blob());
+    },
+
+    // Subscriptions
+    getSubscriptions: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/subscriptions`, { headers }).then(handleResponse);
+    },
+    getSubscriptionStats: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/subscriptions/stats`, { headers }).then(handleResponse);
+    },
+    cancelSubscription: (id: string, reason: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/subscriptions/${id}/cancel`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ reason }),
+      }).then(handleResponse);
+    },
+    suspendSubscription: (id: string, reason: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/subscriptions/${id}/suspend`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ reason }),
+      }).then(handleResponse);
+    },
+    activateSubscription: (id: string, reason: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/subscriptions/${id}/activate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ reason }),
+      }).then(handleResponse);
+    },
+
+    // Coupons
+    getCoupons: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/coupons`, { headers }).then(handleResponse);
+    },
+    createCoupon: (data: any, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/coupons`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      }).then(handleResponse);
+    },
+    updateCoupon: (id: string, data: any, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/coupons/${id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(data),
+      }).then(handleResponse);
+    },
+    deleteCoupon: (id: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/coupons/${id}`, {
+        method: 'DELETE',
+        headers,
+      }).then(handleResponse);
+    },
+    getCouponUsage: (code: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/coupons/${code}/usage`, { headers }).then(handleResponse);
+    },
+
+    // Payments
+    getPayments: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/payments`, { headers }).then(handleResponse);
+    },
+    getPaymentStats: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/payments/stats`, { headers }).then(handleResponse);
+    },
+    refundPayment: (id: string, data: { amount?: number; reason?: string }, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/payments/${id}/refund`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      }).then(handleResponse);
+    },
+    getRefundHistory: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/payments/refund-history`, { headers }).then(handleResponse);
     },
   },
 };
