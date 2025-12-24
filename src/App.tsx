@@ -18,6 +18,7 @@ import Incomes from './pages/Incomes';
 import Pricing from './pages/Pricing';
 import Payment from './pages/Payment';
 import Profile from './pages/Profile';
+import Admin from './pages/admin/Admin';
 import { Loader2 } from 'lucide-react';
 
 function AppContent() {
@@ -122,6 +123,7 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/admin/*" element={<Admin />} />
         </Routes>
       </Layout>
       <Toaster

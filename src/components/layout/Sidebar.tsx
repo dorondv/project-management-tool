@@ -17,6 +17,7 @@ import {
   Accessibility,
   HelpCircle,
   LogOut,
+  Shield,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../common/Avatar';
@@ -49,11 +50,12 @@ const menuLabels = {
     incomes: 'Income Management',
     // team: 'Team', // Hidden for current version - keep for future use
     settings: 'Settings',
+    admin: 'Admin Panel',
     accessibility: 'Accessibility',
     support: 'Support',
     logout: 'Logout',
     // Role translations
-    admin: 'Admin',
+    adminRole: 'Admin',
     manager: 'Manager',
     contributor: 'Contributor',
   },
@@ -68,11 +70,12 @@ const menuLabels = {
     incomes: 'ניהול הכנסות',
     // team: 'צוות', // מוסתר בגרסה הנוכחית - שמור לשימוש עתידי
     settings: 'הגדרות',
+    admin: 'פאנל ניהול',
     accessibility: 'נגישות',
     support: 'תמיכה',
     logout: 'התנתק',
     // Role translations
-    admin: 'מנהל',
+    adminRole: 'מנהל',
     manager: 'מנהל פרויקט',
     contributor: 'חבר צוות',
   },
@@ -116,7 +119,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'admin':
-        return labels.admin;
+        return labels.adminRole;
       case 'manager':
         return labels.manager;
       case 'contributor':
@@ -236,23 +239,21 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                   <Link
                     to={item.path}
                     onClick={handleLinkClick}
-                    className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                    className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                       isCollapsed 
                         ? 'justify-center' 
-                        : isRTL 
-                          ? 'flex-row-reverse justify-end' 
-                          : ''
+                        : ''
                     } ${
                       isActive
                         ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
                         : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-900/10 dark:hover:text-primary-200'
                     }`}
                   >
-                    <item.icon size={20} className={isRTL ? 'flex-shrink-0' : ''} />
+                    <item.icon size={20} className="flex-shrink-0" />
                     {!isCollapsed && (
                       <span
-                        className={`font-medium ${
-                          isRTL ? 'flex-1 text-right' : 'flex-1 text-left'
+                        className={`font-medium flex-1 ${
+                          isRTL ? 'text-right' : 'text-left'
                         }`}
                       >
                         {labels[item.key as keyof typeof labels]}
@@ -262,6 +263,35 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                 </li>
               );
             })}
+            {/* Admin Panel Link - Only for admin users */}
+            {state.user?.role === 'admin' && (
+              <li>
+                <Link
+                  to="/admin"
+                  onClick={handleLinkClick}
+                  className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                    isCollapsed 
+                      ? 'justify-center' 
+                      : ''
+                  } ${
+                    location.pathname.startsWith('/admin')
+                      ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
+                      : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-900/10 dark:hover:text-primary-200'
+                  }`}
+                >
+                  <Shield size={20} className="flex-shrink-0" />
+                  {!isCollapsed && (
+                    <span
+                      className={`font-medium flex-1 ${
+                        isRTL ? 'text-right' : 'text-left'
+                      }`}
+                    >
+                      {labels.admin}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
 
@@ -271,19 +301,17 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
             <li>
               <button
                 onClick={() => setIsAccessibilityModalOpen(true)}
-                className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                   isCollapsed 
                     ? 'justify-center' 
-                    : isRTL 
-                      ? 'flex-row-reverse justify-end' 
-                      : ''
+                    : ''
                 } text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-900/10 dark:hover:text-primary-200`}
               >
-                <Accessibility size={20} className={isRTL ? 'flex-shrink-0' : ''} />
+                <Accessibility size={20} className="flex-shrink-0" />
                 {!isCollapsed && (
                   <span
-                    className={`font-medium ${
-                      isRTL ? 'flex-1 text-right' : 'flex-1 text-left'
+                    className={`font-medium flex-1 ${
+                      isRTL ? 'text-right' : 'text-left'
                     }`}
                   >
                     {labels.accessibility}
@@ -294,19 +322,17 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
             <li>
               <button
                 onClick={() => setIsSupportModalOpen(true)}
-                className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                   isCollapsed 
                     ? 'justify-center' 
-                    : isRTL 
-                      ? 'flex-row-reverse justify-end' 
-                      : ''
+                    : ''
                 } text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-900/10 dark:hover:text-primary-200`}
               >
-                <HelpCircle size={20} className={isRTL ? 'flex-shrink-0' : ''} />
+                <HelpCircle size={20} className="flex-shrink-0" />
                 {!isCollapsed && (
                   <span
-                    className={`font-medium ${
-                      isRTL ? 'flex-1 text-right' : 'flex-1 text-left'
+                    className={`font-medium flex-1 ${
+                      isRTL ? 'text-right' : 'text-left'
                     }`}
                   >
                     {labels.support}
@@ -363,14 +389,12 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
           {!isCollapsed && (
             <button
               onClick={handleLogout}
-              className={`w-full flex items-center gap-3 px-3 py-2 mt-2 rounded-lg transition-all duration-200 ${
-                isRTL ? 'flex-row-reverse justify-end' : ''
-              } text-gray-700 hover:bg-red-50 hover:text-red-600 dark:text-gray-300 dark:hover:bg-red-900/10 dark:hover:text-red-400`}
+              className={`w-full flex items-center gap-2 px-3 py-2 mt-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-red-50 hover:text-red-600 dark:text-gray-300 dark:hover:bg-red-900/10 dark:hover:text-red-400`}
             >
-              <LogOut size={20} className={isRTL ? 'flex-shrink-0' : ''} />
+              <LogOut size={20} className="flex-shrink-0" />
               <span
-                className={`font-medium ${
-                  isRTL ? 'flex-1 text-right' : 'flex-1 text-left'
+                className={`font-medium flex-1 ${
+                  isRTL ? 'text-right' : 'text-left'
                 }`}
               >
                 {labels.logout}
