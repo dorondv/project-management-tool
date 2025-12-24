@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, DollarSign, Pen, Folder, ArrowLeft, Download, Upload, Globe, Save } from 'lucide-react';
+import { DollarSign, Pen, Folder, Download, Upload, Globe, Save } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
+import { SubscriptionStatus } from '../components/settings/SubscriptionStatus';
 import { Locale } from '../types';
 import toast from 'react-hot-toast';
+import { api } from '../utils/api';
 
 const translations: Record<Locale, {
   pageTitle: string;
@@ -57,8 +59,9 @@ const translations: Record<Locale, {
     manageSubscription: 'Manage Subscription and Plans',
     billingHistory: 'Billing History',
     featureInDevelopment: 'Feature in development',
-    billingHistoryNote: 'The ability to download invoices for the subscription will be added soon. The information displayed here is for illustration purposes only.',
+    billingHistoryNote: 'Click "View Invoice" to view transaction details on PayPal.',
     downloadInvoice: 'Download Invoice',
+    viewInvoice: 'View Invoice',
     digitalSignature: 'Digital Signature',
     businessOwnerSignature: 'Business owner\'s signature',
     businessDetails: 'Business Details (for invoices)',
@@ -92,8 +95,9 @@ const translations: Record<Locale, {
     manageSubscription: 'נהל מנוי ותוכניות',
     billingHistory: 'היסטוריית חיובים',
     featureInDevelopment: 'תכונה בפיתוח',
-    billingHistoryNote: 'היכולת להוריד חשבוניות עבור המנוי תתווסף בקרוב. המידע המוצג כאן הוא להמחשה בלבד.',
+    billingHistoryNote: 'לחץ על "צפה בחשבונית" כדי לצפות בפרטי העסקה ב-PayPal.',
     downloadInvoice: 'הורד חשבונית',
+    viewInvoice: 'צפה בחשבונית',
     digitalSignature: 'חתימה דיגיטלית',
     businessOwnerSignature: 'חתימת בעל העסק',
     businessDetails: 'פרטי עסק (לחשבוניות)',
@@ -169,72 +173,50 @@ export default function Settings() {
     }
   };
 
-  // Mock subscription data - will be replaced with real data later
-  const subscriptionEndDate = new Date();
-  subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 1);
-  subscriptionEndDate.setHours(2, 53, 6, 0);
-
-  const [countdown, setCountdown] = useState<CountdownTimer>({
-    days: 1,
-    hours: 2,
-    minutes: 53,
-    seconds: 6,
-  });
+  const [billingHistory, setBillingHistory] = useState<any[]>([]);
+  const [loadingBillingHistory, setLoadingBillingHistory] = useState(false);
 
   const [businessDetails, setBusinessDetails] = useState({
     businessName: '',
     businessField: '',
   });
+  const [isSavingBusinessDetails, setIsSavingBusinessDetails] = useState(false);
 
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      const diff = subscriptionEndDate.getTime() - now.getTime();
+    loadBillingHistory();
+    loadBusinessDetails();
+  }, [state.user?.id]);
 
-      if (diff > 0) {
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        setCountdown({ days, hours, minutes, seconds });
-      } else {
-        setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  // Load business details from localStorage
+  const loadBusinessDetails = () => {
+    if (state.user?.id) {
+      const saved = localStorage.getItem(`businessDetails_${state.user.id}`);
+      if (saved) {
+        try {
+          setBusinessDetails(JSON.parse(saved));
+        } catch (error) {
+          console.error('Error loading business details:', error);
+        }
       }
-    }, 1000);
+    }
+  };
 
-    return () => clearInterval(timer);
-  }, []);
+  const loadBillingHistory = async () => {
+    if (!state.user?.id) return;
 
-  // Mock billing history
-  const billingHistory = [
-    {
-      id: '1',
-      invoiceNumber: 'INV-SOL-003',
-      plan: 'monthly' as const,
-      date: new Date('2025-11-05'),
-      amount: 99,
-      currency: '₪',
-    },
-    {
-      id: '2',
-      invoiceNumber: 'INV-SOL-002',
-      plan: 'monthly' as const,
-      date: new Date('2025-10-05'),
-      amount: 99,
-      currency: '₪',
-    },
-    {
-      id: '3',
-      invoiceNumber: 'INV-SOL-001',
-      plan: 'monthly' as const,
-      date: new Date('2025-09-05'),
-      amount: 99,
-      currency: '₪',
-    },
-  ];
+    try {
+      setLoadingBillingHistory(true);
+      const history = await api.subscriptions.getBillingHistory(state.user.id);
+      setBillingHistory(history);
+    } catch (error: any) {
+      console.error('Error loading billing history:', error);
+    } finally {
+      setLoadingBillingHistory(false);
+    }
+  };
+
 
   const formatDate = (date: Date) => {
     const months = locale === 'he' 
@@ -255,9 +237,30 @@ export default function Settings() {
     }
   };
 
-  const handleSaveBusinessDetails = () => {
-    // TODO: Save to context/backend
-    console.log('Saving business details:', businessDetails);
+  const handleSaveBusinessDetails = async () => {
+    if (!state.user?.id) {
+      toast.error(locale === 'he' ? 'נדרש משתמש מחובר' : 'User must be logged in');
+      return;
+    }
+
+    setIsSavingBusinessDetails(true);
+    try {
+      // Save to localStorage for now (can be extended to backend later)
+      localStorage.setItem(`businessDetails_${state.user.id}`, JSON.stringify(businessDetails));
+      
+      // TODO: Save to backend when API endpoint is available
+      // await api.users.update(state.user.id, {
+      //   businessName: businessDetails.businessName,
+      //   businessField: businessDetails.businessField,
+      // });
+      
+      toast.success(locale === 'he' ? 'פרטי העסק נשמרו בהצלחה' : 'Business details saved successfully');
+    } catch (error: any) {
+      console.error('Error saving business details:', error);
+      toast.error(locale === 'he' ? 'שגיאה בשמירת פרטי העסק' : 'Failed to save business details');
+    } finally {
+      setIsSavingBusinessDetails(false);
+    }
   };
 
   const formatCountdownValue = (value: number) => {
@@ -265,257 +268,235 @@ export default function Settings() {
   };
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
-      <div className={alignStart}>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {t.pageTitle}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          {t.pageSubtitle}
-        </p>
-      </div>
-
-      {/* Language Preference */}
-      <Card className="p-6">
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
-          <Globe size={20} className="text-primary-500" />
-          <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-            {t.languagePreference}
-          </h3>
+    <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className={`mb-8 ${alignStart}`}>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+            {t.pageTitle}
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            {t.pageSubtitle}
+          </p>
         </div>
 
-        <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-          {t.languageDescription}
-        </p>
+        <div className="space-y-6">
+          {/* Language Preference */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Globe size={20} className="text-primary-500 flex-shrink-0" />
+              <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+                {t.languagePreference}
+              </h3>
+            </div>
 
-        {/* Language Options - Smaller width */}
-        <div className="space-y-3 max-w-md">
-          <button
-            onClick={() => handleLanguageSelect('he')}
-            disabled={isSavingLanguage}
-            className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
-              selectedLanguage === 'he'
-                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
-            } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span className={`font-medium ${selectedLanguage === 'he' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
-              {t.hebrew}
-            </span>
-            {selectedLanguage === 'he' && (
-              <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-white"></div>
-              </div>
-            )}
-          </button>
-
-          <button
-            onClick={() => handleLanguageSelect('en')}
-            disabled={isSavingLanguage}
-            className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
-              selectedLanguage === 'en'
-                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
-            } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span className={`font-medium ${selectedLanguage === 'en' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
-              {t.english}
-            </span>
-            {selectedLanguage === 'en' && (
-              <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-white"></div>
-              </div>
-            )}
-          </button>
-        </div>
-
-        {/* Save Button */}
-        <div className={`mt-4 max-w-md ${alignStart}`}>
-          <Button
-            variant="primary"
-            onClick={handleSaveLanguage}
-            disabled={isSavingLanguage || selectedLanguage === locale}
-            className={`${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <Save size={16} />
-            {t.saveLanguage}
-          </Button>
-          {selectedLanguage !== locale && (
-            <p className={`text-xs text-amber-600 dark:text-amber-400 mt-2 ${alignStart}`}>
-              {isRTL 
-                ? 'לחץ על "שמור שפה" כדי לשמור את הבחירה שלך'
-                : 'Click "Save Language" to save your selection'
-              }
+            <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
+              {t.languageDescription}
             </p>
-          )}
-        </div>
-      </Card>
 
-      {/* Subscription Status */}
-      <Card className="p-6">
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
-          <Star size={20} className="text-primary-500" />
-          <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-            {t.subscriptionStatus}
-          </h3>
-        </div>
+            {/* Language Options - Constrained width */}
+            <div className="space-y-3 max-w-md">
+              <button
+                onClick={() => handleLanguageSelect('he')}
+                disabled={isSavingLanguage}
+                className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                  selectedLanguage === 'he'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+                } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className={`font-medium ${selectedLanguage === 'he' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+                  {t.hebrew}
+                </span>
+                {selectedLanguage === 'he' && (
+                  <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                )}
+              </button>
 
-        <div className="bg-primary-500 text-white px-4 py-2 rounded-lg mb-4 inline-block">
-          {t.trialPeriod}
-        </div>
-
-        <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-          {t.trialDescription}
-        </p>
-
-        <h4 className={`text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 ${alignStart}`}>
-          {t.timeRemaining}
-        </h4>
-
-        <div className={`flex ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-4'} mb-6`}>
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center min-w-[80px]">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {formatCountdownValue(countdown.days)}
+              <button
+                onClick={() => handleLanguageSelect('en')}
+                disabled={isSavingLanguage}
+                className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                  selectedLanguage === 'en'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+                } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className={`font-medium ${selectedLanguage === 'en' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+                  {t.english}
+                </span>
+                {selectedLanguage === 'en' && (
+                  <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                )}
+              </button>
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">{t.days}</div>
-          </div>
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center min-w-[80px]">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {formatCountdownValue(countdown.hours)}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">{t.hours}</div>
-          </div>
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center min-w-[80px]">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {formatCountdownValue(countdown.minutes)}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">{t.minutes}</div>
-          </div>
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center min-w-[80px]">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {formatCountdownValue(countdown.seconds)}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400">{t.seconds}</div>
-          </div>
-        </div>
 
-        <Button
-          fullWidth
-          variant="primary"
-          onClick={() => navigate('/pricing')}
-          className={isRTL ? 'flex-row-reverse' : ''}
-        >
-          <ArrowLeft size={16} className={isRTL ? 'rotate-180' : ''} />
-          {t.manageSubscription}
-        </Button>
-      </Card>
-
-      {/* Billing History */}
-      <Card className="p-6">
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
-          <DollarSign size={20} className="text-primary-500" />
-          <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-            {t.billingHistory}
-          </h3>
-        </div>
-
-        <div className="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 px-4 py-2 rounded-lg mb-4">
-          {t.featureInDevelopment}
-        </div>
-
-        <p className={`text-gray-600 dark:text-gray-400 mb-4 text-sm ${alignStart}`}>
-          {t.billingHistoryNote}
-        </p>
-
-        <div className="space-y-3">
-          {billingHistory.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
-            >
-              <div className={`flex-1 ${alignStart}`}>
-                <div className="font-medium text-gray-900 dark:text-white mb-1">
-                  {locale === 'he' 
-                    ? `מנוי חודשי - ${item.invoiceNumber}`
-                    : `Monthly Subscription - ${item.invoiceNumber}`
+            {/* Save Button */}
+            <div className={`mt-4 max-w-md ${alignStart}`}>
+              <Button
+                variant="primary"
+                onClick={handleSaveLanguage}
+                disabled={isSavingLanguage || selectedLanguage === locale}
+                className={`${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Save size={16} />
+                {t.saveLanguage}
+              </Button>
+              {selectedLanguage !== locale && (
+                <p className={`text-xs text-amber-600 dark:text-amber-400 mt-2 ${alignStart}`}>
+                  {isRTL 
+                    ? 'לחץ על "שמור שפה" כדי לשמור את הבחירה שלך'
+                    : 'Click "Save Language" to save your selection'
                   }
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {formatDate(item.date)}
-                </div>
-              </div>
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-4'}`}>
-                <div className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                  {item.currency}{item.amount}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={isRTL ? 'flex-row-reverse' : ''}
-                >
-                  <Download size={16} />
-                  {t.downloadInvoice}
-                </Button>
-              </div>
+                </p>
+              )}
             </div>
-          ))}
-        </div>
-      </Card>
+          </Card>
 
-      {/* Digital Signature */}
-      <Card className="p-6">
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
-          <Pen size={20} className="text-primary-500" />
-          <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-            {t.digitalSignature}
-          </h3>
-        </div>
+          {/* Subscription Status */}
+          <SubscriptionStatus />
 
-        <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-          {t.businessOwnerSignature}
-        </p>
-
-        <label
-          htmlFor="signature-upload"
-          className="block border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center cursor-pointer hover:border-primary-400 dark:hover:border-primary-500 transition-colors"
-        >
-          <input
-            type="file"
-            id="signature-upload"
-            accept="image/*"
-            className="hidden"
-            onChange={handleSignatureUpload}
-          />
-          {signatureFile ? (
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                {signatureFile.name}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
-                Click to change
-              </div>
+          {/* Billing History */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <DollarSign size={20} className="text-primary-500 flex-shrink-0" />
+              <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+                {t.billingHistory}
+              </h3>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Upload size={32} className="mx-auto text-gray-400 dark:text-gray-500" />
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {locale === 'he' ? 'לחץ להעלאת חתימה' : 'Click to upload signature'}
+
+        {loadingBillingHistory ? (
+          <div className={`text-center py-8 ${alignStart}`}>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-2"></div>
+            <p className="text-gray-600 dark:text-gray-400">{locale === 'he' ? 'טוען...' : 'Loading...'}</p>
+          </div>
+        ) : billingHistory.length === 0 ? (
+          <div className={`py-6 ${alignStart}`}>
+            <p className={`text-gray-600 dark:text-gray-400 ${alignStart}`}>
+              {locale === 'he' ? 'אין היסטוריית תשלומים' : 'No billing history'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className={`text-sm text-gray-500 dark:text-gray-400 mb-4 ${alignStart}`}>
+              {t.billingHistoryNote}
+            </p>
+          <div className="space-y-3">
+            {billingHistory.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+              >
+                <div className={`flex-1 ${alignStart}`}>
+                  <div className="font-medium text-gray-900 dark:text-white mb-1">
+                    {locale === 'he' 
+                      ? `מנוי ${item.subscription?.planType === 'annual' ? 'שנתי' : 'חודשי'} - ${item.invoiceNumber}`
+                      : `${item.subscription?.planType === 'annual' ? 'Annual' : 'Monthly'} Subscription - ${item.invoiceNumber}`
+                    }
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {formatDate(new Date(item.paymentDate))}
+                  </div>
+                  {item.status === 'refunded' || item.status === 'partially_refunded' ? (
+                    <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                      {item.status === 'refunded' 
+                        ? (locale === 'he' ? 'הוחזר' : 'Refunded')
+                        : (locale === 'he' ? 'הוחזר חלקית' : 'Partially Refunded')
+                      }
+                    </div>
+                  ) : null}
+                </div>
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-4'}`}>
+                  <div className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+                    {item.currency}{item.amount.toFixed(2)}
+                  </div>
+                  {item.invoiceUrl ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(item.invoiceUrl, '_blank')}
+                      className={isRTL ? 'flex-row-reverse' : ''}
+                      title={locale === 'he' ? 'פתח עמוד תשלום PayPal' : 'Open PayPal transaction page'}
+                    >
+                      <Download size={16} />
+                      {locale === 'he' ? 'צפה בחשבונית' : 'View Invoice'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className={isRTL ? 'flex-row-reverse' : ''}
+                    >
+                      <Download size={16} />
+                      {t.downloadInvoice}
+                    </Button>
+                  )}
+                </div>
               </div>
+            ))}
+          </div>
+          </>
+        )}
+          </Card>
+
+          {/* Digital Signature - Hidden */}
+          {/* <Card className="p-6">
+            <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
+              <Pen size={20} className="text-primary-500" />
+              <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+                {t.digitalSignature}
+              </h3>
             </div>
-          )}
-        </label>
-      </Card>
 
-      {/* Business Details */}
-      <Card className="p-6">
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
-          <Folder size={20} className="text-primary-500" />
-          <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-            {t.businessDetails}
-          </h3>
-        </div>
+            <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
+              {t.businessOwnerSignature}
+            </p>
 
-        <div className="space-y-4">
+            <label
+              htmlFor="signature-upload"
+              className="block border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center cursor-pointer hover:border-primary-400 dark:hover:border-primary-500 transition-colors max-w-md mx-auto"
+            >
+              <input
+                type="file"
+                id="signature-upload"
+                accept="image/*"
+                className="hidden"
+                onChange={handleSignatureUpload}
+              />
+              {signatureFile ? (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {signatureFile.name}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    Click to change
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Upload size={32} className="mx-auto text-gray-400 dark:text-gray-500" />
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {locale === 'he' ? 'לחץ להעלאת חתימה' : 'Click to upload signature'}
+                  </div>
+                </div>
+              )}
+            </label>
+          </Card> */}
+
+          {/* Business Details */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Folder size={20} className="text-primary-500 flex-shrink-0" />
+              <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+                {t.businessDetails}
+              </h3>
+            </div>
+
+        <div className="space-y-4 max-w-md">
           <div>
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
               {t.businessName}
@@ -540,17 +521,22 @@ export default function Settings() {
               className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
             />
           </div>
-          <div className={`flex ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} pt-2`}>
+          <div className={`flex gap-2 pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Button
               variant="primary"
               onClick={handleSaveBusinessDetails}
+              disabled={isSavingBusinessDetails}
+              loading={isSavingBusinessDetails}
               className={isRTL ? 'flex-row-reverse' : ''}
             >
               {t.save}
             </Button>
             <Button
               variant="outline"
-              onClick={() => setBusinessDetails({ businessName: '', businessField: '' })}
+              onClick={() => {
+                loadBusinessDetails(); // Reload saved values instead of clearing
+              }}
+              disabled={isSavingBusinessDetails}
               className={isRTL ? 'flex-row-reverse' : ''}
             >
               {t.cancel}
@@ -558,6 +544,8 @@ export default function Settings() {
           </div>
         </div>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

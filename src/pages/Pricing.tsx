@@ -1,8 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Check, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Locale } from '../types';
 
@@ -31,13 +28,13 @@ const translations: Record<Locale, {
     pageSubtitle: 'Choose the path that suits you and join sollo.',
     annualPlan: 'Annual Plan',
     monthlyPlan: 'Monthly Plan',
-    save20Percent: 'Save 20%',
+    save20Percent: 'Save 30%',
     perMonthAnnual: 'Per month (annual billing)',
     perMonthMonthly: 'Renewing monthly charge',
     annualDescription: 'The best value, maximum savings.',
     monthlyDescription: 'Ideal for starting, full flexibility.',
     everythingInMonthly: 'Everything in the monthly plan, and more:',
-    savings20Percent: '20% savings',
+    savings20Percent: '30% Off',
     highPrioritySupport: 'High priority support',
     fullAccess: 'Full access to all features',
     emailSupport: 'Email support',
@@ -51,13 +48,13 @@ const translations: Record<Locale, {
     pageSubtitle: 'בחר את המסלול שמתאים לך והצטרף ל-sollo.',
     annualPlan: 'תוכנית שנתית',
     monthlyPlan: 'תוכנית חודשית',
-    save20Percent: 'חסוך 20%',
+    save20Percent: 'חסוך 30%',
     perMonthAnnual: 'לחודש (חיוב שנתי)',
     perMonthMonthly: 'חיוב חודשי מתחדש',
     annualDescription: 'התמורה הטובה ביותר, חסכון מקסימלי.',
     monthlyDescription: 'אידיאלי להתחלה, גמישות מלאה.',
     everythingInMonthly: 'כל מה שבחודשי, ועוד:',
-    savings20Percent: 'חיסכון של 20%',
+    savings20Percent: 'חיסכון של 30%',
     highPrioritySupport: 'תמיכה בעדיפות גבוהה',
     fullAccess: 'גישה מלאה לכל התכונות',
     emailSupport: 'תמיכה במייל',
@@ -76,122 +73,98 @@ export default function Pricing() {
   const t = translations[locale];
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
+  // Actual prices: Monthly $12.90, Annual $9.90/month ($118.80/year)
+  const monthlyPrice = 12.90;
+  const annualMonthlyPrice = 9.90;
+  const annualYearlyPrice = 118.80;
+
   const handleChoosePlan = (plan: 'annual' | 'monthly') => {
     navigate(`/payment?plan=${plan}`);
   };
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
-      <div className={alignStart}>
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/settings')}
-          className={`mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}
-        >
-          <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
-          {t.backToSettings}
-        </Button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          {t.pageTitle}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          {t.pageSubtitle}
-        </p>
-      </div>
+    <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen p-6">
+      <div className="container mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+            {t.pageTitle}
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            {t.pageSubtitle}
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Annual Plan */}
-        <Card className="p-6 relative">
-          <div className="absolute top-0 left-0 right-0 bg-primary-500 text-white px-4 py-2 rounded-t-lg text-center text-sm font-semibold">
-            {t.save20Percent}
-          </div>
-          <div className="pt-12">
-            <h3 className={`text-2xl font-bold text-gray-900 dark:text-white mb-2 ${alignStart}`}>
-              {t.annualPlan}
-            </h3>
-            <div className={`mb-2 ${alignStart}`}>
-              <span className="text-4xl font-bold text-primary-500">$11.90</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Monthly Plan Card */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
+            <div className={`flex justify-center items-end ${isRTL ? 'text-right' : 'text-left'}`} style={{ minHeight: '80px' }}>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {t.monthlyPlan}
+              </h3>
             </div>
-            <p className={`text-sm text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-              {t.perMonthAnnual}
+            <div className={`text-4xl font-bold text-primary-500 my-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              ${monthlyPrice.toFixed(2)}
+            </div>
+            <div className={`text-sm text-gray-500 dark:text-gray-400 mb-4 h-5 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.perMonthMonthly}
+            </div>
+            <p className={`text-gray-600 dark:text-gray-300 mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.monthlyDescription}
             </p>
-            <p className={`text-gray-700 dark:text-gray-300 mb-6 ${alignStart}`}>
+            <ul className={`space-y-2 mb-6 flex-grow ${isRTL ? 'text-right' : 'text-left'}`}>
+              <li className="text-gray-700 dark:text-gray-300">• {t.fullAccess}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.emailSupport}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.cancelAnytime}</li>
+            </ul>
+            <Button
+              fullWidth
+              variant="primary"
+              onClick={() => handleChoosePlan('monthly')}
+              className={`mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              {t.chooseMonthlyPlan}
+            </Button>
+          </div>
+
+          {/* Annual Plan Card */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-primary-500 dark:border-primary-400 flex flex-col">
+            <div className={`flex justify-center items-end ${isRTL ? 'text-right' : 'text-left'}`} style={{ minHeight: '80px' }}>
+              <div className={`text-center ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="bg-primary-500 text-white px-3 py-1 rounded-full text-sm mb-2 inline-block">
+                  {t.savings20Percent}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {t.annualPlan}
+                </h3>
+              </div>
+            </div>
+            <div className={`text-4xl font-bold text-primary-500 my-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              ${annualMonthlyPrice.toFixed(2)}
+            </div>
+            <div className={`text-sm text-gray-500 dark:text-gray-400 mb-1 h-5 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.perMonthAnnual}
+            </div>
+            <div className={`text-xs text-gray-500 dark:text-gray-400 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              ${annualYearlyPrice.toFixed(2)} {locale === 'he' ? 'תשלום שנתי' : 'Paid Yearly'}
+            </div>
+            <p className={`text-gray-600 dark:text-gray-300 mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t.annualDescription}
             </p>
-            <div className="space-y-3 mb-6">
-              <div className={`flex items-start ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
-                <Check size={20} className="text-primary-500 flex-shrink-0 mt-0.5" />
-                <span className={`text-gray-700 dark:text-gray-300 ${alignStart}`}>
-                  {t.everythingInMonthly}
-                </span>
-              </div>
-              <div className={`flex items-start ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
-                <Check size={20} className="text-primary-500 flex-shrink-0 mt-0.5" />
-                <span className={`text-gray-700 dark:text-gray-300 ${alignStart}`}>
-                  {t.savings20Percent}
-                </span>
-              </div>
-              <div className={`flex items-start ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
-                <Check size={20} className="text-primary-500 flex-shrink-0 mt-0.5" />
-                <span className={`text-gray-700 dark:text-gray-300 ${alignStart}`}>
-                  {t.highPrioritySupport}
-                </span>
-              </div>
-            </div>
+            <ul className={`space-y-2 mb-6 flex-grow ${isRTL ? 'text-right' : 'text-left'}`}>
+              <li className="text-gray-700 dark:text-gray-300">• {t.everythingInMonthly}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.savings20Percent}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.highPrioritySupport}</li>
+            </ul>
             <Button
               fullWidth
               variant="primary"
               onClick={() => handleChoosePlan('annual')}
-              className={isRTL ? 'flex-row-reverse' : ''}
+              className={`mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               {t.chooseAnnualPlan}
             </Button>
           </div>
-        </Card>
-
-        {/* Monthly Plan */}
-        <Card className="p-6">
-          <h3 className={`text-2xl font-bold text-gray-900 dark:text-white mb-2 ${alignStart}`}>
-            {t.monthlyPlan}
-          </h3>
-          <div className={`mb-2 ${alignStart}`}>
-            <span className="text-4xl font-bold text-primary-500">$14.90</span>
-          </div>
-          <p className={`text-sm text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-            {t.perMonthMonthly}
-          </p>
-          <p className={`text-gray-700 dark:text-gray-300 mb-6 ${alignStart}`}>
-            {t.monthlyDescription}
-          </p>
-          <div className="space-y-3 mb-6">
-            <div className={`flex items-start ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
-              <Check size={20} className="text-primary-500 flex-shrink-0 mt-0.5" />
-              <span className={`text-gray-700 dark:text-gray-300 ${alignStart}`}>
-                {t.fullAccess}
-              </span>
-            </div>
-            <div className={`flex items-start ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
-              <Check size={20} className="text-primary-500 flex-shrink-0 mt-0.5" />
-              <span className={`text-gray-700 dark:text-gray-300 ${alignStart}`}>
-                {t.emailSupport}
-              </span>
-            </div>
-            <div className={`flex items-start ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'}`}>
-              <Check size={20} className="text-primary-500 flex-shrink-0 mt-0.5" />
-              <span className={`text-gray-700 dark:text-gray-300 ${alignStart}`}>
-                {t.cancelAnytime}
-              </span>
-            </div>
-          </div>
-          <Button
-            fullWidth
-            variant="primary"
-            onClick={() => handleChoosePlan('monthly')}
-            className={isRTL ? 'flex-row-reverse' : ''}
-          >
-            {t.chooseMonthlyPlan}
-          </Button>
-        </Card>
+        </div>
       </div>
     </div>
   );

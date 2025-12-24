@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { ensureDatabaseUrlForPrisma, maskDatabaseUrl } from './utils/databaseUrl.js';
@@ -36,8 +38,21 @@ import { notificationsRouter } from './routes/notifications.js';
 import { activitiesRouter } from './routes/activities.js';
 import { timersRouter } from './routes/timers.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { subscriptionsRouter } from './routes/subscriptions.js';
+import { paymentsRouter } from './routes/payments.js';
+import { adminRouter } from './routes/admin.js';
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize Socket.IO with CORS configuration
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
 
 // Middleware
 app.use(cors());
@@ -83,6 +98,9 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/activities', activitiesRouter);
 app.use('/api/timers', timersRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/subscriptions', subscriptionsRouter);
+app.use('/api/payments', paymentsRouter);
+app.use('/api/admin', adminRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -92,13 +110,54 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 const PORT = process.env.PORT || 3001;
 
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log(`🔌 WebSocket client connected: ${socket.id}`);
+
+  // Handle authentication
+  socket.on('authenticate', async (data: { userId: string }) => {
+    try {
+      // Verify user exists
+      const user = await prisma.user.findUnique({
+        where: { id: data.userId },
+      });
+
+      if (user) {
+        socket.data.userId = data.userId;
+        socket.join(`user:${data.userId}`); // Join user-specific room
+        socket.emit('authenticated', { success: true });
+        console.log(`✅ WebSocket authenticated for user: ${data.userId}`);
+      } else {
+        socket.emit('authenticated', { success: false, error: 'User not found' });
+        socket.disconnect();
+      }
+    } catch (error: any) {
+      console.error('WebSocket authentication error:', error);
+      socket.emit('authenticated', { success: false, error: error.message });
+      socket.disconnect();
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`🔌 WebSocket client disconnected: ${socket.id}`);
+  });
+});
+
+// Export io for use in other modules
+export { io };
+
+// Initialize socket service
+import { initSocketService } from './utils/socketService.js';
+initSocketService(io);
+
 // Test database connection on startup
 async function startServer() {
-  // Start the server first (non-blocking)
-  app.listen(PORT, () => {
+  // Start the HTTP server (which includes WebSocket support)
+  httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
     console.log(`🔌 DB test: http://localhost:${PORT}/health/db`);
+    console.log(`🔌 WebSocket server ready on ws://localhost:${PORT}`);
   });
   
   // Test connection in background (don't block server startup)

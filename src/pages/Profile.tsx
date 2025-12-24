@@ -155,11 +155,16 @@ export default function Profile() {
     if (state.user && !isSaving) {
       setIsSaving(true);
       
+      // Prevent non-admin users from setting admin role
+      const allowedRole = profileData.role === 'admin' && state.user.role !== 'admin' 
+        ? state.user.role 
+        : (profileData.role as 'manager' | 'contributor');
+      
       const updatedUser = {
         ...state.user,
         name: profileData.name,
         email: profileData.email,
-        role: profileData.role as 'admin' | 'manager' | 'contributor',
+        role: allowedRole,
         avatar: avatarPreview || state.user.avatar,
       };
       
@@ -300,7 +305,6 @@ export default function Profile() {
             >
               <option value="contributor">{t.contributor}</option>
               <option value="manager">{t.manager}</option>
-              <option value="admin">{t.admin}</option>
             </select>
           </div>
 

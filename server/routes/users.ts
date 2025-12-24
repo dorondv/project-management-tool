@@ -96,6 +96,26 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { name, email, role, avatar, isOnline, preferredLanguage } = req.body;
+    
+    // Get the current user to check their role
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent non-admin users from setting admin role
+    if (role === 'admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can grant admin role' });
+    }
+
+    // Prevent non-admin users from changing their role to admin
+    if (role === 'admin' && req.params.id === currentUser.id && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'You cannot change your own role to admin' });
+    }
+
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: {
