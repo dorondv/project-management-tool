@@ -360,7 +360,7 @@ async function handlePaymentCompleted(resource: any) {
 
   // If this is an annual subscription payment, check if user has any active monthly subscriptions
   // and cancel them to prevent double charging (upgrade scenario)
-  if (subscription.planType === 'annual') {
+  if (subscription.planType === 'annual' && subscription.paypalSubscriptionId) {
     await cancelOldMonthlySubscriptions(subscription.userId, subscription.paypalSubscriptionId);
   }
 

@@ -8,7 +8,7 @@ import {
   calculateTrialEndDate,
   getUserStatus,
 } from '../utils/subscriptionService.js';
-import { getPayPalClientId, getPayPalPlanId } from '../utils/paypalService.js';
+import { getPayPalClientId, getPayPalPlanId, getPayPalTransactionUrl, getPayPalSubscriptionUrl } from '../utils/paypalService.js';
 import { checkSubscriptionTrialExpiration } from '../utils/trialExpirationService.js';
 import {
   emitSubscriptionStatusUpdated,
@@ -51,6 +51,9 @@ async function authenticateUser(req: any, res: any, next: any) {
 // GET /api/subscriptions/status - Get current user's subscription status
 router.get('/status', authenticateUser, async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
     const subscription = await getUserSubscription(req.userId);
     
     if (!subscription) {
@@ -128,7 +131,7 @@ router.post('/link', authenticateUser, async (req, res) => {
 
     // Check for duplicate trial prevention: Block new monthly trial if user already had one
     if (planType === 'monthly') {
-      const existingSubscription = await getUserSubscription(req.userId);
+      const existingSubscription = await getUserSubscription(req.userId!);
       
       if (existingSubscription) {
         // Check if user already has/had a monthly subscription
@@ -160,7 +163,7 @@ router.post('/link', authenticateUser, async (req, res) => {
     // Annual plans: Allow upgrade from monthly (will cancel monthly subscription automatically)
     // If user has annual already, block new annual (they should cancel first)
     if (planType === 'annual') {
-      const existingSubscription = await getUserSubscription(req.userId);
+      const existingSubscription = await getUserSubscription(req.userId!);
       
       if (existingSubscription && existingSubscription.planType === 'annual') {
         const hasPayments = existingSubscription.billingHistory && existingSubscription.billingHistory.length > 0;
@@ -183,12 +186,12 @@ router.post('/link', authenticateUser, async (req, res) => {
       // If user has monthly, allow upgrade to annual (will cancel monthly automatically)
     }
 
-    const subscription = await linkPayPalSubscription(req.userId, subscriptionID, planType);
+    const subscription = await linkPayPalSubscription(req.userId!, subscriptionID, planType);
 
     console.log('Subscription linked successfully:', subscription.id);
 
     // Emit WebSocket event for successful subscription link
-    emitSubscriptionStatusUpdated(req.userId, {
+    emitSubscriptionStatusUpdated(req.userId!, {
       subscriptionId: subscription.id,
       status: subscription.status,
       planType: subscription.planType,
@@ -213,6 +216,9 @@ router.post('/link', authenticateUser, async (req, res) => {
 // POST /api/subscriptions/cancel - Cancel user's subscription
 router.post('/cancel', authenticateUser, async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
     const subscription = await getUserSubscription(req.userId);
 
     if (!subscription || !subscription.paypalSubscriptionId) {
@@ -278,6 +284,9 @@ router.post('/cancel', authenticateUser, async (req, res) => {
 // GET /api/subscriptions/billing-history - Get billing history
 router.get('/billing-history', authenticateUser, async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
     const subscription = await getUserSubscription(req.userId);
 
     if (!subscription) {
@@ -336,6 +345,9 @@ router.get('/billing-history', authenticateUser, async (req, res) => {
 // POST /api/subscriptions/redeem-coupon - Redeem trial coupon
 router.post('/redeem-coupon', authenticateUser, async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
     const { code } = req.body;
 
     if (!code) {
@@ -420,6 +432,9 @@ router.post('/redeem-coupon', authenticateUser, async (req, res) => {
 // GET /api/subscriptions/check-access - Check if user has active access
 router.get('/check-access', authenticateUser, async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
     const subscription = await getUserSubscription(req.userId);
     
     // Check if trial has expired and update status if needed
@@ -428,6 +443,13 @@ router.get('/check-access', authenticateUser, async (req, res) => {
         await checkSubscriptionTrialExpiration(subscription.id);
         // Reload subscription after potential update
         const updatedSubscription = await getUserSubscription(req.userId);
+        if (!updatedSubscription) {
+          return res.json({
+            hasAccess: false,
+            access: { hasFullAccess: false },
+            userStatus: 'Churned',
+          });
+        }
         const access = checkSubscriptionAccess(updatedSubscription);
         const userStatus = getUserStatus(updatedSubscription);
 
@@ -440,6 +462,14 @@ router.get('/check-access', authenticateUser, async (req, res) => {
         console.warn('Could not check trial expiration:', error.message);
         // Continue with original subscription
       }
+    }
+    
+    if (!subscription) {
+      return res.json({
+        hasAccess: false,
+        access: { hasFullAccess: false },
+        userStatus: 'Churned',
+      });
     }
     
     const access = checkSubscriptionAccess(subscription);
@@ -459,6 +489,9 @@ router.get('/check-access', authenticateUser, async (req, res) => {
 // POST /api/subscriptions/check-trial-expiration - Manually check and update trial expiration
 router.post('/check-trial-expiration', authenticateUser, async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
     const subscription = await getUserSubscription(req.userId);
     
     if (!subscription) {
