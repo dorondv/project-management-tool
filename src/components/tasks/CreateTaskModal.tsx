@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Calendar, FileText, Target, Flag } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, FileText, Target, Flag, Users } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -14,6 +14,8 @@ const translations = {
     taskTitlePlaceholder: 'Enter task title',
     description: 'Description',
     descriptionPlaceholder: 'Describe the task',
+    customer: 'Customer (Optional)',
+    selectCustomer: 'Select a customer',
     project: 'Project',
     selectProject: 'Select a project',
     dueDate: 'Due Date',
@@ -35,6 +37,8 @@ const translations = {
     taskTitlePlaceholder: 'הזן כותרת משימה',
     description: 'תיאור',
     descriptionPlaceholder: 'תאר את המשימה',
+    customer: 'לקוח (אופציונלי)',
+    selectCustomer: 'בחר לקוח',
     project: 'פרויקט',
     selectProject: 'בחר פרויקט',
     dueDate: 'תאריך יעד',
@@ -66,12 +70,28 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    customerId: '',
     projectId: projectId || '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     dueDate: '',
     tags: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-fill customer when projectId prop is provided
+  useEffect(() => {
+    if (projectId && !formData.customerId) {
+      const project = state.projects.find(p => p.id === projectId);
+      if (project?.customerId) {
+        setFormData(prev => ({ ...prev, customerId: project.customerId || '' }));
+      }
+    }
+  }, [projectId, state.projects]);
+
+  // Filter projects by selected customer
+  const filteredProjects = formData.customerId
+    ? state.projects.filter(p => p.customerId === formData.customerId)
+    : state.projects;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +175,7 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
       setFormData({
         title: '',
         description: '',
+        customerId: '',
         projectId: projectId || '',
         priority: 'medium',
         dueDate: '',
@@ -201,18 +222,59 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
             />
           </div>
 
+          {/* Customer Dropdown */}
+          <div>
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <Users size={16} className={`inline ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t.customer}
+            </label>
+            <select
+              value={formData.customerId}
+              onChange={(e) => {
+                const selectedCustomerId = e.target.value;
+                const currentProject = state.projects.find(p => p.id === formData.projectId);
+                // Clear project if it doesn't belong to the newly selected customer
+                const shouldClearProject = selectedCustomerId && currentProject?.customerId !== selectedCustomerId;
+                setFormData({ 
+                  ...formData, 
+                  customerId: selectedCustomerId,
+                  projectId: shouldClearProject ? '' : formData.projectId
+                });
+              }}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              <option value="">{t.selectCustomer}</option>
+              {state.customers.map(customer => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Project Dropdown */}
           <div>
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t.project}
             </label>
             <select
               value={formData.projectId}
-              onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+              onChange={(e) => {
+                const selectedProjectId = e.target.value;
+                const selectedProject = state.projects.find(p => p.id === selectedProjectId);
+                setFormData({ 
+                  ...formData, 
+                  projectId: selectedProjectId,
+                  // Auto-fill customer from project if project has a customer
+                  customerId: selectedProject?.customerId || formData.customerId
+                });
+              }}
               className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${isRTL ? 'text-right' : 'text-left'}`}
               required
+              disabled={formData.customerId && filteredProjects.length === 0}
             >
               <option value="">{t.selectProject}</option>
-              {state.projects
+              {filteredProjects
                 .filter(project => {
                   // Only show projects with valid UUID format
                   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -224,6 +286,11 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
                   </option>
                 ))}
             </select>
+            {formData.customerId && filteredProjects.length === 0 && (
+              <p className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {locale === 'he' ? 'אין פרויקטים עבור לקוח זה' : 'No projects available for this customer'}
+              </p>
+            )}
           </div>
 
           <div>

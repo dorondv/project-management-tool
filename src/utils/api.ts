@@ -266,6 +266,38 @@ export const api = {
       }).then(() => null),
   },
 
+  // Events
+  events: {
+    getAll: (filters?: { userId?: string; startDate?: string; endDate?: string; customerId?: string; projectId?: string; taskId?: string }) => {
+      const params = new URLSearchParams();
+      if (filters?.userId) params.append('userId', filters.userId);
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
+      if (filters?.customerId) params.append('customerId', filters.customerId);
+      if (filters?.projectId) params.append('projectId', filters.projectId);
+      if (filters?.taskId) params.append('taskId', filters.taskId);
+      const query = params.toString();
+      return fetch(`${API_URL}/api/events${query ? `?${query}` : ''}`).then(handleResponse);
+    },
+    getById: (id: string) => fetch(`${API_URL}/api/events/${id}`).then(handleResponse),
+    create: (data: any) =>
+      fetch(`${API_URL}/api/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then(handleResponse),
+    update: (id: string, data: any) =>
+      fetch(`${API_URL}/api/events/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then(handleResponse),
+    delete: (id: string) =>
+      fetch(`${API_URL}/api/events/${id}`, {
+        method: 'DELETE',
+      }).then(() => null),
+  },
+
   // Dashboard - optimized single endpoint for initial data
   dashboard: {
     getInitialData: (userId?: string) => {

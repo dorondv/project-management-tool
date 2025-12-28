@@ -1,7 +1,14 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
+import { Badge } from '../components/common/Badge';
 import { Locale } from '../types';
+import { api } from '../utils/api';
+import toast from 'react-hot-toast';
+import { Card } from '../components/common/Card';
+import { CouponModal } from '../components/pricing/CouponModal';
+import { Gift } from 'lucide-react';
 
 const translations: Record<Locale, {
   pageTitle: string;
@@ -22,6 +29,18 @@ const translations: Record<Locale, {
   chooseAnnualPlan: string;
   chooseMonthlyPlan: string;
   backToSettings: string;
+  currentSubscription: string;
+  activeSubscription: string;
+  trialSubscription: string;
+    cancelledSubscription: string;
+    suspendedSubscription: string;
+    expiredSubscription: string;
+  duplicateTrialError: string;
+  activeSubscriptionError: string;
+  upgradeToAnnual: string;
+  upgradeToAnnualMessage: string;
+  upgradeToAnnualMessageTrial: string;
+  trialCoupons: string;
 }> = {
   en: {
     pageTitle: 'Choose the perfect plan for you',
@@ -42,6 +61,18 @@ const translations: Record<Locale, {
     chooseAnnualPlan: 'Choose Annual Plan',
     chooseMonthlyPlan: 'Choose Monthly Plan',
     backToSettings: 'Back to Settings',
+    currentSubscription: 'Current Subscription',
+    activeSubscription: 'Active Subscription',
+    trialSubscription: 'Trial Period',
+    cancelledSubscription: 'Cancelled',
+    suspendedSubscription: 'Suspended',
+    expiredSubscription: 'Expired',
+    duplicateTrialError: 'You already have an active monthly trial. Please cancel it first or wait for it to end.',
+    activeSubscriptionError: 'You already have an active monthly subscription. Please cancel it first.',
+    upgradeToAnnual: 'Upgrade to Annual',
+    upgradeToAnnualMessage: 'Upgrading to annual will cancel your monthly subscription. You\'ll get better value with 30% savings!',
+    upgradeToAnnualMessageTrial: 'Upgrading to annual will cancel your monthly trial. The annual plan includes a trial period and better value!',
+    trialCoupons: 'Trial Coupons',
   },
   he: {
     pageTitle: 'בחר את התוכנית המושלמת עבורך',
@@ -62,8 +93,30 @@ const translations: Record<Locale, {
     chooseAnnualPlan: 'בחר תוכנית שנתית',
     chooseMonthlyPlan: 'בחר תוכנית חודשית',
     backToSettings: 'חזרה להגדרות',
+    currentSubscription: 'מנוי נוכחי',
+    activeSubscription: 'מנוי פעיל',
+    trialSubscription: 'תקופת ניסיון',
+    cancelledSubscription: 'בוטל',
+    suspendedSubscription: 'מושעה',
+    expiredSubscription: 'פג תוקף',
+    duplicateTrialError: 'יש לך כבר תקופת ניסיון חודשית פעילה. אנא בטל אותה תחילה או המתן עד שתסתיים.',
+    activeSubscriptionError: 'יש לך כבר מנוי חודשי פעיל. אנא בטל אותו תחילה.',
+    upgradeToAnnual: 'שדרג לשנתי',
+    upgradeToAnnualMessage: 'שדרוג לתוכנית שנתית יבטל את המנוי החודשי שלך. תקבל ערך טוב יותר עם חיסכון של 30%!',
+    upgradeToAnnualMessageTrial: 'שדרוג לתוכנית שנתית יבטל את תקופת הניסיון החודשית שלך. התוכנית השנתית כוללת תקופת ניסיון וערך טוב יותר!',
+    trialCoupons: 'קופוני ניסיון',
   },
 };
+
+interface SubscriptionData {
+  subscription: {
+    id: string;
+    planType: string;
+    status: string;
+    paypalSubscriptionId: string | null;
+    billingHistory?: Array<{ id: string }>;
+  } | null;
+}
 
 export default function Pricing() {
   const navigate = useNavigate();
@@ -73,14 +126,225 @@ export default function Pricing() {
   const t = translations[locale];
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showCouponModal, setShowCouponModal] = useState(false);
+
   // Actual prices: Monthly $12.90, Annual $9.90/month ($118.80/year)
   const monthlyPrice = 12.90;
   const annualMonthlyPrice = 9.90;
   const annualYearlyPrice = 118.80;
 
-  const handleChoosePlan = (plan: 'annual' | 'monthly') => {
+  useEffect(() => {
+    loadSubscriptionStatus();
+  }, [state.user?.id]);
+
+  const loadSubscriptionStatus = async () => {
+    if (!state.user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const data = await api.subscriptions.getStatus(state.user.id);
+      setSubscriptionData(data);
+    } catch (error: any) {
+      console.error('Error loading subscription status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChoosePlan = async (plan: 'annual' | 'monthly') => {
+    if (!state.user?.id) {
+      toast.error(locale === 'he' ? 'נדרש להתחבר' : 'Please log in');
+      return;
+    }
+
+    // Check for duplicate trial prevention
+    if (plan === 'monthly' && subscriptionData?.subscription) {
+      const subscription = subscriptionData.subscription;
+      const hasMonthlySubscription = subscription.planType === 'monthly';
+      
+      if (hasMonthlySubscription) {
+        const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+        
+        if (!hasPayments && (subscription.status === 'active' || subscription.status === 'trialing')) {
+          // User already has an active monthly trial
+          toast.error(t.duplicateTrialError);
+          return;
+        }
+        
+        if (subscription.status === 'active' || subscription.status === 'trialing') {
+          // User already has an active monthly subscription
+          toast.error(t.activeSubscriptionError);
+          return;
+        }
+      }
+    }
+
+    // Show upgrade confirmation for annual plan if user has monthly subscription
+    if (plan === 'annual' && subscriptionData?.subscription) {
+      const subscription = subscriptionData.subscription;
+      const hasMonthlySubscription = subscription.planType === 'monthly';
+      const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+      const isTrial = !hasPayments && (subscription.status === 'active' || subscription.status === 'trialing');
+      
+      if (hasMonthlySubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+        const confirmMessage = isTrial ? t.upgradeToAnnualMessageTrial : t.upgradeToAnnualMessage;
+        const confirmed = window.confirm(confirmMessage);
+        if (!confirmed) {
+          return;
+        }
+      }
+    }
+
     navigate(`/payment?plan=${plan}`);
   };
+
+  const getSubscriptionStatusBadge = () => {
+    if (!subscriptionData?.subscription) return null;
+    
+    const subscription = subscriptionData.subscription;
+    const status = subscription.status;
+    
+    if (status === 'active' || status === 'trialing') {
+      const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+      const badgeText = hasPayments ? t.activeSubscription : t.trialSubscription;
+      const badgeVariant = hasPayments ? 'success' : 'warning';
+      return (
+        <Badge variant={badgeVariant} className="mb-4">
+          {badgeText}
+        </Badge>
+      );
+    }
+    
+    if (status === 'cancelled') {
+      return (
+        <Badge variant="error" className="mb-4">
+          {t.cancelledSubscription}
+        </Badge>
+      );
+    }
+    
+    if (status === 'suspended') {
+      return (
+        <Badge variant="warning" className="mb-4">
+          {t.suspendedSubscription}
+        </Badge>
+      );
+    }
+    
+    if (status === 'expired') {
+      return (
+        <Badge variant="error" className="mb-4">
+          {t.expiredSubscription}
+        </Badge>
+      );
+    }
+    
+    return null;
+  };
+
+  const canSelectMonthlyPlan = () => {
+    if (!subscriptionData?.subscription) return true;
+    const subscription = subscriptionData.subscription;
+    const hasMonthlySubscription = subscription.planType === 'monthly';
+    const hasAnnualSubscription = subscription.planType === 'annual';
+    
+    // Block if user has active annual subscription (they're already on a better plan)
+    if (hasAnnualSubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+      return false;
+    }
+    
+    if (hasMonthlySubscription) {
+      const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+      // Block if user has active monthly trial or active subscription
+      if (!hasPayments && (subscription.status === 'active' || subscription.status === 'trialing')) {
+        return false;
+      }
+      if (subscription.status === 'active' || subscription.status === 'trialing') {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  const getMonthlyPlanButtonText = () => {
+    if (!subscriptionData?.subscription) return t.chooseMonthlyPlan;
+    const subscription = subscriptionData.subscription;
+    const hasAnnualSubscription = subscription.planType === 'annual';
+    const hasMonthlySubscription = subscription.planType === 'monthly';
+    
+    // If user has active annual, don't show "Active Subscription" text
+    if (hasAnnualSubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+      return locale === 'he' ? 'תוכנית שנתית פעילה' : 'Annual Plan Active';
+    }
+    
+    // If user has active monthly, show active subscription text
+    if (hasMonthlySubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+      return locale === 'he' ? 'מנוי פעיל' : 'Active Subscription';
+    }
+    
+    return t.chooseMonthlyPlan;
+  };
+
+  const canSelectAnnualPlan = () => {
+    if (!subscriptionData?.subscription) return true;
+    const subscription = subscriptionData.subscription;
+    const hasAnnualSubscription = subscription.planType === 'annual';
+    
+    // Block if user has active annual subscription
+    if (hasAnnualSubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+      return false;
+    }
+    
+    // Allow annual plan if user has monthly subscription (for upgrade)
+    // This is already handled by the upgrade confirmation dialog
+    
+    return true;
+  };
+
+  /**
+   * Check if coupon button should be visible
+   * Visible for: new users, users without active subscriptions, churned users
+   */
+  const shouldShowCouponButton = () => {
+    if (!subscriptionData?.subscription) {
+      return true; // New user, no subscription
+    }
+
+    const subscription = subscriptionData.subscription;
+    const status = subscription.status;
+    const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+    
+    // Hide if user has active paid subscription
+    if (status === 'active' && hasPayments && subscription.paypalSubscriptionId) {
+      return false;
+    }
+    
+    // Hide if user has active PayPal trial
+    if (status === 'trialing' && subscription.paypalSubscriptionId) {
+      return false;
+    }
+    
+    // Show for: expired, cancelled, suspended, or no subscription
+    return true;
+  };
+
+  const handleCouponSuccess = () => {
+    // Reload subscription status after successful coupon activation
+    loadSubscriptionStatus();
+  };
+
+  if (loading) {
+    return (
+      <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen p-6 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen p-6">
@@ -92,6 +356,11 @@ export default function Pricing() {
           <p className="text-lg text-gray-600 dark:text-gray-400">
             {t.pageSubtitle}
           </p>
+          {subscriptionData?.subscription && (
+            <div className="mt-4 flex justify-center">
+              {getSubscriptionStatusBadge()}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -120,9 +389,10 @@ export default function Pricing() {
               fullWidth
               variant="primary"
               onClick={() => handleChoosePlan('monthly')}
+              disabled={!canSelectMonthlyPlan()}
               className={`mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}
             >
-              {t.chooseMonthlyPlan}
+              {getMonthlyPlanButtonText()}
             </Button>
           </div>
 
@@ -159,13 +429,36 @@ export default function Pricing() {
               fullWidth
               variant="primary"
               onClick={() => handleChoosePlan('annual')}
+              disabled={!canSelectAnnualPlan()}
               className={`mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}
             >
-              {t.chooseAnnualPlan}
+              {canSelectAnnualPlan() ? t.chooseAnnualPlan : (locale === 'he' ? 'מנוי פעיל' : 'Active Subscription')}
             </Button>
           </div>
         </div>
+
+        {/* Coupon Button - Small button at the bottom */}
+        {shouldShowCouponButton() && (
+          <div className="mt-8 flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCouponModal(true)}
+              className={`${isRTL ? 'flex-row-reverse' : ''}`}
+              icon={<Gift size={16} />}
+            >
+              {t.trialCoupons}
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Coupon Modal */}
+      <CouponModal
+        isOpen={showCouponModal}
+        onClose={() => setShowCouponModal(false)}
+        onSuccess={handleCouponSuccess}
+      />
     </div>
   );
 }

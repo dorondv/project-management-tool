@@ -94,7 +94,7 @@ export function HoursByCustomerChart({ dateRange }: HoursByCustomerChartProps) {
             />
             <YAxis 
               type="number"
-              tick={{ fontSize: 12, fill: 'currentColor', textAnchor: isRTL ? 'start' : 'end' }}
+              tick={{ fontSize: 12, fill: 'currentColor', textAnchor: isRTL ? 'start' : 'end', dx: isRTL ? 35 : 0 }}
               tickFormatter={(value) => `${value.toFixed(1)}h`}
               orientation={isRTL ? 'right' : 'left'}
             />

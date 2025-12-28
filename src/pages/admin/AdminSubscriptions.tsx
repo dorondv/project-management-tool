@@ -91,10 +91,25 @@ export default function AdminSubscriptions() {
       fetchSubscriptions();
     } catch (error: any) {
       console.error('Error activating subscription:', error);
-      toast.error('Failed to activate subscription');
+      
+      // Show more helpful error message
+      const errorMessage = error.response?.data?.details || error.message || 'Failed to activate subscription';
+      const suggestion = error.response?.data?.suggestion;
+      
+      if (suggestion) {
+        toast.error(`${errorMessage}. ${suggestion}`, { duration: 6000 });
+      } else {
+        toast.error(errorMessage, { duration: 5000 });
+      }
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const canActivate = (subscription: Subscription) => {
+    // Only allow activating suspended subscriptions
+    // Cancelled subscriptions cannot be reactivated in PayPal
+    return subscription.status === 'suspended';
   };
 
   const getStatusBadge = (subscription: Subscription) => {
@@ -117,6 +132,11 @@ export default function AdminSubscriptions() {
         color: 'text-red-700 dark:text-red-400',
         bg: 'bg-red-100 dark:bg-red-900/30',
         label: 'Cancelled',
+      },
+      suspended: {
+        color: 'text-orange-700 dark:text-orange-400',
+        bg: 'bg-orange-100 dark:bg-orange-900/30',
+        label: 'Suspended',
       },
       expired: {
         color: 'text-gray-700 dark:text-gray-400',
@@ -292,12 +312,12 @@ export default function AdminSubscriptions() {
                               </button>
                             </>
                           )}
-                          {(subscription.status === 'cancelled' || subscription.status === 'expired') && (
+                          {canActivate(subscription) && (
                             <button
                               onClick={() => handleActivate(subscription)}
                               disabled={actionLoading === subscription.id}
                               className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50"
-                              title="Activate"
+                              title="Activate (Only suspended subscriptions can be reactivated)"
                             >
                               <PlayCircle className="h-5 w-5" />
                             </button>

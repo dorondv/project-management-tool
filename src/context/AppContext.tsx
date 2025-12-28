@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { User, Project, Task, Notification, Activity, Customer, Locale, TimeEntry, Income, ActiveTimer } from '../types';
+import { User, Project, Task, Notification, Activity, Customer, Locale, TimeEntry, Income, ActiveTimer, Event } from '../types';
 import { mockUsers, mockProjects, mockTasks, mockNotifications, mockActivities, mockCustomers, mockTimeEntries, mockIncomes } from '../data/mockData';
 import { storage, initializeStorage } from '../utils/localStorage';
 import { timerService } from '../utils/timerService';
@@ -16,6 +16,7 @@ interface AppState {
   customers: Customer[];
   timeEntries: TimeEntry[];
   incomes: Income[];
+  events: Event[];
   activeTimer: ActiveTimer | null;
   timerElapsedSeconds: number;
   locale: Locale;
@@ -52,6 +53,10 @@ type AppAction =
   | { type: 'ADD_INCOME'; payload: Income }
   | { type: 'UPDATE_INCOME'; payload: Income }
   | { type: 'DELETE_INCOME'; payload: string }
+  | { type: 'SET_EVENTS'; payload: Event[] }
+  | { type: 'ADD_EVENT'; payload: Event }
+  | { type: 'UPDATE_EVENT'; payload: Event }
+  | { type: 'DELETE_EVENT'; payload: string }
   | { type: 'SET_LOCALE'; payload: Locale }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' }
   | { type: 'TOGGLE_THEME' }
@@ -71,6 +76,7 @@ const initialState: AppState = {
   customers: [],
   timeEntries: [],
   incomes: [],
+  events: [],
   activeTimer: null,
   timerElapsedSeconds: 0,
   locale: 'he',
@@ -180,6 +186,41 @@ function normalizeTimeEntries(timeEntries: TimeEntry[]): TimeEntry[] {
       ...entry,
       startTime,
       endTime,
+      createdAt,
+      updatedAt,
+    };
+  });
+}
+
+function normalizeEvents(events: Event[]): Event[] {
+  return events.map((event) => {
+    const startDateValue = event.startDate instanceof Date
+      ? event.startDate
+      : new Date(event.startDate);
+    const endDateValue = event.endDate instanceof Date
+      ? event.endDate
+      : event.endDate ? new Date(event.endDate) : null;
+    const recurrenceEndDateValue = event.recurrenceEndDate instanceof Date
+      ? event.recurrenceEndDate
+      : event.recurrenceEndDate ? new Date(event.recurrenceEndDate) : null;
+    const createdAtValue = event.createdAt instanceof Date
+      ? event.createdAt
+      : new Date(event.createdAt);
+    const updatedAtValue = event.updatedAt instanceof Date
+      ? event.updatedAt
+      : new Date(event.updatedAt);
+
+    const startDate = !Number.isNaN(startDateValue.getTime()) ? startDateValue : new Date();
+    const endDate = endDateValue && !Number.isNaN(endDateValue.getTime()) ? endDateValue : null;
+    const recurrenceEndDate = recurrenceEndDateValue && !Number.isNaN(recurrenceEndDateValue.getTime()) ? recurrenceEndDateValue : null;
+    const createdAt = !Number.isNaN(createdAtValue.getTime()) ? createdAtValue : new Date();
+    const updatedAt = !Number.isNaN(updatedAtValue.getTime()) ? updatedAtValue : new Date();
+
+    return {
+      ...event,
+      startDate,
+      endDate,
+      recurrenceEndDate,
       createdAt,
       updatedAt,
     };
@@ -514,6 +555,37 @@ function appReducer(state: AppState, action: AppAction): AppState {
       // Sync with API
       api.incomes.delete(action.payload).catch(err => console.warn('Failed to sync income deletion to API:', err));
       return { ...state, incomes: filteredIncomes };
+
+    case 'SET_EVENTS':
+      const normalizedEvents = normalizeEvents(action.payload);
+      storage.set('events', normalizedEvents);
+      return { ...state, events: normalizedEvents };
+
+    case 'ADD_EVENT':
+      // Check if event already exists to prevent duplicates
+      const eventExists = state.events.some(e => e.id === action.payload.id);
+      if (eventExists) {
+        console.warn('⚠️ AppContext: Event already exists, skipping ADD_EVENT:', action.payload.id);
+        return state;
+      }
+      const normalizedNewEvent = normalizeEvents([action.payload])[0];
+      const newEvents = [normalizedNewEvent, ...state.events];
+      storage.set('events', newEvents);
+      return { ...state, events: newEvents };
+
+    case 'UPDATE_EVENT':
+      const updatedEvents = normalizeEvents(
+        state.events.map(event =>
+          event.id === action.payload.id ? action.payload : event
+        )
+      );
+      storage.set('events', updatedEvents);
+      return { ...state, events: updatedEvents };
+
+    case 'DELETE_EVENT':
+      const filteredEvents = state.events.filter(event => event.id !== action.payload);
+      storage.set('events', filteredEvents);
+      return { ...state, events: filteredEvents };
     
     case 'SET_LOCALE':
       storage.set('locale', action.payload);
@@ -621,6 +693,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_INCOMES', payload: normalizeIncomes(data.incomes || []) });
         dispatch({ type: 'SET_NOTIFICATIONS', payload: data.notifications || [] });
         dispatch({ type: 'SET_ACTIVITIES', payload: data.activities || [] });
+        dispatch({ type: 'SET_EVENTS', payload: normalizeEvents(data.events || []) });
         
         // Set loading to false after data is fetched
         dispatch({ type: 'SET_LOADING', payload: false });

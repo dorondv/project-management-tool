@@ -86,6 +86,10 @@ async function processWebhook(webhookId: string, payload: any) {
         await handleSubscriptionActivated(resource);
         break;
 
+      case 'BILLING.SUBSCRIPTION.SUSPENDED':
+        await handleSubscriptionSuspended(resource);
+        break;
+
       case 'PAYMENT.SALE.COMPLETED':
         await handlePaymentCompleted(resource);
         break;
@@ -250,6 +254,70 @@ async function handleSubscriptionActivated(resource: any) {
 }
 
 /**
+ * Handle subscription suspended event (usually happens when payment fails after trial)
+ */
+async function handleSubscriptionSuspended(resource: any) {
+  const subscriptionId = resource.id;
+
+  console.log('⏸️  Subscription suspended:', subscriptionId);
+
+  const subscription = await prisma.subscription.findUnique({
+    where: { paypalSubscriptionId: subscriptionId },
+    include: {
+      billingHistory: {
+        orderBy: { paymentDate: 'desc' },
+        take: 1,
+      },
+    },
+  });
+
+  if (subscription) {
+    // Check if trial period has expired
+    const now = new Date();
+    const trialEndDate = subscription.trialEndDate || subscription.endDate;
+    const isTrialExpired = trialEndDate ? now > new Date(trialEndDate) : false;
+    const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+
+    // If trial expired and no payment received, mark as expired
+    if (isTrialExpired && !hasPayments) {
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: 'expired',
+          updatedAt: new Date(),
+        },
+      });
+
+      // Emit WebSocket event
+      emitSubscriptionStatusUpdated(subscription.userId, {
+        subscriptionId: subscription.id,
+        status: 'expired',
+        planType: subscription.planType,
+      });
+      
+      console.log(`✅ Updated subscription ${subscription.id} to expired (trial expired, no payment)`);
+    } else {
+      // Just suspended, not expired yet - store as 'suspended' status
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: 'suspended',
+          updatedAt: new Date(),
+        },
+      });
+
+      emitSubscriptionStatusUpdated(subscription.userId, {
+        subscriptionId: subscription.id,
+        status: 'suspended',
+        planType: subscription.planType,
+      });
+      
+      console.log(`✅ Updated subscription ${subscription.id} to suspended`);
+    }
+  }
+}
+
+/**
  * Handle payment completed event
  */
 async function handlePaymentCompleted(resource: any) {
@@ -290,6 +358,12 @@ async function handlePaymentCompleted(resource: any) {
   // Handle subscription renewal
   await handleSubscriptionRenewal(subscription.id);
 
+  // If this is an annual subscription payment, check if user has any active monthly subscriptions
+  // and cancel them to prevent double charging (upgrade scenario)
+  if (subscription.planType === 'annual') {
+    await cancelOldMonthlySubscriptions(subscription.userId, subscription.paypalSubscriptionId);
+  }
+
   // Emit WebSocket event
   emitPaymentConfirmed(subscription.userId, {
     subscriptionId: subscription.id,
@@ -297,6 +371,95 @@ async function handlePaymentCompleted(resource: any) {
     amount,
     transactionId,
   });
+}
+
+/**
+ * Cancel any old monthly subscriptions for a user after annual payment is confirmed
+ * This prevents double charging when upgrading from monthly to annual
+ */
+async function cancelOldMonthlySubscriptions(userId: string, currentAnnualSubscriptionId: string) {
+  try {
+    // Find all subscriptions for this user that are monthly and have PayPal subscription IDs
+    // Exclude the current annual subscription
+    const monthlySubscriptions = await prisma.subscription.findMany({
+      where: {
+        userId,
+        planType: 'monthly',
+        paypalSubscriptionId: { not: null },
+        status: { in: ['active', 'trialing', 'suspended'] },
+        // Exclude subscriptions that are already cancelled or expired
+      },
+    });
+
+    if (monthlySubscriptions.length === 0) {
+      return; // No monthly subscriptions to cancel
+    }
+
+    console.log(`🔄 Found ${monthlySubscriptions.length} monthly subscription(s) to cancel after annual payment confirmation`);
+
+    const { cancelSubscription, getSubscriptionDetails } = await import('../utils/paypalService.js');
+
+    for (const monthlySub of monthlySubscriptions) {
+      if (!monthlySub.paypalSubscriptionId) continue;
+
+      try {
+        // Check PayPal subscription status before attempting cancellation
+        const paypalSub = await getSubscriptionDetails(monthlySub.paypalSubscriptionId);
+        const paypalStatus = paypalSub?.status?.toLowerCase();
+
+        // Only cancel if subscription is active or suspended in PayPal
+        if (paypalStatus === 'active' || paypalStatus === 'suspended') {
+          await cancelSubscription(monthlySub.paypalSubscriptionId, 'Upgraded to annual plan - payment confirmed');
+          
+          // Update database status
+          await prisma.subscription.update({
+            where: { id: monthlySub.id },
+            data: {
+              status: 'cancelled',
+              updatedAt: new Date(),
+            },
+          });
+
+          console.log(`✅ Cancelled monthly PayPal subscription ${monthlySub.paypalSubscriptionId} after annual payment confirmation`);
+        } else {
+          console.log(`ℹ️  Monthly subscription ${monthlySub.paypalSubscriptionId} is already ${paypalStatus}, skipping cancellation`);
+          
+          // Update database status to match PayPal
+          if (paypalStatus === 'cancelled' || paypalStatus === 'expired') {
+            await prisma.subscription.update({
+              where: { id: monthlySub.id },
+              data: {
+                status: paypalStatus === 'cancelled' ? 'cancelled' : 'expired',
+                updatedAt: new Date(),
+              },
+            });
+          }
+        }
+      } catch (error: any) {
+        // Handle specific PayPal API errors gracefully
+        if (error.message?.includes('SUBSCRIPTION_STATUS_INVALID') || 
+            error.message?.includes('422') ||
+            error.message?.includes('404')) {
+          console.log(`ℹ️  Monthly subscription ${monthlySub.paypalSubscriptionId} cannot be cancelled (already cancelled/expired/not found)`);
+          
+          // Update database status to cancelled anyway
+          await prisma.subscription.update({
+            where: { id: monthlySub.id },
+            data: {
+              status: 'cancelled',
+              updatedAt: new Date(),
+            },
+          });
+        } else {
+          console.error(`⚠️  Failed to cancel monthly subscription ${monthlySub.paypalSubscriptionId}:`, error.message);
+          // Don't throw - continue with other subscriptions
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error('⚠️  Error cancelling old monthly subscriptions:', error.message);
+    // Don't throw - payment was successful, this is just cleanup
+  }
 }
 
 /**
