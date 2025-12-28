@@ -9,6 +9,7 @@ import {
   getUserStatus,
 } from '../utils/subscriptionService.js';
 import { getPayPalClientId, getPayPalPlanId } from '../utils/paypalService.js';
+import { checkSubscriptionTrialExpiration } from '../utils/trialExpirationService.js';
 import {
   emitSubscriptionStatusUpdated,
 } from '../utils/socketService.js';
@@ -80,14 +81,20 @@ router.get('/status', authenticateUser, async (req, res) => {
   }
 });
 
-// GET /api/subscriptions/client-id - Get PayPal Client ID and environment
+// GET /api/subscriptions/client-id - Get PayPal Client ID, environment, and plan IDs
 router.get('/client-id', async (req, res) => {
   try {
     const clientId = getPayPalClientId();
     const mode = process.env.PAYPAL_MODE || 'sandbox';
+    const { getPayPalPlanId } = await import('../utils/paypalService.js');
+    
     res.json({ 
       clientId,
-      mode // Return mode so frontend knows if it's sandbox or production
+      mode, // Return mode so frontend knows if it's sandbox or production
+      planIds: {
+        monthly: getPayPalPlanId('monthly'),
+        annual: getPayPalPlanId('annual'),
+      }
     });
   } catch (error: any) {
     console.error('Error getting PayPal Client ID:', error);
@@ -117,6 +124,63 @@ router.post('/link', authenticateUser, async (req, res) => {
 
     if (planType !== 'monthly' && planType !== 'annual') {
       return res.status(400).json({ error: 'planType must be "monthly" or "annual"' });
+    }
+
+    // Check for duplicate trial prevention: Block new monthly trial if user already had one
+    if (planType === 'monthly') {
+      const existingSubscription = await getUserSubscription(req.userId);
+      
+      if (existingSubscription) {
+        // Check if user already has/had a monthly subscription
+        const hasMonthlySubscription = existingSubscription.planType === 'monthly';
+        
+        if (hasMonthlySubscription) {
+          // Check if it's a trial (no payments yet)
+          const hasPayments = existingSubscription.billingHistory && existingSubscription.billingHistory.length > 0;
+          
+          if (!hasPayments) {
+            // User already has an active monthly trial - block new trial
+            return res.status(400).json({ 
+              error: 'You already have an active monthly trial subscription. Please cancel it first or wait for it to end.',
+              code: 'DUPLICATE_TRIAL'
+            });
+          }
+          
+          // If user has payments, they can upgrade/renew, but check status
+          if (existingSubscription.status === 'active' || existingSubscription.status === 'trialing') {
+            return res.status(400).json({ 
+              error: 'You already have an active monthly subscription. Please cancel it first before starting a new one.',
+              code: 'ACTIVE_SUBSCRIPTION_EXISTS'
+            });
+          }
+        }
+      }
+    }
+    
+    // Annual plans: Allow upgrade from monthly (will cancel monthly subscription automatically)
+    // If user has annual already, block new annual (they should cancel first)
+    if (planType === 'annual') {
+      const existingSubscription = await getUserSubscription(req.userId);
+      
+      if (existingSubscription && existingSubscription.planType === 'annual') {
+        const hasPayments = existingSubscription.billingHistory && existingSubscription.billingHistory.length > 0;
+        
+        if (!hasPayments && (existingSubscription.status === 'active' || existingSubscription.status === 'trialing')) {
+          // User already has an active annual trial - block new trial
+          return res.status(400).json({ 
+            error: 'You already have an active annual trial subscription. Please cancel it first or wait for it to end.',
+            code: 'DUPLICATE_TRIAL'
+          });
+        }
+        
+        if (existingSubscription.status === 'active' || existingSubscription.status === 'trialing') {
+          return res.status(400).json({ 
+            error: 'You already have an active annual subscription. Please cancel it first before starting a new one.',
+            code: 'ACTIVE_SUBSCRIPTION_EXISTS'
+          });
+        }
+      }
+      // If user has monthly, allow upgrade to annual (will cancel monthly automatically)
     }
 
     const subscription = await linkPayPalSubscription(req.userId, subscriptionID, planType);
@@ -155,21 +219,56 @@ router.post('/cancel', authenticateUser, async (req, res) => {
       return res.status(404).json({ error: 'No active PayPal subscription found' });
     }
 
-    // Import PayPal service functions
-    const { cancelSubscription } = await import('../utils/paypalService.js');
-    
-    await cancelSubscription(subscription.paypalSubscriptionId, req.body.reason);
+    // Try to cancel in PayPal, but don't fail if PayPal API is unavailable
+    let paypalCancelled = false;
+    let paypalError: string | null = null;
 
-    // Update subscription status in database
+    try {
+      const { cancelSubscription } = await import('../utils/paypalService.js');
+      await cancelSubscription(subscription.paypalSubscriptionId, req.body.reason);
+      paypalCancelled = true;
+      console.log(`✅ Successfully cancelled PayPal subscription: ${subscription.paypalSubscriptionId}`);
+    } catch (error: any) {
+      console.error('⚠️  Failed to cancel subscription in PayPal:', error.message);
+      paypalError = error.message;
+      
+      // Check if it's an authentication error (invalid_client)
+      if (error.message?.includes('invalid_client') || error.message?.includes('Client Authentication failed')) {
+        console.warn('⚠️  PayPal API authentication failed. Subscription will be marked as cancelled in database, but PayPal cancellation may need to be done manually.');
+        paypalError = 'PayPal API authentication failed. Subscription marked as cancelled in our system. Please cancel manually in PayPal if needed.';
+      }
+      
+      // Continue with database update even if PayPal cancellation fails
+      // User can manually cancel in PayPal if needed
+    }
+
+    // Update subscription status in database regardless of PayPal API result
     await prisma.subscription.update({
       where: { id: subscription.id },
       data: { status: 'cancelled', updatedAt: new Date() },
     });
 
-    res.json({
-      success: true,
-      message: 'Subscription cancelled successfully',
+    // Emit WebSocket event for subscription cancellation
+    emitSubscriptionStatusUpdated(req.userId, {
+      subscriptionId: subscription.id,
+      status: 'cancelled',
+      planType: subscription.planType,
     });
+
+    // Return success with warning if PayPal cancellation failed
+    if (paypalCancelled) {
+      res.json({
+        success: true,
+        message: 'Subscription cancelled successfully',
+      });
+    } else {
+      res.json({
+        success: true,
+        message: 'Subscription marked as cancelled in our system',
+        warning: paypalError || 'PayPal cancellation may need to be done manually',
+        paypalSubscriptionId: subscription.paypalSubscriptionId, // Include so user can cancel manually if needed
+      });
+    }
   } catch (error: any) {
     console.error('Error cancelling subscription:', error);
     res.status(500).json({ error: 'Failed to cancel subscription', details: error.message });
@@ -322,6 +421,27 @@ router.post('/redeem-coupon', authenticateUser, async (req, res) => {
 router.get('/check-access', authenticateUser, async (req, res) => {
   try {
     const subscription = await getUserSubscription(req.userId);
+    
+    // Check if trial has expired and update status if needed
+    if (subscription && subscription.paypalSubscriptionId) {
+      try {
+        await checkSubscriptionTrialExpiration(subscription.id);
+        // Reload subscription after potential update
+        const updatedSubscription = await getUserSubscription(req.userId);
+        const access = checkSubscriptionAccess(updatedSubscription);
+        const userStatus = getUserStatus(updatedSubscription);
+
+        return res.json({
+          hasAccess: access.hasFullAccess,
+          access,
+          userStatus,
+        });
+      } catch (error: any) {
+        console.warn('Could not check trial expiration:', error.message);
+        // Continue with original subscription
+      }
+    }
+    
     const access = checkSubscriptionAccess(subscription);
     const userStatus = getUserStatus(subscription);
 
@@ -333,6 +453,31 @@ router.get('/check-access', authenticateUser, async (req, res) => {
   } catch (error: any) {
     console.error('Error checking access:', error);
     res.status(500).json({ error: 'Failed to check access' });
+  }
+});
+
+// POST /api/subscriptions/check-trial-expiration - Manually check and update trial expiration
+router.post('/check-trial-expiration', authenticateUser, async (req, res) => {
+  try {
+    const subscription = await getUserSubscription(req.userId);
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'No subscription found' });
+    }
+
+    const result = await checkSubscriptionTrialExpiration(subscription.id);
+    
+    // Reload subscription after update
+    const updatedSubscription = await getUserSubscription(req.userId);
+    
+    res.json({
+      success: true,
+      result,
+      subscription: updatedSubscription,
+    });
+  } catch (error: any) {
+    console.error('Error checking trial expiration:', error);
+    res.status(500).json({ error: 'Failed to check trial expiration', details: error.message });
   }
 });
 
