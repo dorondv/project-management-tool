@@ -138,24 +138,29 @@ router.post('/link', authenticateUser, async (req, res) => {
         const hasMonthlySubscription = existingSubscription.planType === 'monthly';
         
         if (hasMonthlySubscription) {
-          // Check if it's a trial (no payments yet)
-          const hasPayments = existingSubscription.billingHistory && existingSubscription.billingHistory.length > 0;
+          // Only block if the existing subscription is actually active or trialing
+          // Allow new subscriptions if the old one is cancelled, expired, or suspended
+          const isActive = existingSubscription.status === 'active' || existingSubscription.status === 'trialing';
           
-          if (!hasPayments) {
-            // User already has an active monthly trial - block new trial
-            return res.status(400).json({ 
-              error: 'You already have an active monthly trial subscription. Please cancel it first or wait for it to end.',
-              code: 'DUPLICATE_TRIAL'
-            });
-          }
-          
-          // If user has payments, they can upgrade/renew, but check status
-          if (existingSubscription.status === 'active' || existingSubscription.status === 'trialing') {
+          if (isActive) {
+            // Check if it's a trial (no payments yet)
+            const hasPayments = existingSubscription.billingHistory && existingSubscription.billingHistory.length > 0;
+            
+            if (!hasPayments) {
+              // User already has an active monthly trial - block new trial
+              return res.status(400).json({ 
+                error: 'You already have an active monthly trial subscription. Please cancel it first or wait for it to end.',
+                code: 'DUPLICATE_TRIAL'
+              });
+            }
+            
+            // If user has payments, they can upgrade/renew, but check status
             return res.status(400).json({ 
               error: 'You already have an active monthly subscription. Please cancel it first before starting a new one.',
               code: 'ACTIVE_SUBSCRIPTION_EXISTS'
             });
           }
+          // If subscription is cancelled, expired, or suspended, allow new subscription
         }
       }
     }
