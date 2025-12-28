@@ -219,7 +219,7 @@ export async function linkPayPalSubscription(
       paypalSubscriptionId,
       paypalPlanId,
       price,
-      trialEndDate: finalTrialEndDate,
+      trialEndDate: finalTrialEndDate || undefined,
     });
   }
 }

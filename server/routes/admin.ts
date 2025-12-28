@@ -93,7 +93,7 @@ router.get('/users', async (req, res) => {
 
         // Check if user is in PayPal trial period (has subscription but no payments yet)
         // IMPORTANT: Trial coupons are NOT PayPal trials, even if they have a paypalSubscriptionId
-        const isPayPalTrial = !subscription?.isTrialCoupon && // Exclude trial coupons
+        let isPayPalTrial = !subscription?.isTrialCoupon && // Exclude trial coupons
                               subscription?.paypalSubscriptionId && 
                               subscription?.status === 'active' && 
                               (!subscription.billingHistory || subscription.billingHistory.length === 0);
@@ -149,7 +149,7 @@ router.get('/users', async (req, res) => {
         }
 
         // Check if trial has expired but status hasn't been updated
-        if (isPayPalTrial && paypalTrialEndDate) {
+        if (isPayPalTrial && paypalTrialEndDate && subscription) {
           const now = new Date();
           const trialEnd = new Date(paypalTrialEndDate);
           if (now > trialEnd && subscription.status === 'active') {
@@ -167,7 +167,7 @@ router.get('/users', async (req, res) => {
                   },
                 },
               });
-              if (updatedSubscription) {
+              if (updatedSubscription && subscription) {
                 subscription.status = updatedSubscription.status;
                 subscription.billingHistory = updatedSubscription.billingHistory;
                 // Recalculate isPayPalTrial after status update
