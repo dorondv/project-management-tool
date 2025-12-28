@@ -27,6 +27,7 @@ const prisma = new PrismaClient({
   // - Set connection_limit=10 for parallel queries (transaction mode can handle more)
   // - Enable SSL (sslmode=require)
   // Note: With pgbouncer transaction mode, we can safely use 10 connections
+  // Prisma will automatically reconnect on connection errors (P1017)
 });
 import { usersRouter } from './routes/users.js';
 import { projectsRouter } from './routes/projects.js';
@@ -41,6 +42,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { subscriptionsRouter } from './routes/subscriptions.js';
 import { paymentsRouter } from './routes/payments.js';
 import { adminRouter } from './routes/admin.js';
+import { eventsRouter } from './routes/events.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -101,10 +103,18 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/events', eventsRouter);
 
-// Error handling middleware
+// Error handling middleware with connection retry logic
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
+  
+  // Check if it's a Prisma connection error (P1017)
+  const prismaError = err as any;
+  if (prismaError.code === 'P1017' || prismaError.message?.includes('Server has closed the connection')) {
+    console.warn('⚠️  Database connection error detected - Prisma should auto-reconnect on next query');
+  }
+  
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
@@ -198,6 +208,28 @@ async function startServer() {
 }
 
 startServer();
+
+// Periodic connection health check to keep connections alive
+// This helps prevent pgbouncer from closing idle connections
+if (process.env.NODE_ENV === 'production') {
+  setInterval(async () => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (error: any) {
+      // If connection is closed, reconnect
+      if (error.code === 'P1017' || error.message?.includes('Server has closed the connection')) {
+        console.warn('⚠️  Connection health check failed, reconnecting...');
+        try {
+          await prisma.$disconnect();
+          await prisma.$connect();
+          console.log('✅ Connection restored');
+        } catch (reconnectError: any) {
+          console.error('❌ Failed to restore connection:', reconnectError.message);
+        }
+      }
+    }
+  }, 5 * 60 * 1000); // Every 5 minutes
+}
 
 // Graceful shutdown
 process.on('SIGINT', async () => {

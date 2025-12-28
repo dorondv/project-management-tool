@@ -21,6 +21,7 @@ interface AdminUser {
   isFreeAccess: boolean;
   isPayPalTrial?: boolean;
   paypalTrialEndDate?: string | null;
+  isTrialCoupon?: boolean;
   subscription: any;
 }
 
@@ -396,6 +397,29 @@ export default function AdminUsers() {
                           }
                           
                           return <div className="text-xs text-gray-500">Fetching trial end date...</div>;
+                        })()}
+                      </div>
+                    ) : user.isTrialCoupon && user.expirationDate ? (
+                      <div>
+                        <div className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">
+                          Trial Coupon
+                        </div>
+                        <div className="text-xs">Ends: {new Date(user.expirationDate).toLocaleDateString()}</div>
+                        {(() => {
+                          const remainingDays = getRemainingDays(user.expirationDate);
+                          if (remainingDays === null) return null;
+                          if (remainingDays < 0) {
+                            return (
+                              <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                Expired {Math.abs(remainingDays)} days ago
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                              {remainingDays} {remainingDays === 1 ? 'day' : 'days'} left
+                            </div>
+                          );
                         })()}
                       </div>
                     ) : user.isFreeAccess && user.expirationDate ? (

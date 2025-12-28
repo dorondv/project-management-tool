@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Zap, Crown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Star, Zap, Crown, ArrowLeft, ArrowRight, X, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
@@ -22,11 +22,13 @@ const translations: Record<Locale, {
   monthlySubscription: string;
   annualSubscription: string;
   cancelledSubscription: string;
+  suspendedSubscription: string;
   expiredSubscription: string;
   freeAccess: string;
   trialDescription: string;
   activeDescription: string;
   cancelledDescription: string;
+  suspendedDescription: string;
   expiredDescription: string;
   freeAccessDescription: string;
   timeRemaining: string;
@@ -38,6 +40,15 @@ const translations: Record<Locale, {
   upgradePlan: string;
   loading: string;
   error: string;
+  cancelSubscription: string;
+  cancelConfirmTitle: string;
+  cancelConfirmMessage: string;
+  cancelConfirmMessageTrial: string;
+  cancelConfirm: string;
+  cancelCancel: string;
+  cancelling: string;
+  cancelledSuccess: string;
+  cancelError: string;
 }> = {
   en: {
     subscriptionStatus: 'Subscription Status',
@@ -46,11 +57,13 @@ const translations: Record<Locale, {
     monthlySubscription: 'Monthly Subscription',
     annualSubscription: 'Annual Subscription',
     cancelledSubscription: 'Cancelled Subscription',
+    suspendedSubscription: 'Suspended Subscription',
     expiredSubscription: 'Expired Subscription',
     freeAccess: 'Free Access',
     trialDescription: 'Enjoy all features. Upgrade to continue after the period ends.',
     activeDescription: 'Thank you for being part of the sollo family. Your subscription is active.',
     cancelledDescription: 'Your subscription has been cancelled. You can resubscribe anytime.',
+    suspendedDescription: 'Your subscription has been suspended. Please contact support for assistance.',
     expiredDescription: 'Your subscription has expired. Please upgrade to continue.',
     freeAccessDescription: 'You have free access until the expiration date.',
     timeRemaining: 'Time remaining until renewal/end:',
@@ -62,6 +75,15 @@ const translations: Record<Locale, {
     upgradePlan: 'Upgrade Plan',
     loading: 'Loading subscription status...',
     error: 'Failed to load subscription status',
+    cancelSubscription: 'Cancel Subscription',
+    cancelConfirmTitle: 'Cancel Subscription',
+    cancelConfirmMessage: 'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.',
+    cancelConfirmMessageTrial: 'Are you sure you want to cancel your trial? Your access will end immediately and you will not be charged.',
+    cancelConfirm: 'Yes, Cancel',
+    cancelCancel: 'No, Keep Subscription',
+    cancelling: 'Cancelling...',
+    cancelledSuccess: 'Subscription cancelled successfully',
+    cancelError: 'Failed to cancel subscription',
   },
   he: {
     subscriptionStatus: 'סטטוס מנוי',
@@ -70,11 +92,13 @@ const translations: Record<Locale, {
     monthlySubscription: 'מנוי חודשי מתחדש',
     annualSubscription: 'מנוי שנתי מתחדש',
     cancelledSubscription: 'מנוי בוטל',
+    suspendedSubscription: 'מנוי מושעה',
     expiredSubscription: 'מנוי פג תוקף',
     freeAccess: 'גישה חינמית',
     trialDescription: 'תהנה מכל התכונות. שדרג כדי להמשיך לאחר תום התקופה.',
     activeDescription: 'תודה שאתה חלק ממשפחת sollo. המנוי שלך פעיל.',
     cancelledDescription: 'המנוי שלך בוטל. תוכל להירשם מחדש בכל עת.',
+    suspendedDescription: 'המנוי שלך הושעה. אנא פנה לתמיכה לקבלת עזרה.',
     expiredDescription: 'המנוי שלך פג תוקף. אנא שדרג כדי להמשיך.',
     freeAccessDescription: 'יש לך גישה חינמית עד תאריך התפוגה.',
     timeRemaining: 'זמן נותר עד לחידוש/סיום:',
@@ -86,6 +110,15 @@ const translations: Record<Locale, {
     upgradePlan: 'שדרג תוכנית',
     loading: 'טוען סטטוס מנוי...',
     error: 'שגיאה בטעינת סטטוס מנוי',
+    cancelSubscription: 'בטל מנוי',
+    cancelConfirmTitle: 'ביטול מנוי',
+    cancelConfirmMessage: 'האם אתה בטוח שברצונך לבטל את המנוי? תוכל להמשיך להשתמש בשירות עד סוף תקופת החיוב הנוכחית.',
+    cancelConfirmMessageTrial: 'האם אתה בטוח שברצונך לבטל את תקופת הניסיון? הגישה שלך תיפסק מיד ולא תחויב.',
+    cancelConfirm: 'כן, בטל',
+    cancelCancel: 'לא, שמור מנוי',
+    cancelling: 'מבטל...',
+    cancelledSuccess: 'המנוי בוטל בהצלחה',
+    cancelError: 'שגיאה בביטול המנוי',
   },
 };
 
@@ -109,6 +142,8 @@ interface SubscriptionData {
     couponCode: string | null;
     isFreeAccess: boolean;
     isTrialCoupon: boolean;
+    paypalSubscriptionId: string | null;
+    billingHistory?: Array<{ id: string; status: string; paymentDate: string }>;
   } | null;
   access: {
     hasFullAccess: boolean;
@@ -130,6 +165,8 @@ export function SubscriptionStatus() {
 
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [countdown, setCountdown] = useState<CountdownTimer>({
     days: 0,
     hours: 0,
@@ -246,6 +283,66 @@ export function SubscriptionStatus() {
     return value.toString().padStart(2, '0');
   };
 
+  const handleCancelSubscription = async () => {
+    if (!state.user?.id) return;
+
+    try {
+      setCancelling(true);
+      const result = await api.subscriptions.cancel(state.user.id);
+      
+      // Check if there's a warning (PayPal cancellation may have failed)
+      if (result.warning) {
+        toast.success(t.cancelledSuccess, {
+          duration: 5000,
+        });
+        toast.warning(
+          locale === 'he' 
+            ? `המנוי בוטל במערכת שלנו. ${result.paypalSubscriptionId ? 'ייתכן שתצטרך לבטל גם ב-PayPal ידנית.' : ''}`
+            : `Subscription cancelled in our system. ${result.paypalSubscriptionId ? 'You may need to cancel manually in PayPal as well.' : ''}`,
+          {
+            duration: 8000,
+          }
+        );
+      } else {
+        toast.success(t.cancelledSuccess);
+      }
+      
+      setShowCancelConfirm(false);
+      // Reload subscription status
+      await loadSubscriptionStatus();
+    } catch (error: any) {
+      console.error('Error cancelling subscription:', error);
+      toast.error(t.cancelError);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const canCancel = () => {
+    if (!subscriptionData?.subscription) return false;
+    const subscription = subscriptionData.subscription;
+    
+    // Cannot cancel trial coupon subscriptions - users can only upgrade to paid plans
+    if (subscription.isTrialCoupon || subscription.planType === 'trial') {
+      return false;
+    }
+    
+    // Can cancel if: active subscription (paid or PayPal trial), not already cancelled/expired/suspended
+    return (subscription.status === 'active' || subscription.status === 'trialing') && 
+           subscription.paypalSubscriptionId !== null &&
+           subscription.status !== 'suspended';
+  };
+
+  const isTrialPeriod = () => {
+    if (!subscriptionData?.subscription) return false;
+    const subscription = subscriptionData.subscription;
+    // Check if it's a trial (no payments yet or status is trialing)
+    // billingHistory might not be included in the response, so check status and paypalSubscriptionId
+    const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+    return !hasPayments && subscription.paypalSubscriptionId && 
+           (subscription.status === 'active' || subscription.status === 'trialing');
+  };
+
   const getPlanDetails = () => {
     if (!subscriptionData?.subscription) {
       return {
@@ -309,6 +406,16 @@ export function SubscriptionStatus() {
         icon: <Zap size={20} className="text-gray-500" />,
         badgeVariant: 'error' as const,
         description: t.cancelledDescription,
+        showCountdown: false,
+      };
+    }
+
+    if (status === 'suspended') {
+      return {
+        title: t.suspendedSubscription,
+        icon: <Zap size={20} className="text-orange-500" />,
+        badgeVariant: 'warning' as const,
+        description: t.suspendedDescription,
         showCountdown: false,
       };
     }
@@ -399,25 +506,78 @@ export function SubscriptionStatus() {
         </>
       )}
 
-      <div className="flex justify-center">
+      {/* Cancel Confirmation Dialog */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="p-6 max-w-md mx-4">
+            <h3 className={`text-xl font-bold mb-4 ${alignStart}`}>
+              {t.cancelConfirmTitle}
+            </h3>
+            <p className={`text-gray-600 dark:text-gray-400 mb-6 ${alignStart}`}>
+              {isTrialPeriod() ? t.cancelConfirmMessageTrial : t.cancelConfirmMessage}
+            </p>
+            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Button
+                variant="outline"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancelling}
+                className={isRTL ? 'flex-row-reverse' : ''}
+              >
+                {t.cancelCancel}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleCancelSubscription}
+                disabled={cancelling}
+                className={isRTL ? 'flex-row-reverse' : ''}
+              >
+                {cancelling ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    {t.cancelling}
+                  </>
+                ) : (
+                  <>
+                    <X size={16} />
+                    {t.cancelConfirm}
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        {canCancel() && (
+          <Button
+            variant="outline"
+            onClick={() => setShowCancelConfirm(true)}
+            disabled={cancelling}
+            className={`flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}
+          >
+            <X size={16} />
+            {t.cancelSubscription}
+          </Button>
+        )}
         <Button
           variant="primary"
           onClick={() => navigate('/pricing')}
-          className={`w-1/2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}
         >
-        {subscriptionData?.subscription?.status === 'active' ? (
-          <>
-            {isRTL ? <ArrowLeft size={16} /> : null}
-            {t.manageSubscription}
-            {!isRTL ? <ArrowRight size={16} /> : null}
-          </>
-        ) : (
-          <>
-            {isRTL ? <ArrowLeft size={16} /> : null}
-            {t.upgradePlan}
-            {!isRTL ? <ArrowRight size={16} /> : null}
-          </>
-        )}
+          {subscriptionData?.subscription?.status === 'active' || subscriptionData?.subscription?.status === 'trialing' ? (
+            <>
+              {isRTL ? <ArrowLeft size={16} /> : null}
+              {t.manageSubscription}
+              {!isRTL ? <ArrowRight size={16} /> : null}
+            </>
+          ) : (
+            <>
+              {isRTL ? <ArrowLeft size={16} /> : null}
+              {t.upgradePlan}
+              {!isRTL ? <ArrowRight size={16} /> : null}
+            </>
+          )}
         </Button>
       </div>
     </Card>

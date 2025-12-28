@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AppProvider, useApp } from './context/AppContext';
 import { Layout } from './components/layout/Layout';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { AuthPage } from './components/auth/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
@@ -109,21 +110,24 @@ function AppContent() {
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/timer" element={<Timer />} />
-          {/* Team feature hidden for current version - keep for future use */}
-          {/* <Route path="/team" element={<Team />} /> */}
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/incomes" element={<Incomes />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/profile" element={<Profile />} />
+          {/* Public routes - always accessible */}
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment" element={<Payment />} />
-          <Route path="/admin/*" element={<Admin />} />
+          <Route path="/settings" element={<Settings />} />
+          
+          {/* Protected routes - require active subscription */}
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+          <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
+          {/* Team feature hidden for current version - keep for future use */}
+          {/* <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} /> */}
+          <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/admin/*" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         </Routes>
       </Layout>
       <Toaster

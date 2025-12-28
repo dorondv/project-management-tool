@@ -37,6 +37,7 @@ model User {
   attachments     Attachment[]
   customers       Customer[]
   subscription    Subscription?
+  events          Event[]
 
   @@map("users")
 }
@@ -60,6 +61,7 @@ model Project {
   customer Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
   tasks    Task[]
   members  ProjectMember[]
+  events   Event[]
 
   @@map("projects")
 }
@@ -97,6 +99,7 @@ model Task {
   attachments Attachment[]
   tags        TaskTag[]
   timeEntries TimeEntry[]
+  events      Event[]
 
   @@map("tasks")
 }
@@ -212,6 +215,7 @@ model Customer {
   timeEntries TimeEntry[]
   incomes     Income[]
   timers      ActiveTimer[]
+  events      Event[]
 
   @@map("customers")
 }
@@ -277,7 +281,7 @@ model Subscription {
   id                   String    @id @default(uuid())
   userId               String    @unique
   planType             String // 'monthly' | 'annual' | 'free' | 'trial'
-  status               String // 'trial' | 'active' | 'cancelled' | 'expired' | 'churned' | 'free'
+  status               String // 'trialing' | 'active' | 'cancelled' | 'expired' | 'suspended' | 'free'
   paypalSubscriptionId String?   @unique // PayPal subscription ID
   paypalPlanId         String? // PayPal plan ID (P-771756107T669132ENFBLY7Y, P-9EG97204XL0481249NFBMDTQ)
   startDate            DateTime
@@ -350,4 +354,31 @@ model Coupon {
   subscriptions Subscription[]
 
   @@map("coupons")
+}
+
+model Event {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime?
+  allDay          Boolean  @default(false)
+  recurrenceType  String   @default("none") // none, daily, weekly, monthly, quarterly
+  recurrenceEndDate DateTime?
+  recurrenceCount Int?
+  meetingLink     String?
+  userId          String
+  customerId      String?
+  projectId       String?
+  taskId          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  task     Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@map("events")
 }

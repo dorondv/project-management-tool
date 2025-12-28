@@ -106,7 +106,9 @@ export default function Payment() {
 
   const [paypalLoading, setPaypalLoading] = useState(true);
   const [paypalClientId, setPaypalClientId] = useState<string | null>(null);
+  const [paypalPlanIds, setPaypalPlanIds] = useState<{ monthly: string; annual: string } | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [subscriptionCheck, setSubscriptionCheck] = useState<{ loading: boolean; error: string | null }>({ loading: true, error: null });
 
   const isAnnual = plan === 'annual';
   // Actual prices: Monthly $12.90, Annual $9.90/month ($118.80/year)
@@ -117,23 +119,119 @@ export default function Payment() {
   const planName = isAnnual ? t.annualPlan : t.monthlyPlan;
   const billingCycle = isAnnual ? t.perMonthAnnual : t.perMonthMonthly;
 
-  // PayPal Plan IDs
-  const planIdMap: Record<string, string> = {
-    monthly: 'P-771756107T669132ENFBLY7Y',
-    annual: 'P-9EG97204XL0481249NFBMDTQ',
+  // Get plan ID from backend (or use fallback if not loaded yet)
+  const planId = paypalPlanIds 
+    ? (plan === 'annual' ? paypalPlanIds.annual : paypalPlanIds.monthly)
+    : (plan === 'annual' ? 'P-9EG97204XL0481249NFBMDTQ' : 'P-771756107T669132ENFBLY7Y'); // Fallback to production plans
+
+  useEffect(() => {
+    checkExistingSubscription();
+    loadPayPalSDK();
+  }, [plan, state.user?.id]);
+
+  const checkExistingSubscription = async () => {
+    if (!state.user?.id) {
+      setSubscriptionCheck({ loading: false, error: null });
+      return;
+    }
+
+    // Annual plans are always allowed (user can have both monthly and annual)
+    if (plan === 'annual') {
+      setSubscriptionCheck({ loading: false, error: null });
+      return;
+    }
+
+    try {
+      setSubscriptionCheck({ loading: true, error: null });
+      const response = await api.subscriptions.getStatus(state.user.id);
+      
+      console.log('💳 Payment page: Full API response:', JSON.stringify(response, null, 2));
+      
+      // API returns { subscription, access, userStatus }
+      const data = response.subscription ? response : { subscription: response };
+      
+      // Only check for monthly plan duplicates
+      // Skip check for trial coupons - they can upgrade to monthly plan
+      if (data.subscription && plan === 'monthly') {
+        const subscription = data.subscription;
+        
+        console.log('🔍 Payment page: Checking subscription for monthly plan:', {
+          planType: subscription.planType,
+          status: subscription.status,
+          isTrialCoupon: subscription.isTrialCoupon,
+          hasBillingHistory: subscription.billingHistory?.length > 0,
+        });
+        
+        // Allow if it's a trial coupon subscription (user can upgrade to paid monthly)
+        if (subscription.isTrialCoupon || subscription.planType === 'trial') {
+          console.log('✅ Payment page: Trial coupon subscription detected, allowing monthly plan');
+          setSubscriptionCheck({ loading: false, error: null });
+          return;
+        }
+        
+        const hasMonthlySubscription = subscription.planType === 'monthly';
+        
+        if (hasMonthlySubscription) {
+          const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+          
+          if (!hasPayments && (subscription.status === 'active' || subscription.status === 'trialing')) {
+            // User already has an active monthly trial
+            console.log('❌ Payment page: User has active monthly trial, blocking');
+            setSubscriptionCheck({ 
+              loading: false, 
+              error: locale === 'he' 
+                ? 'יש לך כבר תקופת ניסיון חודשית פעילה. אנא בטל אותה תחילה או המתן עד שתסתיים.'
+                : 'You already have an active monthly trial. Please cancel it first or wait for it to end.'
+            });
+            return;
+          }
+          
+          if (subscription.status === 'active' || subscription.status === 'trialing') {
+            // User already has an active monthly subscription
+            console.log('❌ Payment page: User has active monthly subscription, blocking');
+            setSubscriptionCheck({ 
+              loading: false, 
+              error: locale === 'he' 
+                ? 'יש לך כבר מנוי חודשי פעיל. אנא בטל אותו תחילה.'
+                : 'You already have an active monthly subscription. Please cancel it first.'
+            });
+            return;
+          }
+        }
+      }
+      
+      console.log('✅ Payment page: Subscription check passed, allowing payment');
+      setSubscriptionCheck({ loading: false, error: null });
+    } catch (error: any) {
+      console.error('Error checking subscription:', error);
+      setSubscriptionCheck({ loading: false, error: null }); // Allow payment attempt even if check fails
+    }
   };
 
-  const planId = planIdMap[plan];
-
   useEffect(() => {
-    loadPayPalSDK();
-  }, []);
-
-  useEffect(() => {
-    if (!paypalLoading && paypalClientId && window.paypal && planId) {
+    // Only render PayPal buttons if:
+    // 1. PayPal SDK is loaded
+    // 2. Client ID is available
+    // 3. Plan ID is available
+    // 4. Subscription check is complete (not loading)
+    // 5. No subscription check error (for monthly plans)
+    console.log('💳 Payment page: PayPal button render check:', {
+      paypalLoading,
+      paypalClientId: !!paypalClientId,
+      hasPayPalSDK: !!window.paypal,
+      planId,
+      subscriptionCheckLoading: subscriptionCheck.loading,
+      subscriptionCheckError: subscriptionCheck.error,
+      shouldRender: !paypalLoading && paypalClientId && window.paypal && planId && !subscriptionCheck.loading && !subscriptionCheck.error,
+    });
+    
+    if (!paypalLoading && paypalClientId && window.paypal && planId && !subscriptionCheck.loading && !subscriptionCheck.error) {
+      console.log('✅ Payment page: All conditions met, rendering PayPal buttons');
       renderPayPalButtons();
+    } else {
+      console.log('⏳ Payment page: Waiting for conditions to be met');
     }
-  }, [paypalLoading, paypalClientId, planId]);
+  }, [paypalLoading, paypalClientId, paypalPlanIds, planId, subscriptionCheck.loading, subscriptionCheck.error]);
 
   // WebSocket listeners for real-time payment updates
   useEffect(() => {
@@ -196,9 +294,13 @@ export default function Payment() {
 
   const loadPayPalSDK = async () => {
     try {
-      // Get PayPal Client ID and mode from backend
-      const { clientId, mode } = await api.subscriptions.getClientId();
+      // Get PayPal Client ID, mode, and plan IDs from backend
+      const { clientId, mode, planIds } = await api.subscriptions.getClientId();
       setPaypalClientId(clientId);
+      if (planIds) {
+        setPaypalPlanIds(planIds);
+        console.log('📋 PayPal Plan IDs loaded from backend:', planIds);
+      }
 
       // Check if PayPal SDK is already loaded
       if (window.paypal) {
@@ -471,6 +573,24 @@ export default function Payment() {
         </div>
       </Card>
 
+      {/* Subscription Check Error */}
+      {subscriptionCheck.error && (
+        <Card className="p-6 mb-6 border-2 border-red-500 dark:border-red-400">
+          <div className={`bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 ${alignStart}`}>
+            <p className={`text-red-800 dark:text-red-200 mb-4 ${alignStart}`}>
+              {subscriptionCheck.error}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/settings')}
+              className={isRTL ? 'flex-row-reverse' : ''}
+            >
+              {locale === 'he' ? 'חזרה להגדרות' : 'Back to Settings'}
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Secure Payment */}
       <Card className="p-6">
         <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
@@ -484,7 +604,20 @@ export default function Payment() {
           {t.paymentInstructions}
         </p>
 
-        {paypalLoading ? (
+        {subscriptionCheck.loading ? (
+          <div className={`flex items-center justify-center py-8 ${alignStart}`}>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+            <span className={`ml-3 text-gray-600 dark:text-gray-400 ${isRTL ? 'mr-3 ml-0' : ''}`}>
+              {locale === 'he' ? 'בודק מנוי קיים...' : 'Checking existing subscription...'}
+            </span>
+          </div>
+        ) : subscriptionCheck.error && plan === 'monthly' ? (
+          <div className={`text-center py-8 ${alignStart}`}>
+            <p className="text-red-600 dark:text-red-400">
+              {subscriptionCheck.error}
+            </p>
+          </div>
+        ) : paypalLoading ? (
           <div className={`flex items-center justify-center py-8 ${alignStart}`}>
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
             <span className={`ml-3 text-gray-600 dark:text-gray-400 ${isRTL ? 'mr-3 ml-0' : ''}`}>

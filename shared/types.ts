@@ -65,7 +65,7 @@ export interface Attachment {
 
 export interface Notification {
   id: string;
-  type: 'task_assigned' | 'deadline_approaching' | 'task_completed' | 'project_updated';
+  type: 'task_assigned' | 'deadline_approaching' | 'task_completed' | 'project_updated' | 'event_reminder' | 'event_starting';
   title: string;
   message: string;
   userId: string;
@@ -151,5 +151,29 @@ export interface ActiveTimer {
   startTime: Date;
   isRunning: boolean;
   userId: string;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  description?: string | null;
+  startDate: Date;
+  endDate?: Date | null;
+  allDay: boolean;
+  recurrenceType: 'none' | 'daily' | 'weekly' | 'monthly' | 'quarterly';
+  recurrenceEndDate?: Date | null;
+  recurrenceCount?: number | null;
+  meetingLink?: string | null;
+  userId: string;
+  customerId?: string | null;
+  projectId?: string | null;
+  taskId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations (optional, populated when needed)
+  customer?: Customer | null;
+  project?: Project | null;
+  task?: Task | null;
+  user?: User | null;
 }
 
