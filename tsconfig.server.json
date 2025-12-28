@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["server/**/*"],
+  "include": ["server/**/*", "server/types/**/*"],
   "exclude": ["node_modules", "dist", "src"]
 }
 
