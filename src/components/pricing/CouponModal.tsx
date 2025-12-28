@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Gift, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../common/Button';
@@ -61,6 +62,7 @@ const translations: Record<Locale, {
 
 export function CouponModal({ isOpen, onClose, onSuccess }: CouponModalProps) {
   const { state } = useApp();
+  const navigate = useNavigate();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale];
@@ -92,6 +94,11 @@ export function CouponModal({ isOpen, onClose, onSuccess }: CouponModalProps) {
       setCode('');
       onSuccess();
       onClose();
+      
+      // Redirect to dashboard after successful coupon activation
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
     } catch (error: any) {
       console.error('Error redeeming coupon:', error);
       
