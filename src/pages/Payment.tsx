@@ -254,9 +254,9 @@ export default function Payment() {
             ? 'התשלום אושר! מנוי הופעל בהצלחה.'
             : 'Payment confirmed! Subscription activated successfully.'
         );
-        // Reload subscription status and redirect
+        // Reload subscription status and redirect to dashboard
         setTimeout(() => {
-          navigate('/settings');
+          navigate('/');
         }, 1500);
       }
     });
