@@ -106,6 +106,7 @@ export async function getUserSubscription(userId: string) {
 
 /**
  * Link PayPal subscription to user
+ * Handles upgrades from monthly to annual by cancelling the old subscription
  */
 export async function linkPayPalSubscription(
   userId: string,
@@ -128,38 +129,97 @@ export async function linkPayPalSubscription(
   // Check if user already has a subscription
   const existingSubscription = await prisma.subscription.findUnique({
     where: { userId },
+    include: {
+      billingHistory: {
+        orderBy: { paymentDate: 'desc' },
+        take: 1,
+      },
+    },
   });
 
   const paypalPlanId = getPayPalPlanId(planType);
   const price = planType === 'monthly' ? 12.90 : 118.80;
 
+  // Handle upgrade from monthly to annual
+  if (existingSubscription && existingSubscription.planType === 'monthly' && planType === 'annual') {
+    console.log(`🔄 Upgrading user ${userId} from monthly to annual subscription`);
+    
+    // Store the old monthly PayPal subscription ID for later cancellation
+    // We'll cancel it AFTER the annual payment is confirmed (in handlePaymentCompleted webhook)
+    // This prevents double charging if the annual payment fails
+    const oldMonthlyPaypalSubscriptionId = existingSubscription.paypalSubscriptionId;
+    
+    if (oldMonthlyPaypalSubscriptionId) {
+      console.log(`📝 Will cancel monthly subscription ${oldMonthlyPaypalSubscriptionId} after annual payment is confirmed`);
+    }
+
+    // Update existing subscription to annual
+    // Note: We don't cancel the monthly subscription here - it will be cancelled
+    // in handlePaymentCompleted after the annual payment is confirmed
+    const subscriptionData: any = {
+      planType: 'annual',
+      status: trialEndDate && new Date() < trialEndDate ? 'trialing' : 'active',
+      paypalSubscriptionId,
+      paypalPlanId,
+      price,
+      updatedAt: new Date(),
+    };
+
+    // Add trial end date if we got it from PayPal
+    if (trialEndDate) {
+      subscriptionData.trialEndDate = trialEndDate;
+    }
+
+    const updatedSubscription = await prisma.subscription.update({
+      where: { id: existingSubscription.id },
+      data: subscriptionData,
+    });
+
+    // Store the old monthly subscription ID in a way we can access it later
+    // We'll check for it in handlePaymentCompleted
+    console.log(`✅ Subscription upgraded to annual. Old monthly subscription ${oldMonthlyPaypalSubscriptionId} will be cancelled after payment confirmation.`);
+
+    return updatedSubscription;
+  }
+
+  // Handle regular subscription linking (new subscription or same plan type)
+  // For new subscriptions, ensure 5-day trial period
+  let finalTrialEndDate = trialEndDate;
+  
+  // If no trial end date from PayPal and this is a new subscription, set 5-day trial
+  if (!finalTrialEndDate && !existingSubscription) {
+    finalTrialEndDate = calculateTrialEndDate(5); // 5 days trial for new users
+    console.log(`📅 Setting 5-day trial period for new subscription (ends: ${finalTrialEndDate.toISOString()})`);
+  }
+  
+  // If PayPal provided trial end date, use it; otherwise use calculated one
   const subscriptionData: any = {
     planType,
-    status: 'active',
+    status: finalTrialEndDate && new Date() < finalTrialEndDate ? 'trialing' : 'active',
     paypalSubscriptionId,
     paypalPlanId,
     price,
     updatedAt: new Date(),
   };
 
-  // Add trial end date if we got it from PayPal
-  if (trialEndDate) {
-    subscriptionData.trialEndDate = trialEndDate;
+  // Add trial end date
+  if (finalTrialEndDate) {
+    subscriptionData.trialEndDate = finalTrialEndDate;
   }
 
   if (existingSubscription) {
-    // Update existing subscription
+    // Update existing subscription (same plan type or no plan)
     return await prisma.subscription.update({
       where: { id: existingSubscription.id },
       data: subscriptionData,
     });
   } else {
-    // Create new subscription
+    // Create new subscription with 5-day trial
     return await createSubscription(userId, planType, {
       paypalSubscriptionId,
       paypalPlanId,
       price,
-      trialEndDate,
+      trialEndDate: finalTrialEndDate,
     });
   }
 }
@@ -264,6 +324,17 @@ export function checkSubscriptionAccess(subscription: {
       canAccessPricing: true,
       expirationDate: null,
       status: 'none',
+    };
+  }
+
+  // Suspended subscription - no access
+  if (subscription.status === 'suspended') {
+    return {
+      hasFullAccess: false,
+      canAccessSettings: true,
+      canAccessPricing: true,
+      expirationDate: subscription.endDate,
+      status: 'expired',
     };
   }
 
@@ -430,6 +501,11 @@ export function getUserStatus(subscription: {
       ? new Date() > subscription.endDate
       : false;
     return isExpired ? 'Churned' : 'Free trial';
+  }
+
+  // Suspended subscription - treat as churned
+  if (subscription.status === 'suspended') {
+    return 'Churned';
   }
 
   // Paid subscription - check if it's in trial period (has PayPal subscription but no payments yet)

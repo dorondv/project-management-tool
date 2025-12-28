@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../common/Button';
@@ -12,6 +13,7 @@ interface RegisterFormProps {
 
 export function RegisterForm({ onToggleMode }: RegisterFormProps) {
   const { dispatch } = useApp();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -87,6 +89,9 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
         dispatch({ type: 'SET_AUTHENTICATED', payload: true });
         
         toast.success(`Welcome to SOLO, ${newUser.name}!`);
+        
+        // Redirect to pricing page to select a plan
+        navigate('/pricing');
       }
     } catch (error: any) {
       toast.error(error.message || 'Registration failed. Please try again.');

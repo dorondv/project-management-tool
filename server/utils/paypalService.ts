@@ -67,16 +67,31 @@ async function getAccessToken(): Promise<string> {
 /**
  * Make authenticated PayPal API request
  */
-async function paypalRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+async function paypalRequest(endpoint: string, options: RequestInit & { params?: Record<string, any> } = {}): Promise<any> {
   const token = await getAccessToken();
-  const url = endpoint.startsWith('http') ? endpoint : `${PAYPAL_BASE_URL}${endpoint}`;
+  let url = endpoint.startsWith('http') ? endpoint : `${PAYPAL_BASE_URL}${endpoint}`;
+
+  // Handle query parameters
+  if (options.params && Object.keys(options.params).length > 0) {
+    const searchParams = new URLSearchParams();
+    Object.entries(options.params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, String(value));
+      }
+    });
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}${searchParams.toString()}`;
+  }
+
+  // Remove params from options to avoid passing it to fetch
+  const { params, ...fetchOptions } = options;
 
   const response = await fetch(url, {
-    ...options,
+    ...fetchOptions,
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...fetchOptions.headers,
     },
   });
 
@@ -217,23 +232,104 @@ export async function refundTransaction(
 }
 
 /**
+ * Search PayPal transactions by subscription ID or date range
+ * Uses PayPal's Transaction Search API
+ */
+export async function searchPayPalTransactions(params: {
+  subscriptionId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  transactionType?: string;
+}): Promise<any[]> {
+  try {
+    const searchParams: any = {
+      transaction_type: params.transactionType || 'Recurring Payment',
+      page_size: 100,
+      page: 1,
+    };
+
+    // Add date range if provided
+    if (params.startDate) {
+      searchParams.start_date = params.startDate.toISOString();
+    }
+    if (params.endDate) {
+      searchParams.end_date = params.endDate.toISOString();
+    }
+
+    // PayPal Transaction Search API endpoint
+    // Note: This searches all transactions, not just for a specific subscription
+    // We'll filter by subscription ID after getting results
+    const response = await paypalRequest('/v1/reporting/transactions', {
+      method: 'GET',
+      params: searchParams,
+    });
+
+    let transactions = response.transaction_details || [];
+    
+    // Filter by subscription ID if provided
+    if (params.subscriptionId && transactions.length > 0) {
+      transactions = transactions.filter((tx: any) => {
+        // Check various fields where subscription ID might appear
+        const transactionInfo = tx.transaction_info || {};
+        const payerInfo = tx.payer_info || {};
+        
+        // Subscription ID might be in billing_agreement_id or other fields
+        return (
+          transactionInfo.billing_agreement_id === params.subscriptionId ||
+          transactionInfo.instrument_id === params.subscriptionId ||
+          payerInfo.billing_agreement_id === params.subscriptionId
+        );
+      });
+    }
+
+    return transactions;
+  } catch (error: any) {
+    console.error('Error searching PayPal transactions:', error);
+    // If Transaction Search API is not available or fails, return empty array
+    // PayPal's Transaction Search API may require special permissions
+    if (error.message?.includes('404') || error.message?.includes('not found')) {
+      console.warn('PayPal Transaction Search API not available. Historical payments may need to be added manually.');
+      return [];
+    }
+    throw new Error(`Failed to search PayPal transactions: ${error.message}`);
+  }
+}
+
+/**
  * Get subscription transactions from PayPal
+ * Tries multiple methods to get transaction history
  */
 export async function getSubscriptionTransactions(subscriptionId: string): Promise<any[]> {
   try {
-    // PayPal doesn't have a direct endpoint for subscription transactions
-    // We need to use the subscription details which includes billing info
+    // First, try to get subscription details
     const subscription = await getSubscriptionDetails(subscriptionId);
     
-    // PayPal subscription details include billing_info with transactions
-    // However, for detailed transaction history, we may need to query separately
-    // For now, return the subscription details which include billing information
-    return subscription.billing_info?.outstanding_balance?.value 
-      ? [subscription] 
-      : [];
+    // Check if subscription details include transaction history
+    if (subscription.billing_info?.transaction_history?.transactions) {
+      return subscription.billing_info.transaction_history.transactions;
+    }
+    
+    if (subscription.transactions && Array.isArray(subscription.transactions)) {
+      return subscription.transactions;
+    }
+
+    // If subscription details don't include transactions, try Transaction Search API
+    // Search for transactions from the subscription start date
+    const startDate = subscription.start_time 
+      ? new Date(subscription.start_time) 
+      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Last 90 days as fallback
+    
+    const transactions = await searchPayPalTransactions({
+      subscriptionId,
+      startDate,
+      transactionType: 'Recurring Payment',
+    });
+
+    return transactions;
   } catch (error: any) {
     console.error('Error getting subscription transactions:', error);
-    throw new Error(`Failed to get subscription transactions: ${error.message}`);
+    // Return empty array instead of throwing - allows manual entry
+    return [];
   }
 }
 

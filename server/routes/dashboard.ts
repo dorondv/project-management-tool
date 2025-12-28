@@ -32,6 +32,7 @@ router.get('/initial-data', async (req, res) => {
     const timeEntryWhere = userId ? { userId } : {};
     const notificationWhere = userId ? { userId } : {};
     const activityWhere = userId ? { userId } : {};
+    const eventWhere = userId ? { userId } : {};
 
     const fetchWithTiming = async <T>(label: string, fn: () => Promise<T>): Promise<T> => {
       const labelWithPadding = label.padEnd(15, ' ');
@@ -53,6 +54,7 @@ router.get('/initial-data', async (req, res) => {
       incomes,
       notifications,
       activities,
+      events,
     ] = await Promise.all([
       fetchWithTiming('projects', () =>
         prisma.project.findMany({
@@ -273,6 +275,40 @@ router.get('/initial-data', async (req, res) => {
           take: 200,
         })
       ),
+      fetchWithTiming('events', () =>
+        prisma.event.findMany({
+          where: eventWhere,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            project: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+            task: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+          },
+          orderBy: { startDate: 'asc' },
+          take: 1000,
+        })
+      ),
     ]);
 
     const users: any[] = [];
@@ -301,6 +337,7 @@ router.get('/initial-data', async (req, res) => {
       incomes,
       notifications,
       activities,
+      events,
     };
 
     const duration = Date.now() - startTime;
@@ -313,6 +350,7 @@ router.get('/initial-data', async (req, res) => {
       incomes: incomes.length,
       notifications: notifications.length,
       activities: activities.length,
+      events: events.length,
     });
 
     res.json(response);

@@ -13,6 +13,7 @@ import {
   refundTransaction,
   getSubscriptionDetails,
 } from '../utils/paypalService.js';
+import { checkAndUpdateExpiredTrials } from '../utils/trialExpirationService.js';
 
 const router = Router();
 
@@ -55,6 +56,15 @@ router.use(requireAdmin);
 // GET /api/admin/users - List all users with subscription data
 router.get('/users', async (req, res) => {
   try {
+    // Check for expired trials before returning users
+    // This ensures we catch any trials that expired but weren't updated via webhook
+    try {
+      await checkAndUpdateExpiredTrials();
+    } catch (error: any) {
+      console.warn('Warning: Could not check expired trials:', error.message);
+      // Continue anyway - don't fail the request
+    }
+
     const users = await prisma.user.findMany({
       include: {
         subscription: {
@@ -82,7 +92,9 @@ router.get('/users', async (req, res) => {
           .reduce((sum, bh) => sum + (bh.amount - (bh.refundedAmount || 0)), 0) || 0;
 
         // Check if user is in PayPal trial period (has subscription but no payments yet)
-        const isPayPalTrial = subscription?.paypalSubscriptionId && 
+        // IMPORTANT: Trial coupons are NOT PayPal trials, even if they have a paypalSubscriptionId
+        const isPayPalTrial = !subscription?.isTrialCoupon && // Exclude trial coupons
+                              subscription?.paypalSubscriptionId && 
                               subscription?.status === 'active' && 
                               (!subscription.billingHistory || subscription.billingHistory.length === 0);
 
@@ -105,24 +117,84 @@ router.get('/users', async (req, res) => {
           } catch (error: any) {
             console.warn(`Could not fetch PayPal details for user ${user.id}:`, error.message);
             
-            // Fallback: Calculate trial end date from start date + 1 day (default PayPal trial)
-            // This is a temporary fallback until PayPal API is working
+            // Fallback: Calculate trial end date from start date + 5 days (production plan trial)
+            // Production plan (P-771756107T669132ENFBLY7Y) has 5-day trial period
             if (subscription?.startDate && !paypalTrialEndDate) {
               const startDate = new Date(subscription.startDate);
               const fallbackTrialEndDate = new Date(startDate);
-              fallbackTrialEndDate.setDate(fallbackTrialEndDate.getDate() + 1); // 1 day trial
+              fallbackTrialEndDate.setDate(fallbackTrialEndDate.getDate() + 5); // 5-day trial for production plan
               paypalTrialEndDate = fallbackTrialEndDate;
-              console.log(`Using fallback trial end date for user ${user.id}: ${fallbackTrialEndDate.toISOString()}`);
+              console.log(`Using fallback trial end date (5-day) for user ${user.id}: ${fallbackTrialEndDate.toISOString()}`);
             }
           }
         }
         
-        // If still no trial end date but we know it's a PayPal trial, use start date + 1 day
+        // If still no trial end date but we know it's a PayPal trial, use start date + 5 days
+        // Production plan (P-771756107T669132ENFBLY7Y) has 5-day trial period
         if (isPayPalTrial && !paypalTrialEndDate && subscription?.startDate) {
           const startDate = new Date(subscription.startDate);
           const fallbackTrialEndDate = new Date(startDate);
-          fallbackTrialEndDate.setDate(fallbackTrialEndDate.getDate() + 1); // 1 day trial
+          fallbackTrialEndDate.setDate(fallbackTrialEndDate.getDate() + 5); // 5-day trial for production plan
           paypalTrialEndDate = fallbackTrialEndDate;
+          
+          // Save the calculated trial end date to database if not already set
+          if (!subscription.trialEndDate && subscription) {
+            await prisma.subscription.update({
+              where: { id: subscription.id },
+              data: { trialEndDate: fallbackTrialEndDate },
+            });
+            subscription.trialEndDate = fallbackTrialEndDate;
+            console.log(`📝 Saved calculated trial end date (5-day) for subscription ${subscription.id}: ${fallbackTrialEndDate.toISOString()}`);
+          }
+        }
+
+        // Check if trial has expired but status hasn't been updated
+        if (isPayPalTrial && paypalTrialEndDate) {
+          const now = new Date();
+          const trialEnd = new Date(paypalTrialEndDate);
+          if (now > trialEnd && subscription.status === 'active') {
+            // Trial expired but status not updated - update it now
+            try {
+              const { checkSubscriptionTrialExpiration } = await import('../utils/trialExpirationService.js');
+              const result = await checkSubscriptionTrialExpiration(subscription.id);
+              
+              // Reload subscription after update
+              const updatedSubscription = await prisma.subscription.findUnique({
+                where: { id: subscription.id },
+                include: {
+                  billingHistory: {
+                    orderBy: { paymentDate: 'desc' },
+                  },
+                },
+              });
+              if (updatedSubscription) {
+                subscription.status = updatedSubscription.status;
+                subscription.billingHistory = updatedSubscription.billingHistory;
+                // Recalculate isPayPalTrial after status update
+                const stillTrial = updatedSubscription.paypalSubscriptionId && 
+                                  updatedSubscription.status === 'active' && 
+                                  (!updatedSubscription.billingHistory || updatedSubscription.billingHistory.length === 0);
+                if (!stillTrial) {
+                  // No longer a trial, update local variable
+                  isPayPalTrial = false;
+                }
+              }
+            } catch (error: any) {
+              console.warn(`Could not check trial expiration for user ${user.id}:`, error.message);
+              // If check fails but trial expired, update status anyway
+              if (subscription) {
+                await prisma.subscription.update({
+                  where: { id: subscription.id },
+                  data: {
+                    status: 'expired',
+                    updatedAt: new Date(),
+                  },
+                });
+                subscription.status = 'expired';
+                isPayPalTrial = false;
+              }
+            }
+          }
         }
 
         // Determine user status - override if in PayPal trial
@@ -154,6 +226,8 @@ router.get('/users', async (req, res) => {
           // Add PayPal trial period info
           isPayPalTrial: isPayPalTrial,
           paypalTrialEndDate: paypalTrialEndDate || subscription?.trialEndDate || subscription?.endDate || null,
+          // Add trial coupon info
+          isTrialCoupon: subscription?.isTrialCoupon || false,
         };
       })
     );
@@ -384,7 +458,9 @@ router.get('/subscriptions', async (req, res) => {
 
     const subscriptionsWithTrialInfo = await Promise.all(
       subscriptions.map(async (subscription) => {
-        const isPayPalTrial = subscription.paypalSubscriptionId && 
+        // IMPORTANT: Trial coupons are NOT PayPal trials, even if they have a paypalSubscriptionId
+        const isPayPalTrial = !subscription.isTrialCoupon && // Exclude trial coupons
+                              subscription.paypalSubscriptionId && 
                               subscription.status === 'active' && 
                               (!subscription.billingHistory || subscription.billingHistory.length === 0);
         
@@ -406,11 +482,12 @@ router.get('/subscriptions', async (req, res) => {
           } catch (error: any) {
             console.warn(`Could not fetch PayPal details for subscription ${subscription.id}:`, error.message);
             
-            // Fallback: Calculate trial end date from start date + 1 day (default PayPal trial)
+            // Fallback: Calculate trial end date from start date + 5 days (production plan trial)
+            // Production plan (P-771756107T669132ENFBLY7Y) has 5-day trial period
             if (subscription.startDate && !paypalTrialEndDate) {
               const startDate = new Date(subscription.startDate);
               const fallbackTrialEndDate = new Date(startDate);
-              fallbackTrialEndDate.setDate(fallbackTrialEndDate.getDate() + 1); // 1 day trial
+              fallbackTrialEndDate.setDate(fallbackTrialEndDate.getDate() + 5); // 5-day trial for production plan
               paypalTrialEndDate = fallbackTrialEndDate;
             }
           }
@@ -544,8 +621,55 @@ router.post('/subscriptions/:id/activate', async (req, res) => {
       return res.status(404).json({ error: 'PayPal subscription not found' });
     }
 
+    // Check local database status first
+    // Only allow reactivation if subscription is SUSPENDED in our database
+    if (subscription.status !== 'suspended') {
+      return res.status(400).json({
+        error: 'Cannot reactivate subscription',
+        details: `Subscription status in our database is "${subscription.status}". Only SUSPENDED subscriptions can be reactivated.`,
+        currentStatus: subscription.status,
+        suggestion: subscription.status === 'cancelled' 
+          ? 'Cancelled subscriptions cannot be reactivated. User needs to create a new subscription.'
+          : subscription.status === 'expired'
+          ? 'Expired subscriptions cannot be reactivated. User needs to create a new subscription.'
+          : `Subscription status "${subscription.status}" does not support reactivation.`
+      });
+    }
+
+    // Check PayPal subscription status before attempting reactivation
+    // PayPal only allows reactivating SUSPENDED subscriptions, not CANCELLED ones
+    const { getSubscriptionDetails } = await import('../utils/paypalService.js');
+    let paypalSub;
+    try {
+      paypalSub = await getSubscriptionDetails(subscription.paypalSubscriptionId);
+    } catch (error: any) {
+      console.error('Error fetching PayPal subscription details:', error);
+      return res.status(400).json({ 
+        error: 'Cannot reactivate subscription',
+        details: 'Failed to fetch subscription status from PayPal. The subscription may have been deleted or the product ID may have changed.',
+        suggestion: 'Cancelled subscriptions cannot be reactivated. User needs to create a new subscription.'
+      });
+    }
+
+    const paypalStatus = paypalSub?.status?.toLowerCase();
+    
+    // Only allow reactivation if subscription is SUSPENDED in PayPal
+    if (paypalStatus !== 'suspended') {
+      return res.status(400).json({
+        error: 'Cannot reactivate subscription',
+        details: `PayPal subscription status is "${paypalStatus}". Only SUSPENDED subscriptions can be reactivated.`,
+        currentStatus: paypalStatus,
+        localStatus: subscription.status,
+        suggestion: paypalStatus === 'cancelled' 
+          ? 'Cancelled subscriptions cannot be reactivated. User needs to create a new subscription.'
+          : `Subscription status "${paypalStatus}" does not support reactivation.`
+      });
+    }
+
+    // Attempt reactivation
     await reactivateSubscription(subscription.paypalSubscriptionId, req.body.reason);
 
+    // Update database status
     await prisma.subscription.update({
       where: { id: subscription.id },
       data: {
@@ -554,13 +678,34 @@ router.post('/subscriptions/:id/activate', async (req, res) => {
       },
     });
 
+    // Emit WebSocket event
+    const { emitSubscriptionStatusUpdated } = await import('../utils/socketService.js');
+    emitSubscriptionStatusUpdated(subscription.userId, {
+      subscriptionId: subscription.id,
+      status: 'active',
+      planType: subscription.planType,
+    });
+
     res.json({
       success: true,
       message: 'Subscription reactivated successfully',
     });
   } catch (error: any) {
     console.error('Error reactivating subscription:', error);
-    res.status(500).json({ error: 'Failed to reactivate subscription', details: error.message });
+    
+    // Provide more helpful error messages
+    if (error.message?.includes('SUBSCRIPTION_STATUS_INVALID')) {
+      return res.status(400).json({ 
+        error: 'Cannot reactivate subscription',
+        details: 'PayPal subscription is not in a state that allows reactivation. Only SUSPENDED subscriptions can be reactivated.',
+        suggestion: 'If the subscription was cancelled, the user needs to create a new subscription. If the product ID changed, the old subscription cannot be reactivated.'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to reactivate subscription', 
+      details: error.message 
+    });
   }
 });
 
@@ -722,6 +867,95 @@ router.get('/payments', async (req, res) => {
   } catch (error: any) {
     console.error('Error fetching payments:', error);
     res.status(500).json({ error: 'Failed to fetch payments' });
+  }
+});
+
+// POST /api/admin/payments/sync/:subscriptionId - Sync payments for a subscription from PayPal
+router.post('/payments/sync/:subscriptionId', async (req, res) => {
+  try {
+    const { syncSubscriptionPayments } = await import('../utils/paymentSyncService.js');
+    const result = await syncSubscriptionPayments(req.params.subscriptionId);
+    
+    res.json({
+      success: true,
+      message: `Synced ${result.synced} payments, skipped ${result.skipped} existing payments`,
+      ...result,
+    });
+  } catch (error: any) {
+    console.error('Error syncing payments:', error);
+    res.status(500).json({ error: 'Failed to sync payments', details: error.message });
+  }
+});
+
+// POST /api/admin/payments/sync-all - Sync payments for all subscriptions
+router.post('/payments/sync-all', async (req, res) => {
+  try {
+    const { syncAllSubscriptionPayments } = await import('../utils/paymentSyncService.js');
+    const result = await syncAllSubscriptionPayments();
+    
+    res.json({
+      success: true,
+      message: `Synced payments for ${result.total} subscriptions. ${result.synced} new payments added, ${result.skipped} skipped.`,
+      ...result,
+    });
+  } catch (error: any) {
+    console.error('Error syncing all payments:', error);
+    res.status(500).json({ error: 'Failed to sync payments', details: error.message });
+  }
+});
+
+// POST /api/admin/payments/manual - Manually add a payment record
+router.post('/payments/manual', async (req, res) => {
+  try {
+    const { subscriptionId, invoiceNumber, paypalTransactionId, paypalSaleId, amount, currency, paymentDate, status } = req.body;
+
+    if (!subscriptionId || !amount || !paymentDate) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['subscriptionId', 'amount', 'paymentDate']
+      });
+    }
+
+    // Verify subscription exists
+    const subscription = await prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    // Check if transaction already exists
+    if (paypalTransactionId) {
+      const existing = await prisma.billingHistory.findUnique({
+        where: { paypalTransactionId },
+      });
+
+      if (existing) {
+        return res.status(400).json({ error: 'Transaction already exists', transactionId: paypalTransactionId });
+      }
+    }
+
+    const { createBillingHistory } = await import('../utils/subscriptionService.js');
+    
+    const billingHistory = await createBillingHistory(subscriptionId, {
+      invoiceNumber: invoiceNumber || `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      paypalTransactionId,
+      paypalSaleId,
+      amount: parseFloat(amount),
+      currency: currency || 'USD',
+      status: status || 'paid',
+      paymentDate: new Date(paymentDate),
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment record added successfully',
+      billingHistory,
+    });
+  } catch (error: any) {
+    console.error('Error adding manual payment:', error);
+    res.status(500).json({ error: 'Failed to add payment', details: error.message });
   }
 });
 
