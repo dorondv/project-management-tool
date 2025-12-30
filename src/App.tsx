@@ -99,37 +99,36 @@ function AppContent() {
     );
   }
 
-  if (!state.user) {
-    console.log('🟡 AppContent: No user found, showing AuthPage');
-    return <AuthPage />;
-  }
-
   console.log('🟡 AppContent: User found, showing main app');
 
   return (
     <Router>
-      <Layout>
-        <Routes>
-          {/* Public routes - always accessible */}
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/settings" element={<Settings />} />
-          
-          {/* Protected routes - require active subscription */}
-          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-          <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-          <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
-          {/* Team feature hidden for current version - keep for future use */}
-          {/* <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} /> */}
-          <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-          <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/admin/*" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-        </Routes>
-      </Layout>
+      {!state.user ? (
+        <AuthPage />
+      ) : (
+        <Layout>
+          <Routes>
+            {/* Public routes - always accessible */}
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/settings" element={<Settings />} />
+            
+            {/* Protected routes - require active subscription */}
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+            <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+            <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
+            {/* Team feature hidden for current version - keep for future use */}
+            {/* <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} /> */}
+            <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/admin/*" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          </Routes>
+        </Layout>
+      )}
       <Toaster
         position="top-right"
         toastOptions={{
