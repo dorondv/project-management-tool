@@ -17,15 +17,21 @@ const translations: Record<Locale, {
   monthlyPlan: string;
   save20Percent: string;
   perMonthAnnual: string;
+  perMonthAnnualFull: string;
   perMonthMonthly: string;
   annualDescription: string;
   monthlyDescription: string;
   everythingInMonthly: string;
   savings20Percent: string;
   highPrioritySupport: string;
-  fullAccess: string;
-  emailSupport: string;
-  cancelAnytime: string;
+  // Monthly plan features
+  freeTrialDays: string;
+  advancedTimer: string;
+  clientManagementSystem: string;
+  projectTaskManagement: string;
+  advancedClientValue: string;
+  builtInCalendar: string;
+  incomeManagement: string;
   chooseAnnualPlan: string;
   chooseMonthlyPlan: string;
   backToSettings: string;
@@ -49,15 +55,21 @@ const translations: Record<Locale, {
     monthlyPlan: 'Monthly Plan',
     save20Percent: 'Save 30%',
     perMonthAnnual: 'Per month (annual billing)',
+    perMonthAnnualFull: 'Per month in annual billing (renewing annual charge of $118.80)',
     perMonthMonthly: 'Renewing monthly charge',
     annualDescription: 'The best value, maximum savings.',
     monthlyDescription: 'Ideal for starting, full flexibility.',
     everythingInMonthly: 'Everything in the monthly plan, and more:',
-    savings20Percent: '30% Off',
+    savings20Percent: '30% savings',
     highPrioritySupport: 'High priority support',
-    fullAccess: 'Full access to all features',
-    emailSupport: 'Email support',
-    cancelAnytime: 'Cancel anytime',
+    // Monthly plan features
+    freeTrialDays: '5 days free trial',
+    advancedTimer: 'Advanced timer for time tracking and management',
+    clientManagementSystem: 'Client management system',
+    projectTaskManagement: 'Project and task management',
+    advancedClientValue: 'Advanced system for measuring client value',
+    builtInCalendar: 'Built-in calendar for managing all tasks',
+    incomeManagement: 'Income management',
     chooseAnnualPlan: 'Choose Annual Plan',
     chooseMonthlyPlan: 'Choose Monthly Plan',
     backToSettings: 'Back to Settings',
@@ -77,19 +89,25 @@ const translations: Record<Locale, {
   he: {
     pageTitle: 'בחר את התוכנית המושלמת עבורך',
     pageSubtitle: 'בחר את המסלול שמתאים לך והצטרף ל-sollo.',
-    annualPlan: 'תוכנית שנתית',
-    monthlyPlan: 'תוכנית חודשית',
+    annualPlan: 'תכנית שנתית',
+    monthlyPlan: 'תכנית חודשית',
     save20Percent: 'חסוך 30%',
-    perMonthAnnual: 'לחודש (חיוב שנתי)',
+    perMonthAnnual: 'לחודש בחיוב שנתי',
+    perMonthAnnualFull: 'לחודש בחיוב שנתי (חיוב שנתי מתחדש של $118.80)',
     perMonthMonthly: 'חיוב חודשי מתחדש',
-    annualDescription: 'התמורה הטובה ביותר, חסכון מקסימלי.',
+    annualDescription: 'התמורה הטובה ביותר, חיסכון מקסימלי.',
     monthlyDescription: 'אידיאלי להתחלה, גמישות מלאה.',
-    everythingInMonthly: 'כל מה שבחודשי, ועוד:',
+    everythingInMonthly: 'כל מה שבתכנית החודשית ועוד:',
     savings20Percent: 'חיסכון של 30%',
     highPrioritySupport: 'תמיכה בעדיפות גבוהה',
-    fullAccess: 'גישה מלאה לכל התכונות',
-    emailSupport: 'תמיכה במייל',
-    cancelAnytime: 'ביטול בכל עת',
+    // Monthly plan features
+    freeTrialDays: '5 ימי התנסות חינם',
+    advancedTimer: 'טיימר מתקדם למעקב וניהול זמן',
+    clientManagementSystem: 'מערכת ניהול לקוחות',
+    projectTaskManagement: 'ניהול פרויקטים ומשימות',
+    advancedClientValue: 'מערכת מתקדמת למדידת שווי לקוח',
+    builtInCalendar: 'לוח שנה מובנה לניהול כל המשימות',
+    incomeManagement: 'ניהול הכנסות',
     chooseAnnualPlan: 'בחר תוכנית שנתית',
     chooseMonthlyPlan: 'בחר תוכנית חודשית',
     backToSettings: 'חזרה להגדרות',
@@ -381,16 +399,19 @@ export default function Pricing() {
               {t.monthlyDescription}
             </p>
             <ul className={`space-y-2 mb-6 flex-grow ${isRTL ? 'text-right' : 'text-left'}`}>
-              <li className="text-gray-700 dark:text-gray-300">• {t.fullAccess}</li>
-              <li className="text-gray-700 dark:text-gray-300">• {t.emailSupport}</li>
-              <li className="text-gray-700 dark:text-gray-300">• {t.cancelAnytime}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.freeTrialDays}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.advancedTimer}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.clientManagementSystem}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.projectTaskManagement}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.advancedClientValue}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.builtInCalendar}</li>
+              <li className="text-gray-700 dark:text-gray-300">• {t.incomeManagement}</li>
             </ul>
             <Button
-              fullWidth
               variant="primary"
               onClick={() => handleChoosePlan('monthly')}
               disabled={!canSelectMonthlyPlan()}
-              className={`mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`mt-auto w-full sm:w-1/2 sm:mx-auto ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               {getMonthlyPlanButtonText()}
             </Button>
@@ -411,26 +432,22 @@ export default function Pricing() {
             <div className={`text-4xl font-bold text-primary-500 my-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               ${annualMonthlyPrice.toFixed(2)}
             </div>
-            <div className={`text-sm text-gray-500 dark:text-gray-400 mb-1 h-5 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t.perMonthAnnual}
-            </div>
-            <div className={`text-xs text-gray-500 dark:text-gray-400 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              ${annualYearlyPrice.toFixed(2)} {locale === 'he' ? 'תשלום שנתי' : 'Paid Yearly'}
+            <div className={`text-sm text-gray-500 dark:text-gray-400 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.perMonthAnnualFull}
             </div>
             <p className={`text-gray-600 dark:text-gray-300 mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t.annualDescription}
             </p>
             <ul className={`space-y-2 mb-6 flex-grow ${isRTL ? 'text-right' : 'text-left'}`}>
-              <li className="text-gray-700 dark:text-gray-300">• {t.everythingInMonthly}</li>
+              <li className="text-gray-700 dark:text-gray-300 font-semibold">• {t.everythingInMonthly}</li>
               <li className="text-gray-700 dark:text-gray-300">• {t.savings20Percent}</li>
               <li className="text-gray-700 dark:text-gray-300">• {t.highPrioritySupport}</li>
             </ul>
             <Button
-              fullWidth
               variant="primary"
               onClick={() => handleChoosePlan('annual')}
               disabled={!canSelectAnnualPlan()}
-              className={`mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`mt-auto w-full sm:w-1/2 sm:mx-auto ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               {canSelectAnnualPlan() ? t.chooseAnnualPlan : (locale === 'he' ? 'מנוי פעיל' : 'Active Subscription')}
             </Button>

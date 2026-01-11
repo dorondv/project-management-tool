@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../index.js';
+import { withRetry } from '../utils/prismaRetry.js';
 
 const router = Router();
 
@@ -49,35 +50,49 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/time-entries - Create time entry
 router.post('/', async (req, res) => {
+  const requestStartTime = Date.now();
   try {
-    const { customerId, projectId, taskId, description, startTime, endTime, hourlyRate, userId } = req.body;
+    const { customerId, projectId, taskId, description, startTime: startTimeStr, endTime: endTimeStr, hourlyRate, userId } = req.body;
     
-    const start = new Date(startTime);
-    const end = new Date(endTime);
+    const start = new Date(startTimeStr);
+    const end = new Date(endTimeStr);
     const duration = Math.floor((end.getTime() - start.getTime()) / 1000); // in seconds
-    const income = (duration / 3600) * hourlyRate;
+    // Use Number() to ensure proper numeric conversion and handle large values
+    const income = Number(((duration / 3600) * hourlyRate).toFixed(2));
     
-    const timeEntry = await prisma.timeEntry.create({
-      data: {
-        customerId,
-        projectId,
-        taskId,
-        description,
-        startTime: start,
-        endTime: end,
-        duration,
-        hourlyRate,
-        income,
-        userId,
-      },
-      include: {
-        customer: true,
-        task: true,
-        user: true,
-      },
+    // Create time entry without includes for faster write
+    // The frontend can fetch the full entry if needed
+    const createStartTime = Date.now();
+    const timeEntry = await withRetry(prisma, async () => {
+      return await prisma.timeEntry.create({
+        data: {
+          customerId,
+          projectId,
+          taskId,
+          description,
+          startTime: start,
+          endTime: end,
+          duration,
+          hourlyRate,
+          income,
+          userId,
+        },
+        // Removed includes for faster write - frontend can fetch separately if needed
+      });
     });
+    const createDuration = Date.now() - createStartTime;
+    
+    // Log slow saves for debugging (only in production or if > 5 seconds)
+    if (createDuration > 5000 || process.env.NODE_ENV === 'production') {
+      console.log(`⏱️  Time entry created in ${createDuration}ms (duration: ${duration}s, income: ${income})`);
+    }
+    
+    // Fetch relations separately if needed (optional optimization)
+    // For now, return the created entry without relations for faster response
     res.status(201).json(timeEntry);
   } catch (error: any) {
+    const totalDuration = Date.now() - requestStartTime;
+    console.error(`❌ Failed to create time entry after ${totalDuration}ms:`, error.message);
     res.status(500).json({ error: 'Failed to create time entry', details: error.message });
   }
 });

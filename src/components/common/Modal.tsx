@@ -56,18 +56,19 @@ export function Modal({ isOpen, onClose, title, titleIcon, children, size = 'md'
             dir={dir}
           >
             {title && (
-              <div className={`flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                <div className={`flex items-center gap-2 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+              <div className="relative flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2">
                   {titleIcon && <div className="text-gray-600 dark:text-gray-400">{titleIcon}</div>}
-                  <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {title}
                   </h3>
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className={`absolute top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-sm opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 ${dir === 'rtl' ? 'left-4' : 'right-4'}`}
                 >
                   <X size={20} />
+                  <span className="sr-only">Close</span>
                 </button>
               </div>
             )}

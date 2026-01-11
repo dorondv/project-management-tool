@@ -423,6 +423,19 @@ export default function Tasks() {
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         task={selectedTask}
+        onDelete={async (task) => {
+          if (window.confirm(locale === 'he' ? 'האם אתה בטוח שברצונך למחוק משימה זו?' : 'Are you sure you want to delete this task?')) {
+            try {
+              const { api } = await import('../utils/api');
+              await api.tasks.delete(task.id, state.user?.id);
+              dispatch({ type: 'DELETE_TASK', payload: task.id });
+              setSelectedTask(null);
+            } catch (error) {
+              console.error('Failed to delete task:', error);
+              throw error;
+            }
+          }
+        }}
       />
     </>
   );

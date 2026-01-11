@@ -113,17 +113,46 @@ export async function linkPayPalSubscription(
   paypalSubscriptionId: string,
   planType: 'monthly' | 'annual'
 ) {
-  // Fetch subscription details from PayPal to get trial period info
-  const { getSubscriptionDetails } = await import('./paypalService.js');
+  // Fetch subscription details from PayPal to get trial period info and verify plan type
+  const { getSubscriptionDetails, getPlanTypeFromPayPalPlanId, getPayPalPlanId } = await import('./paypalService.js');
   let paypalSubscriptionDetails: any = null;
   let trialEndDate: Date | null = null;
+  let actualPlanType: 'monthly' | 'annual' = planType; // Default to frontend-provided plan type
 
   try {
     paypalSubscriptionDetails = await getSubscriptionDetails(paypalSubscriptionId);
     trialEndDate = extractTrialEndDateFromPayPal(paypalSubscriptionDetails);
+    
+    // Verify plan type by checking PayPal subscription's actual plan_id
+    if (paypalSubscriptionDetails?.plan_id) {
+      const paypalPlanId = paypalSubscriptionDetails.plan_id;
+      const detectedPlanType = getPlanTypeFromPayPalPlanId(paypalPlanId);
+      
+      if (detectedPlanType) {
+        actualPlanType = detectedPlanType;
+        
+        // Log warning if frontend plan type doesn't match PayPal's actual plan
+        if (detectedPlanType !== planType) {
+          console.warn(`⚠️  Plan type mismatch detected!`, {
+            paypalSubscriptionId,
+            frontendPlanType: planType,
+            paypalPlanId,
+            actualPlanType: detectedPlanType,
+            message: `Frontend sent planType="${planType}" but PayPal subscription has plan_id="${paypalPlanId}" which maps to "${detectedPlanType}". Using actual plan type from PayPal.`
+          });
+        } else {
+          console.log(`✅ Plan type verified: ${planType} matches PayPal plan_id ${paypalPlanId}`);
+        }
+      } else {
+        console.warn(`⚠️  Unknown PayPal plan ID: ${paypalPlanId}. Using frontend-provided plan type: ${planType}`);
+      }
+    } else {
+      console.warn(`⚠️  Could not find plan_id in PayPal subscription details. Using frontend-provided plan type: ${planType}`);
+    }
   } catch (error: any) {
     console.warn('Could not fetch PayPal subscription details for trial period:', error.message);
     // Continue without trial end date - we'll detect it from billing history
+    // Use frontend-provided plan type as fallback
   }
 
   // Check if user already has a subscription
@@ -137,11 +166,14 @@ export async function linkPayPalSubscription(
     },
   });
 
-  const paypalPlanId = getPayPalPlanId(planType);
-  const price = planType === 'monthly' ? 12.90 : 118.80;
+  // Use actual plan type determined from PayPal (or fallback to frontend-provided)
+  const finalPlanType = actualPlanType;
+  const paypalPlanId = getPayPalPlanId(finalPlanType);
+  const price = finalPlanType === 'monthly' ? 12.90 : 118.80;
 
   // Handle upgrade from monthly to annual
-  if (existingSubscription && existingSubscription.planType === 'monthly' && planType === 'annual') {
+  // Use finalPlanType (from PayPal) instead of planType (from frontend)
+  if (existingSubscription && existingSubscription.planType === 'monthly' && finalPlanType === 'annual') {
     console.log(`🔄 Upgrading user ${userId} from monthly to annual subscription`);
     
     // Store the old monthly PayPal subscription ID for later cancellation
@@ -193,8 +225,9 @@ export async function linkPayPalSubscription(
   }
   
   // If PayPal provided trial end date, use it; otherwise use calculated one
+  // Use finalPlanType (from PayPal) instead of planType (from frontend)
   const subscriptionData: any = {
-    planType,
+    planType: finalPlanType,
     status: finalTrialEndDate && new Date() < finalTrialEndDate ? 'trialing' : 'active',
     paypalSubscriptionId,
     paypalPlanId,
@@ -215,7 +248,8 @@ export async function linkPayPalSubscription(
     });
   } else {
     // Create new subscription with 5-day trial
-    return await createSubscription(userId, planType, {
+    // Use finalPlanType (from PayPal) instead of planType (from frontend)
+    return await createSubscription(userId, finalPlanType, {
       paypalSubscriptionId,
       paypalPlanId,
       price,

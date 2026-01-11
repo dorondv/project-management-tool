@@ -120,15 +120,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       return;
     }
 
-    // If no subscription, redirect to pricing
+    // If no subscription, redirect to landing page
     if (!subscription || !access) {
-      const isHebrew = state.locale === 'he';
-      toast.error(
-        isHebrew 
-          ? 'נא לבחור תוכנית כדי להמשיך'
-          : 'Please select a plan to continue'
-      );
-      navigate('/pricing');
+      navigate('/landing');
       return;
     }
 
@@ -144,15 +138,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     });
 
     if (!access.hasFullAccess) {
-      // User doesn't have active access - redirect to pricing
-      const isHebrew = state.locale === 'he';
-      console.log('❌ ProtectedRoute: Access denied, redirecting to pricing');
-      toast.error(
-        isHebrew 
-          ? 'נא לבחור תוכנית כדי להמשיך'
-          : 'Please select a plan to continue'
-      );
-      navigate('/pricing');
+      // User doesn't have active access - redirect to landing page
+      console.log('❌ ProtectedRoute: Access denied, redirecting to landing page');
+      navigate('/landing');
     } else {
       console.log('✅ ProtectedRoute: Access granted');
     }

@@ -174,10 +174,10 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
           <div className={`flex items-center ${isCollapsed ? 'justify-center relative' : 'justify-between'}`}>
             {isCollapsed ? (
               <>
-                <div className="rounded-lg p-1 bg-transparent">
+                <Link to="/landing" className="rounded-lg p-1 bg-transparent">
                   <img 
                     src="/assets/png/sollo Inverted Color Transparent bg.svg" 
-                    alt="SOLO" 
+                    alt="SOLLO" 
                     className="h-8 w-8 object-contain"
                     style={{ backgroundColor: 'transparent', background: 'transparent' }}
                     onError={(e) => {
@@ -188,7 +188,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                       }
                     }}
                   />
-                </div>
+                </Link>
                 <button
                   onClick={() => setIsCollapsed(!isCollapsed)}
                   className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-4 p-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors`}
@@ -198,10 +198,13 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
               </>
             ) : (
               <>
-                <div className={`flex items-center ${isRTL ? 'justify-end flex-row-reverse gap-2' : 'gap-2'} rounded-lg p-1 bg-transparent`}>
+                <Link 
+                  to="/landing" 
+                  className={`flex items-center ${isRTL ? 'justify-end flex-row-reverse gap-2' : 'gap-2'} rounded-lg p-1 bg-transparent hover:opacity-80 transition-opacity`}
+                >
                   <img 
                     src="/assets/png/sollo Inverted Color Transparent bg.svg" 
-                    alt="SOLO" 
+                    alt="SOLLO" 
                     className="h-8 object-contain"
                     style={{ backgroundColor: 'transparent', background: 'transparent' }}
                     onError={(e) => {
@@ -212,7 +215,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                       }
                     }}
                   />
-                </div>
+                </Link>
                 <button
                   onClick={() => {
                     setIsCollapsed(!isCollapsed);

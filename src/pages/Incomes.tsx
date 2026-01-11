@@ -15,6 +15,10 @@ const translations: Record<
     pageSubtitle: string;
     newIncome: string;
     searchPlaceholder: string;
+    customerFilter: {
+      label: string;
+      all: string;
+    };
     periodSelector: {
       currentMonth: string;
       lastMonth: string;
@@ -49,6 +53,10 @@ const translations: Record<
     pageSubtitle: 'Track all your incomes',
     newIncome: 'New Income',
     searchPlaceholder: 'Search incomes...',
+    customerFilter: {
+      label: 'Customer',
+      all: 'All Customers',
+    },
     periodSelector: {
       currentMonth: 'This Month',
       lastMonth: 'Last Month',
@@ -82,6 +90,10 @@ const translations: Record<
     pageSubtitle: 'עקוב אחר כל ההכנסות שלך',
     newIncome: 'הכנסה חדשה',
     searchPlaceholder: 'חיפוש הכנסות...',
+    customerFilter: {
+      label: 'לקוח',
+      all: 'כל הלקוחות',
+    },
     periodSelector: {
       currentMonth: 'החודש הנוכחי',
       lastMonth: 'החודש הקודם',
@@ -138,6 +150,7 @@ export default function Incomes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [customerFilter, setCustomerFilter] = useState<string>('all');
   
   // Period selection state
   const [period, setPeriod] = useState<'currentMonth' | 'lastMonth' | 'currentYear' | 'lastYear' | 'custom'>('currentMonth');
@@ -183,17 +196,21 @@ export default function Incomes() {
   const filteredIncomes = useMemo(() => {
     return state.incomes.filter(income => {
       const incomeDate = new Date(income.incomeDate);
-      return incomeDate >= start && incomeDate <= end;
+      const matchesDate = incomeDate >= start && incomeDate <= end;
+      const matchesCustomer = customerFilter === 'all' || income.customerId === customerFilter || income.customerName === customerFilter;
+      return matchesDate && matchesCustomer;
     });
-  }, [state.incomes, start, end]);
+  }, [state.incomes, start, end, customerFilter]);
 
   // Filter incomes for previous period
   const previousPeriodIncomes = useMemo(() => {
     return state.incomes.filter(income => {
       const incomeDate = new Date(income.incomeDate);
-      return incomeDate >= previousPeriod.start && incomeDate <= previousPeriod.end;
+      const matchesDate = incomeDate >= previousPeriod.start && incomeDate <= previousPeriod.end;
+      const matchesCustomer = customerFilter === 'all' || income.customerId === customerFilter || income.customerName === customerFilter;
+      return matchesDate && matchesCustomer;
     });
-  }, [state.incomes, previousPeriod.start, previousPeriod.end]);
+  }, [state.incomes, previousPeriod.start, previousPeriod.end, customerFilter]);
 
   // Calculate active customers in the period
   const activeCustomers = useMemo(() => {
@@ -330,6 +347,23 @@ export default function Incomes() {
             <option value="custom">{t.periodSelector.custom}</option>
           </select>
           <CalendarIcon className={`absolute ${isRTL ? 'left-2' : 'right-2'} top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none`} size={16} />
+        </div>
+
+        {/* Customer Filter */}
+        <div className="relative">
+          <select
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className={`w-[220px] h-12 px-3 py-2 ${isRTL ? 'pr-8 pl-8' : 'pr-8'} bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${isRTL ? 'text-right' : 'text-left'} appearance-none`}
+          >
+            <option value="all">{t.customerFilter.all}</option>
+            {state.customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+              </option>
+            ))}
+          </select>
+          <Users className={`absolute ${isRTL ? 'left-2' : 'right-2'} top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none`} size={16} />
         </div>
 
         {period === 'custom' && (
