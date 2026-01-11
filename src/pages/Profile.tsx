@@ -118,11 +118,12 @@ export default function Profile() {
   const isRTL = locale === 'he';
   const t = translations[locale];
   const alignStart = isRTL ? 'text-right' : 'text-left';
+  const isAdmin = state.user?.role === 'admin';
 
   const [profileData, setProfileData] = useState({
     name: state.user?.name || '',
     email: state.user?.email || '',
-    role: state.user?.role || 'contributor',
+    role: state.user?.role || 'manager',
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -155,10 +156,10 @@ export default function Profile() {
     if (state.user && !isSaving) {
       setIsSaving(true);
       
-      // Prevent non-admin users from setting admin role
-      const allowedRole = profileData.role === 'admin' && state.user.role !== 'admin' 
-        ? state.user.role 
-        : (profileData.role as 'manager' | 'contributor');
+      // Role rules:
+      // - Non-admin users are always managers
+      // - Admin users are always admins
+      const allowedRole: 'admin' | 'manager' = isAdmin ? 'admin' : 'manager';
       
       const updatedUser = {
         ...state.user,
@@ -241,7 +242,7 @@ export default function Profile() {
             <Avatar
               src={avatarPreview || state.user.avatar}
               alt={state.user.name}
-              size="xl"
+              className="w-12 h-12"
               isOnline={state.user.isOnline}
             />
             <label
@@ -297,15 +298,14 @@ export default function Profile() {
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
               {t.role}
             </label>
-            <select
-              value={profileData.role}
-              onChange={(e) => setProfileData({ ...profileData, role: e.target.value })}
-              disabled={isSaving}
-              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed ${alignStart}`}
-            >
-              <option value="contributor">{t.contributor}</option>
-              <option value="manager">{t.manager}</option>
-            </select>
+            {isAdmin ? (
+              <input
+                type="text"
+                value={t.admin}
+                disabled
+                className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white opacity-80 ${alignStart}`}
+              />
+            ) : null}
           </div>
 
           <div className={`flex gap-3 pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>

@@ -20,7 +20,9 @@ if (dbNormalization.maskedUrl) {
 // DATABASE_URL should include: pgbouncer=true&connection_limit=10&sslmode=require
 // This allows parallel queries while preventing connection exhaustion
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  log: process.env.NODE_ENV === 'development' 
+    ? ['error', 'warn'] 
+    : ['error'], // Only log errors in production to reduce noise
   // Connection pool optimization is handled via DATABASE_URL parameters
   // For better performance with Supabase:
   // - Use connection pooling (pgbouncer=true)
@@ -28,6 +30,11 @@ const prisma = new PrismaClient({
   // - Enable SSL (sslmode=require)
   // Note: With pgbouncer transaction mode, we can safely use 10 connections
   // Prisma will automatically reconnect on connection errors (P1017)
+  // 
+  // NOTE: You may see "Error in PostgreSQL connection: Error { kind: Closed }" messages
+  // These are EXPECTED and NORMAL with pgbouncer - Prisma handles them automatically.
+  // PgBouncer closes idle connections, and Prisma reconnects on the next query.
+  // These errors don't affect functionality and can be safely ignored.
 });
 import { usersRouter } from './routes/users.js';
 import { projectsRouter } from './routes/projects.js';
@@ -160,6 +167,31 @@ export { io };
 import { initSocketService } from './utils/socketService.js';
 initSocketService(io);
 
+// Warm up database connection pool
+async function warmupConnectionPool() {
+  try {
+    console.log('🔥 Warming up database connection pool...');
+    const warmupStart = Date.now();
+    
+    // Execute queries sequentially (not in parallel) to avoid connection pool exhaustion
+    // PgBouncer in transaction mode works better with sequential queries
+    // This helps prevent cold start delays on the first real query
+    await prisma.$queryRaw`SELECT 1`;
+    await prisma.$queryRaw`SELECT NOW()`;
+    
+    const warmupDuration = Date.now() - warmupStart;
+    console.log(`✅ Connection pool warmed up in ${warmupDuration}ms`);
+  } catch (error: any) {
+    // Suppress connection errors during warmup - they're non-critical
+    // Prisma will reconnect automatically on the next query
+    if (error.message?.includes('Closed') || error.code === 'P1017') {
+      console.log('ℹ️  Connection warmup completed (some connections may have been recycled by pgbouncer - this is normal)');
+    } else {
+      console.warn('⚠️  Connection pool warmup failed (non-critical):', error.message);
+    }
+  }
+}
+
 // Test database connection on startup
 async function startServer() {
   // Start the HTTP server (which includes WebSocket support)
@@ -172,9 +204,15 @@ async function startServer() {
   
   // Test connection in background (don't block server startup)
   try {
+    const connectStart = Date.now();
     await prisma.$connect();
     await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ Database connection test successful');
+    const connectDuration = Date.now() - connectStart;
+    console.log(`✅ Database connection test successful (${connectDuration}ms)`);
+    
+    // Warm up connection pool after initial connection
+    // This helps prevent cold start delays on deployment servers
+    await warmupConnectionPool();
   } catch (error: any) {
     console.error('❌ Database connection test failed:', error.message);
     console.warn('⚠️  Server started but database queries may fail');

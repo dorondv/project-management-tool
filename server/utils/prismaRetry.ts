@@ -17,13 +17,17 @@ export function isConnectionError(error: any): boolean {
   // Prisma error code for closed connection
   if (error.code === 'P1017') return true;
   
+  // Check for Rust error kind "Closed" (from Prisma's Rust engine)
+  if (error.kind === 'Closed' || error.cause?.kind === 'Closed') return true;
+  
   // Check error message for connection-related issues
   const message = error.message?.toLowerCase() || '';
   return (
     message.includes('server has closed the connection') ||
     message.includes('connection closed') ||
     message.includes('can\'t reach database server') ||
-    message.includes('connection terminated')
+    message.includes('connection terminated') ||
+    message.includes('error in postgresql connection')
   );
 }
 

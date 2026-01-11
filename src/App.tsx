@@ -20,6 +20,7 @@ import Pricing from './pages/Pricing';
 import Payment from './pages/Payment';
 import Profile from './pages/Profile';
 import Admin from './pages/admin/Admin';
+import Landing from './pages/Landing';
 import { Loader2 } from 'lucide-react';
 
 function AppContent() {
@@ -104,30 +105,40 @@ function AppContent() {
   return (
     <Router>
       {!state.user ? (
-        <AuthPage />
+        <Routes>
+          <Route path="*" element={<AuthPage />} />
+        </Routes>
       ) : (
-        <Layout>
-          <Routes>
-            {/* Public routes - always accessible */}
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/payment" element={<Payment />} />
-            <Route path="/settings" element={<Settings />} />
-            
-            {/* Protected routes - require active subscription */}
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-            <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-            <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
-            {/* Team feature hidden for current version - keep for future use */}
-            {/* <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} /> */}
-            <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/admin/*" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-          </Routes>
-        </Layout>
+        <Routes>
+          {/* Landing page without layout - standalone marketing page */}
+          <Route path="/landing" element={<Landing />} />
+          
+          {/* All other routes with layout */}
+          <Route path="*" element={
+            <Layout>
+              <Routes>
+                {/* Public routes - always accessible */}
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/payment" element={<Payment />} />
+                <Route path="/settings" element={<Settings />} />
+                
+                {/* Protected routes - require active subscription */}
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+                <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+                <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
+                {/* Team feature hidden for current version - keep for future use */}
+                {/* <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} /> */}
+                <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/admin/*" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              </Routes>
+            </Layout>
+          } />
+        </Routes>
       )}
       <Toaster
         position="top-right"
