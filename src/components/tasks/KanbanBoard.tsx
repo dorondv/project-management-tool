@@ -190,6 +190,12 @@ export function KanbanBoard({ tasks, onEdit, onDelete }: KanbanBoardProps = { ta
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         task={selectedTask}
+        onDelete={onDelete ? async (task) => {
+          if (onDelete) {
+            await onDelete(task);
+            setSelectedTask(null);
+          }
+        } : undefined}
       />
 
       <CreateTaskModal

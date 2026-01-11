@@ -17,7 +17,7 @@ model User {
   id                String   @id @default(uuid())
   name              String
   email             String   @unique
-  role              String   @default("contributor") // admin, manager, contributor
+  role              String   @default("manager") // admin, manager, contributor
   avatar            String?
   isOnline          Boolean  @default(false)
   preferredLanguage String   @default("he") // en, he

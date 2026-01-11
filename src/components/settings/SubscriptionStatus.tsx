@@ -563,7 +563,8 @@ export function SubscriptionStatus() {
         <Button
           variant="primary"
           onClick={() => navigate('/pricing')}
-          className={`flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}
+          size="sm"
+          className={`${isRTL ? 'flex-row-reverse' : ''}`}
         >
           {subscriptionData?.subscription?.status === 'active' || subscriptionData?.subscription?.status === 'trialing' ? (
             <>

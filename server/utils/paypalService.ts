@@ -127,6 +127,20 @@ export function getPayPalPlanId(planType: 'monthly' | 'annual'): string {
 }
 
 /**
+ * Determine plan type from PayPal plan ID
+ * Returns 'monthly' | 'annual' | null if plan ID doesn't match known plans
+ */
+export function getPlanTypeFromPayPalPlanId(planId: string): 'monthly' | 'annual' | null {
+  if (planId === PAYPAL_PLAN_MONTHLY) {
+    return 'monthly';
+  }
+  if (planId === PAYPAL_PLAN_ANNUAL) {
+    return 'annual';
+  }
+  return null;
+}
+
+/**
  * Get subscription details from PayPal
  */
 export async function getSubscriptionDetails(subscriptionId: string): Promise<any> {

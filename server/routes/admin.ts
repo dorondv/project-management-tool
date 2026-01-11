@@ -282,7 +282,7 @@ router.post('/users', async (req, res) => {
       data: {
         name,
         email,
-        role: 'contributor',
+        role: 'manager',
       },
     });
 

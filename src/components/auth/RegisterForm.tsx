@@ -12,8 +12,10 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ onToggleMode }: RegisterFormProps) {
-  const { dispatch } = useApp();
+  const { dispatch, state } = useApp();
   const navigate = useNavigate();
+  const locale = state.locale || 'en';
+  const isRTL = locale === 'he';
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,16 +25,65 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const translations = {
+    en: {
+      title: 'Create Account',
+      subtitle: 'Join SOLLO and start managing your projects',
+      name: 'Full Name',
+      namePlaceholder: 'Enter your full name',
+      email: 'Email Address',
+      emailPlaceholder: 'Enter your email',
+      password: 'Password',
+      passwordPlaceholder: 'Create a password',
+      confirmPassword: 'Confirm Password',
+      confirmPasswordPlaceholder: 'Confirm your password',
+      agreeTerms: 'I agree to the',
+      termsOfService: 'Terms of Service',
+      and: 'and',
+      privacyPolicy: 'Privacy Policy',
+      createAccount: 'Create Account',
+      alreadyHaveAccount: 'Already have an account?',
+      signIn: 'Sign in',
+      passwordsNotMatch: 'Passwords do not match',
+      passwordTooShort: 'Password must be at least 6 characters',
+      welcome: 'Welcome to SOLLO',
+    },
+    he: {
+      title: 'יצירת חשבון',
+      subtitle: 'הצטרף ל SOLLO והתחל לנהל את הפרויקטים שלך',
+      name: 'שם מלא',
+      namePlaceholder: 'הכנס את שמך המלא',
+      email: 'כתובת אימייל',
+      emailPlaceholder: 'הכנס את כתובת האימייל שלך',
+      password: 'סיסמה',
+      passwordPlaceholder: 'צור סיסמה',
+      confirmPassword: 'אישור סיסמה',
+      confirmPasswordPlaceholder: 'אשר את הסיסמה שלך',
+      agreeTerms: 'אני מסכים ל',
+      termsOfService: 'תנאי השירות',
+      and: 'ו',
+      privacyPolicy: 'מדיניות הפרטיות',
+      createAccount: 'צור חשבון',
+      alreadyHaveAccount: 'כבר יש לך חשבון?',
+      signIn: 'התחבר',
+      passwordsNotMatch: 'הסיסמאות אינן תואמות',
+      passwordTooShort: 'הסיסמה חייבת להכיל לפחות 6 תווים',
+      welcome: 'ברוך הבא ל SOLLO',
+    },
+  };
+
+  const t = translations[locale as 'en' | 'he'];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t.passwordsNotMatch);
       return;
     }
 
     if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t.passwordTooShort);
       return;
     }
 
@@ -69,7 +120,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           id: authData.user.id,
           name: formData.name,
           email: formData.email,
-          role: 'contributor' as const,
+          role: 'manager' as const,
           avatar: authData.user.user_metadata?.avatar_url,
           isOnline: true,
         };
@@ -88,7 +139,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
         dispatch({ type: 'SET_USER', payload: newUser });
         dispatch({ type: 'SET_AUTHENTICATED', payload: true });
         
-        toast.success(`Welcome to SOLO, ${newUser.name}!`);
+        toast.success(`${t.welcome}, ${newUser.name}!`);
         
         // Redirect to pricing page to select a plan
         navigate('/pricing');
@@ -111,66 +162,69 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           <UserPlus className="w-8 h-8 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Create Account
+          {t.title}
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Join SOLO and start managing your projects
+          {t.subtitle}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Full Name
+            {t.name}
           </label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="Enter your full name"
+              className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white`}
+              placeholder={t.namePlaceholder}
               required
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email Address
+            {t.email}
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="Enter your email"
+              className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white`}
+              placeholder={t.emailPlaceholder}
               required
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Password
+            {t.password}
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
             <input
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="Create a password"
+              className={`w-full ${isRTL ? 'pr-12 pl-4' : 'pl-10 pr-12'} py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white`}
+              placeholder={t.passwordPlaceholder}
               required
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300`}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -179,35 +233,36 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Confirm Password
+            {t.confirmPassword}
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
             <input
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="Confirm your password"
+              className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white`}
+              placeholder={t.confirmPasswordPlaceholder}
               required
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
           </div>
         </div>
 
-        <div className="flex items-center">
+        <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
           <input
             type="checkbox"
             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             required
           />
-          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-            I agree to the{' '}
+          <span className={`${isRTL ? 'mr-2' : 'ml-2'} text-sm text-gray-600 dark:text-gray-400`}>
+            {t.agreeTerms}{' '}
             <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
-              Terms of Service
+              {t.termsOfService}
             </a>{' '}
-            and{' '}
+            {t.and}{' '}
             <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
-              Privacy Policy
+              {t.privacyPolicy}
             </a>
           </span>
         </div>
@@ -218,18 +273,18 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           loading={loading}
           icon={<UserPlus size={20} />}
         >
-          Create Account
+          {t.createAccount}
         </Button>
       </form>
 
-      <div className="mt-6 text-center">
+      <div className={`mt-6 text-center ${isRTL ? 'rtl' : ''}`}>
         <p className="text-gray-600 dark:text-gray-400">
-          Already have an account?{' '}
+          {t.alreadyHaveAccount}{' '}
           <button
             onClick={onToggleMode}
             className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium"
           >
-            Sign in
+            {t.signIn}
           </button>
         </p>
       </div>

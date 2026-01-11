@@ -17,6 +17,7 @@ const projectTranslations = {
     subtitle: 'Manage and track all your projects in one place',
     newProject: 'New Project',
     searchPlaceholder: 'Search projects...',
+    filtersLabel: 'Filters:',
     status: {
       all: 'All Status',
       planning: 'Planning',
@@ -38,6 +39,7 @@ const projectTranslations = {
     subtitle: 'נהלו ועקבו אחרי כל הפרויקטים במקום אחד',
     newProject: 'פרויקט חדש',
     searchPlaceholder: 'חיפוש פרויקטים...',
+    filtersLabel: 'פילטרים:',
     status: {
       all: 'כל הסטטוסים',
       planning: 'בתכנון',
@@ -58,7 +60,7 @@ const projectTranslations = {
 
 export default function Projects() {
   const { state, dispatch } = useApp();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -172,8 +174,35 @@ export default function Projects() {
       </div>
 
       {/* Filters */}
-      <div className={`flex flex-col sm:flex-row gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-        <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
+      <div
+        className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
+            <Filter className="w-4 h-4" />
+            <span>{t.filtersLabel}</span>
+          </div>
+
+          {/* Search (keep on the right in RTL, like the mockup) */}
+          <div className="w-48">
+            <div className="relative">
+              <Search
+                className={`absolute ${searchIconPosition} top-1/2 transform -translate-y-1/2 text-gray-400`}
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder={t.searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full ${searchPadding} py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent ${alignStart} text-sm`}
+              />
+            </div>
+          </div>
+
+          {/* Filters (sit immediately after search) */}
+          <div className="flex flex-wrap gap-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -206,17 +235,6 @@ export default function Projects() {
             {t.moreFilters}
           </Button>
         </div>
-        <div className="flex-1">
-          <div className="relative">
-            <Search className={`absolute ${searchIconPosition} top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
-            <input
-              type="text"
-              placeholder={t.searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full ${searchPadding} py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent ${alignStart} text-sm`}
-            />
-          </div>
         </div>
       </div>
 

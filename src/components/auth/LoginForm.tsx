@@ -11,13 +11,46 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onToggleMode }: LoginFormProps) {
-  const { dispatch } = useApp();
+  const { dispatch, state } = useApp();
+  const locale = state.locale || 'en';
+  const isRTL = locale === 'he';
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const translations = {
+    en: {
+      welcome: 'Welcome Back',
+      subtitle: 'Sign in to your SOLLO account',
+      email: 'Email Address',
+      emailPlaceholder: 'Enter your email',
+      password: 'Password',
+      passwordPlaceholder: 'Enter your password',
+      rememberMe: 'Remember me',
+      forgotPassword: 'Forgot password?',
+      signIn: 'Sign In',
+      noAccount: "Don't have an account?",
+      signUp: 'Sign up',
+    },
+    he: {
+      welcome: 'ברוך הבא',
+      subtitle: 'ברוך הבא ל SOLLO',
+      email: 'כתובת אימייל',
+      emailPlaceholder: 'הכנס את כתובת האימייל שלך',
+      password: 'סיסמה',
+      passwordPlaceholder: 'הכנס את הסיסמה שלך',
+      rememberMe: 'זכור אותי',
+      forgotPassword: 'שכחת סיסמה?',
+      signIn: 'התחבר',
+      noAccount: 'אין לך חשבון?',
+      signUp: 'הירשם',
+    },
+  };
+
+  const t = translations[locale as 'en' | 'he'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +108,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
                 id: data.user.id,
                 name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
                 email: data.user.email || '',
-                role: 'contributor' as const,
+                role: 'manager' as const,
                 avatar: data.user.user_metadata?.avatar_url,
                 isOnline: true,
               };
@@ -116,7 +149,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
             id: data.user.id,
             name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
             email: data.user.email || '',
-            role: 'contributor' as const,
+            role: 'manager' as const,
             avatar: data.user.user_metadata?.avatar_url,
             isOnline: true,
           };
@@ -150,70 +183,72 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
           <LogIn className="w-8 h-8 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Welcome Back
+          {t.welcome}
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Sign in to your SOLO account
+          {t.subtitle}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email Address
+            {t.email}
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="Enter your email"
+              className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white`}
+              placeholder={t.emailPlaceholder}
               required
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Password
+            {t.password}
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
             <input
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="Enter your password"
+              className={`w-full ${isRTL ? 'pr-12 pl-4' : 'pl-10 pr-12'} py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white`}
+              placeholder={t.passwordPlaceholder}
               required
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300`}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
           <label className="flex items-center">
             <input
               type="checkbox"
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
-            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-              Remember me
+            <span className={`${isRTL ? 'mr-2' : 'ml-2'} text-sm text-gray-600 dark:text-gray-400`}>
+              {t.rememberMe}
             </span>
           </label>
           <button
             type="button"
             className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
           >
-            Forgot password?
+            {t.forgotPassword}
           </button>
         </div>
 
@@ -223,18 +258,18 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
           loading={loading}
           icon={<LogIn size={20} />}
         >
-          Sign In
+          {t.signIn}
         </Button>
       </form>
 
-      <div className="mt-6 text-center">
+      <div className={`mt-6 text-center ${isRTL ? 'rtl' : ''}`}>
         <p className="text-gray-600 dark:text-gray-400">
-          Don't have an account?{' '}
+          {t.noAccount}{' '}
           <button
             onClick={onToggleMode}
             className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium"
           >
-            Sign up
+            {t.signUp}
           </button>
         </p>
       </div>
