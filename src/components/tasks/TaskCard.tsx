@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, Edit, Trash2, Calendar } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Calendar, Building2 } from 'lucide-react';
 import { Task, Locale } from '../../types';
 import { formatDate } from '../../utils/dateUtils';
 import { useApp } from '../../context/AppContext';
@@ -37,9 +37,12 @@ export function TaskCard({ task, onClick, isDragging = false, onEdit, onDelete }
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   
-  // Get project name
+  // Get project name and customer
   const project = state.projects.find(p => p.id === task.projectId);
   const projectName = project?.title || '';
+  const customer = project?.customerId 
+    ? state.customers.find(c => c.id === project.customerId) 
+    : null;
 
   // Get status-based colors
   const getStatusColors = () => {
@@ -168,16 +171,22 @@ export function TaskCard({ task, onClick, isDragging = false, onEdit, onDelete }
         )}
       </div>
       
-      <div className={`flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex flex-col gap-2 text-xs text-gray-500 dark:text-gray-400 ${isRTL ? 'items-end' : 'items-start'}`}>
         <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Calendar className="w-3 h-3" />
           <span>{task.dueDate ? formatDate(task.dueDate) : (locale === 'he' ? 'ללא תאריך' : 'No date')}</span>
         </div>
         
-        <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {projectName && (
             <div className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs truncate max-w-[80px]">
               {projectName}
+            </div>
+          )}
+          {customer && (
+            <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''} bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded text-xs`}>
+              <Building2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+              <span className="text-blue-700 dark:text-blue-300 truncate max-w-[80px]">{customer.name}</span>
             </div>
           )}
         </div>

@@ -54,7 +54,9 @@ router.post('/', async (req, res) => {
         update: {
           name: name || undefined,
           email: email || undefined,
-          role: role || undefined,
+          // Never allow non-admin role changes via this endpoint; default everyone to manager.
+          // Admin role is handled by admin flows.
+          role: role === 'admin' ? 'admin' : (role ? 'manager' : undefined),
           avatar: avatar !== undefined ? avatar : undefined,
           isOnline: isOnline !== undefined ? isOnline : undefined,
           preferredLanguage: preferredLanguage || undefined,
@@ -63,7 +65,7 @@ router.post('/', async (req, res) => {
           id,
           name,
           email,
-          role: role || 'contributor',
+          role: role === 'admin' ? 'admin' : 'manager',
           avatar,
           isOnline: isOnline ?? false,
           preferredLanguage: preferredLanguage || 'he',
@@ -77,7 +79,7 @@ router.post('/', async (req, res) => {
       data: {
         name,
         email,
-        role: role || 'contributor',
+        role: role === 'admin' ? 'admin' : 'manager',
         avatar,
         isOnline: isOnline ?? false,
         preferredLanguage: preferredLanguage || 'he',
@@ -106,22 +108,18 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Prevent non-admin users from setting admin role
-    if (role === 'admin' && currentUser.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can grant admin role' });
-    }
-
-    // Prevent non-admin users from changing their role to admin
-    if (role === 'admin' && req.params.id === currentUser.id && currentUser.role !== 'admin') {
-      return res.status(403).json({ error: 'You cannot change your own role to admin' });
-    }
+    // Role rules:
+    // - Non-admin users are always managers
+    // - Admin users are always admins
+    const roleToPersist =
+      currentUser.role === 'admin' ? 'admin' : 'manager';
 
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: {
         ...(name && { name }),
         ...(email && { email }),
-        ...(role && { role }),
+        ...(role && { role: roleToPersist }),
         ...(avatar !== undefined && { avatar }),
         ...(isOnline !== undefined && { isOnline }),
         ...(preferredLanguage && { preferredLanguage }),

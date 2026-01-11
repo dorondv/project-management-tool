@@ -190,11 +190,16 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
             </div>
           )}
 
-          {project.description && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl line-clamp-2">
-              {project.description}
-            </p>
-          )}
+          {/* Keep cards uniform height: always reserve space for description (even if empty) */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl min-h-[64px]">
+            {project.description ? (
+              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                {project.description}
+              </p>
+            ) : (
+              <span className="opacity-0 select-none text-sm">placeholder</span>
+            )}
+          </div>
 
           <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
             <span className="text-sm text-gray-500 dark:text-gray-400">{t.estimatedHours}:</span>
