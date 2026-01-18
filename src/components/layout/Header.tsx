@@ -138,6 +138,7 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                     <Avatar
                       src={state.user?.avatar}
                       alt={state.user?.name}
+                      name={state.user?.name}
                       size="sm"
                       className="!w-11 !h-11"
                       isOnline={state.user?.isOnline}
@@ -240,6 +241,7 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                     <Avatar
                       src={state.user?.avatar}
                       alt={state.user?.name}
+                      name={state.user?.name}
                       size="sm"
                       className="!w-11 !h-11"
                       isOnline={state.user?.isOnline}

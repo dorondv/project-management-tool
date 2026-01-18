@@ -106,6 +106,7 @@ export default function Team() {
                   <Avatar
                     src={user!.avatar}
                     alt={user!.name}
+                    name={user!.name}
                     size="lg"
                     isOnline={user!.isOnline}
                   />

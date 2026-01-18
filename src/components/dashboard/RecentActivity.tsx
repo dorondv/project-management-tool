@@ -49,6 +49,7 @@ export function RecentActivity() {
               <Avatar
                 src={activity.user?.avatar}
                 alt={activity.user?.name || (locale === 'he' ? 'משתמש' : 'User')}
+                name={activity.user?.name}
                 size="sm"
               />
               <div className="flex-1">

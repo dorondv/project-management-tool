@@ -5,6 +5,7 @@ import { Layout } from './components/layout/Layout';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { AuthPage } from './components/auth/AuthPage';
+import { AuthCallback } from './components/auth/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Tasks from './pages/Tasks';
@@ -104,14 +105,16 @@ function AppContent() {
 
   return (
     <Router>
-      {!state.user ? (
-        <Routes>
+      <Routes>
+        {/* OAuth callback - accessible without authentication */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        
+        {!state.user ? (
           <Route path="*" element={<AuthPage />} />
-        </Routes>
-      ) : (
-        <Routes>
-          {/* Landing page without layout - standalone marketing page */}
-          <Route path="/landing" element={<Landing />} />
+        ) : (
+          <>
+            {/* Landing page without layout - standalone marketing page */}
+            <Route path="/landing" element={<Landing />} />
           
           {/* All other routes with layout */}
           <Route path="*" element={
@@ -138,8 +141,9 @@ function AppContent() {
               </Routes>
             </Layout>
           } />
-        </Routes>
-      )}
+          </>
+        )}
+      </Routes>
       <Toaster
         position="top-right"
         toastOptions={{
