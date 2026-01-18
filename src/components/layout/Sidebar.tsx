@@ -363,6 +363,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                   <Avatar
                     src={state.user.avatar}
                     alt={state.user.name}
+                    name={state.user.name}
                     size="md"
                     isOnline={state.user.isOnline}
                   />
@@ -372,6 +373,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                   <Avatar
                     src={state.user.avatar}
                     alt={state.user.name}
+                    name={state.user.name}
                     size="md"
                     isOnline={state.user.isOnline}
                   />

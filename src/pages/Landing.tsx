@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Timer, Users, BarChart3, CheckCircle, Home } from 'lucide-react';
+import { Timer, Users, BarChart3, CheckCircle, Home, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
+import toast from 'react-hot-toast';
 
 const translations = {
   en: {
@@ -26,6 +27,7 @@ const translations = {
     efficiency: 'Efficiency - Work smarter and more efficiently',
     efficiencyDesc: 'Manage your time better, invest in the right places and grow correctly',
     videoNote: 'You can replace the video with your own marketing video from YouTube or Vimeo.',
+    logout: 'Logout',
   },
   he: {
     welcome: 'ברוכים הבאים ל- SOLLO',
@@ -48,12 +50,13 @@ const translations = {
     efficiency: 'יעילות- עבדו חכם ויעיל יותר',
     efficiencyDesc: 'נהלו את הזמן שלכם טוב יותר, תשקיעו במקומות שצריך ותצמחו נכון',
     videoNote: 'ניתן להחליף את הסרטון לסרטון שיווקי משלכם מ-YouTube או Vimeo.',
+    logout: 'התנתקות',
   },
 };
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const locale = state.locale || 'en';
   const isRTL = locale === 'he';
   const t = translations[locale as 'en' | 'he'];
@@ -80,6 +83,11 @@ export default function Landing() {
     }
   };
 
+  const handleLogout = () => {
+    dispatch({ type: 'LOGOUT' });
+    toast.success(locale === 'he' ? 'התנתקת בהצלחה' : 'Logged out successfully');
+  };
+
   return (
     <div 
       className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-900 dark:text-white relative"
@@ -93,6 +101,18 @@ export default function Landing() {
       >
         <Home className="w-5 h-5 text-gray-700 dark:text-gray-300" />
       </button>
+
+      {/* Logout Button - Only show if user is logged in */}
+      {state.user && (
+        <button
+          onClick={handleLogout}
+          className={`fixed ${isRTL ? 'top-6 left-6' : 'top-6 right-6'} z-50 p-2.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-gray-200 dark:border-gray-700 group`}
+          aria-label={t.logout}
+          title={t.logout}
+        >
+          <LogOut className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
+        </button>
+      )}
 
       <div className="container mx-auto px-6 py-12 text-center">
         {/* Header */}
