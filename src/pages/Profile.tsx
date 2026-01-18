@@ -242,6 +242,7 @@ export default function Profile() {
             <Avatar
               src={avatarPreview || state.user.avatar}
               alt={state.user.name}
+              name={state.user.name}
               className="w-12 h-12"
               isOnline={state.user.isOnline}
             />
