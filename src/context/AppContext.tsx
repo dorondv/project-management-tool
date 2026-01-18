@@ -227,6 +227,51 @@ function normalizeEvents(events: Event[]): Event[] {
   });
 }
 
+/**
+ * Extract user name from Supabase user metadata
+ * Handles both email/password and OAuth (Google) users
+ */
+function extractUserName(user: { user_metadata?: any; email?: string | null }): string {
+  const metadata = user.user_metadata || {};
+  // Google OAuth provides 'full_name', regular auth might use 'name'
+  return metadata.full_name || metadata.name || user.email?.split('@')[0] || 'User';
+}
+
+/**
+ * Extract user avatar URL from Supabase user metadata
+ * Handles both email/password and OAuth (Google) users
+ * Google OAuth provides 'avatar_url' or 'picture' field
+ */
+function extractUserAvatar(user: { user_metadata?: any; app_metadata?: any }): string | undefined {
+  const userMetadata = user.user_metadata || {};
+  const appMetadata = user.app_metadata || {};
+  
+  // Google OAuth stores avatar in user_metadata.picture or user_metadata.avatar_url
+  // Also check app_metadata.provider_data for Google provider info
+  const avatarUrl = 
+    userMetadata.avatar_url || 
+    userMetadata.picture || 
+    appMetadata.provider_data?.find((p: any) => p.provider === 'google')?.avatar_url ||
+    appMetadata.provider_data?.find((p: any) => p.provider === 'google')?.picture;
+  
+  // Log for debugging
+  if (avatarUrl) {
+    console.log('🖼️ extractUserAvatar: Found avatar URL:', avatarUrl);
+  } else {
+    console.log('🖼️ extractUserAvatar: No avatar URL found in metadata:', {
+      userMetadata: Object.keys(userMetadata),
+      appMetadata: Object.keys(appMetadata),
+    });
+  }
+  
+  // Only return if it's a valid URL (starts with http:// or https://)
+  if (avatarUrl && (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://'))) {
+    return avatarUrl;
+  }
+  
+  return undefined;
+}
+
 async function safeFetch<T>(label: string, fetcher: () => Promise<T>, fallbackValue: T): Promise<T> {
   try {
     return await fetcher();
@@ -812,10 +857,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 console.log('🔵 AppContext: User not found in backend, creating...');
                 const newUser = {
                   id: session.user.id,
-                  name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                  name: extractUserName(session.user),
                   email: session.user.email || '',
                   role: 'contributor' as const,
-                  avatar: session.user.user_metadata?.avatar_url,
+                  avatar: extractUserAvatar(session.user),
                   isOnline: true,
                 };
                 
@@ -930,10 +975,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
               console.log('🟣 AppContext: User not found in backend, creating...');
               const newUser = {
                 id: session.user.id,
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                name: extractUserName(session.user),
                 email: session.user.email || '',
                 role: 'contributor' as const,
-                avatar: session.user.user_metadata?.avatar_url,
+                avatar: extractUserAvatar(session.user),
                 isOnline: true,
               };
               
@@ -977,10 +1022,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           // Fallback: use auth user data
           const fallbackUser = {
             id: session.user.id,
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+            name: extractUserName(session.user),
             email: session.user.email || '',
             role: 'contributor' as const,
-            avatar: session.user.user_metadata?.avatar_url,
+            avatar: extractUserAvatar(session.user),
             isOnline: true,
           };
           console.log('🟣 AppContext: Using fallback user:', fallbackUser);
