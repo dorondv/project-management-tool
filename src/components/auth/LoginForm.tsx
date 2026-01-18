@@ -92,6 +92,12 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
         provider: 'google',
         options: {
           redirectTo: redirectTo,
+          queryParams: {
+            // Customize the OAuth consent screen
+            // Note: The redirect URI shown will still be Supabase's callback URL
+            // To show your own domain, configure a custom domain in Supabase (Pro/Team plan required)
+            prompt: 'select_account',
+          },
         },
       });
       
