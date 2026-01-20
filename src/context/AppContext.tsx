@@ -5,6 +5,7 @@ import { storage, initializeStorage } from '../utils/localStorage';
 import { timerService } from '../utils/timerService';
 import { api } from '../utils/api';
 import { supabase } from '../utils/supabase';
+import { chatwootService } from '../utils/chatwoot';
 import toast from 'react-hot-toast';
 
 interface AppState {
@@ -1014,6 +1015,118 @@ export function AppProvider({ children }: { children: ReactNode }) {
               dispatch({ type: 'SET_LOCALE', payload: userProfile.preferredLanguage as Locale });
             }
             
+            // Initialize Chatwoot widget with user identity
+            try {
+              // Sync user to Chatwoot contact first (ensures contact exists before widget interaction)
+              // This prevents conversations from being unassigned
+              const syncUserToChatwoot = async (): Promise<void> => {
+                try {
+                  const { api } = await import('../utils/api');
+                  await api.chatwoot.syncUser(user.id);
+                  console.log('✅ User synced to Chatwoot contact:', user.name);
+                } catch (error) {
+                  console.warn('⚠️ Failed to sync user to Chatwoot:', error);
+                  // Retry once after delay
+                  setTimeout(async () => {
+                    try {
+                      const { api } = await import('../utils/api');
+                      await api.chatwoot.syncUser(user.id);
+                      console.log('✅ User synced to Chatwoot contact (retry successful):', user.name);
+                    } catch (retryError) {
+                      console.error('❌ Failed to sync user to Chatwoot after retry:', retryError);
+                    }
+                  }, 2000);
+                }
+              };
+              
+              // Initialize widget (will load SDK if needed)
+              chatwootService.initialize();
+              
+              // Function to set user identity (ensures sync completes first)
+              const setChatwootUserIdentity = async () => {
+                // Verify user data is complete
+                if (!user.name || !user.email) {
+                  console.warn('⚠️ User data incomplete:', { name: user.name, email: user.email, id: user.id });
+                }
+                
+                // Ensure user is synced to Chatwoot first
+                await syncUserToChatwoot();
+                
+                // Small delay to ensure sync is processed by Chatwoot
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Now set user identity in widget with all details
+                const userData = {
+                  identifier: user.id,
+                  email: user.email || '',
+                  name: user.name || user.email || user.id, // Ensure we always have a name
+                  avatar_url: user.avatar || undefined,
+                };
+                
+                console.log('🔵 Setting Chatwoot user identity:', {
+                  identifier: userData.identifier,
+                  name: userData.name,
+                  email: userData.email,
+                });
+                
+                chatwootService.setUser(userData);
+                
+                // Set custom attributes
+                chatwootService.setCustomAttributes({
+                  userId: user.id,
+                  userRole: user.role,
+                  userEmail: user.email,
+                  userName: user.name,
+                });
+                
+                // Verify identity was set correctly after a delay
+                setTimeout(() => {
+                  const currentUser = chatwootService.getCurrentUser();
+                  if (currentUser && currentUser.identifier === user.id) {
+                    console.log('✅ Chatwoot user identity verified:', currentUser.name || user.name);
+                  } else {
+                    console.warn('⚠️ Chatwoot user identity verification failed - retrying...');
+                    // Retry setting identity
+                    chatwootService.setUser(userData);
+                  }
+                }, 1000);
+                
+                console.log('✅ Chatwoot user identity configured for:', user.name || user.email || user.id);
+              };
+
+              // Wait for widget to be ready (polling with timeout)
+              let attempts = 0;
+              const maxAttempts = 100; // 10 seconds max wait
+              const checkReady = setInterval(() => {
+                attempts++;
+                if (chatwootService.isReady()) {
+                  clearInterval(checkReady);
+                  setChatwootUserIdentity().catch((error) => {
+                    console.error('Error setting Chatwoot user identity:', error);
+                  });
+                } else if (attempts >= maxAttempts) {
+                  clearInterval(checkReady);
+                  console.warn('⚠️ Chatwoot widget not ready after timeout - will set identity when ready');
+                  // Try anyway after timeout
+                  setChatwootUserIdentity().catch((error) => {
+                    console.error('Error setting Chatwoot user identity after timeout:', error);
+                  });
+                }
+              }, 100);
+
+              // Also listen for the ready event (more reliable)
+              const readyHandler = () => {
+                clearInterval(checkReady);
+                setChatwootUserIdentity().catch((error) => {
+                  console.error('Error setting Chatwoot user identity:', error);
+                });
+                window.removeEventListener('chatwoot:ready', readyHandler);
+              };
+              window.addEventListener('chatwoot:ready', readyHandler);
+            } catch (error) {
+              console.warn('Failed to initialize Chatwoot:', error);
+            }
+            
             // Fetch user data after setting user (loading will be set to false inside fetchUserData)
             fetchUserData(session.user.id);
           }
@@ -1046,6 +1159,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_AUTHENTICATED', payload: false });
         timerService.clearTimer();
         storage.clear();
+        // Reset Chatwoot widget
+        chatwootService.reset();
         // Clear fetch refs to allow fresh data fetch on next login
         fetchUserDataRef.current = null;
         lastFetchedUserIdRef.current = null;

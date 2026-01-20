@@ -43,13 +43,17 @@ function AppContent() {
           {/* Logo */}
           <div className="mb-6 flex justify-center">
             <img 
-              src="/assets/png/sollo Inverted Color Transparent bg.svg" 
+              src="/assets/png/sollo%20Inverted%20Color%20Transparent%20bg.svg" 
               alt="SOLO" 
               className="h-16 object-contain"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                if (target.src !== `${window.location.origin}/assets/png/solo logo wide.png`) {
-                  target.src = '/assets/png/solo logo wide.png';
+                const fallbackSrc = '/assets/png/solo logo wide.png';
+                if (target.src !== `${window.location.origin}${fallbackSrc}`) {
+                  target.src = fallbackSrc;
+                } else {
+                  // Try PNG fallback
+                  target.src = '/assets/png/sollo_logo_transparent_sharp.png';
                 }
               }}
             />
