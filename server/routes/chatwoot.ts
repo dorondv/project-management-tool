@@ -187,6 +187,9 @@ async function handleConversationStatusChanged(event: any) {
 router.post('/sync-user', authenticateUser, async (req, res) => {
   try {
     const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
 
     const contact = await syncUserToChatwoot(
       user.id,
