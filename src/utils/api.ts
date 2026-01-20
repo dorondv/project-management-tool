@@ -506,6 +506,25 @@ export const api = {
       return fetch(`${API_URL}/api/admin/payments/refund-history`, { headers }).then(handleResponse);
     },
   },
+
+  // Chatwoot
+  chatwoot: {
+    getActiveConversationsCount: () => {
+      return fetch(`${API_URL}/api/chatwoot/active-conversations-count`).then(handleResponse);
+    },
+    syncUser: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/chatwoot/sync-user`, {
+        method: 'POST',
+        headers,
+      }).then(handleResponse);
+    },
+    syncAllUsers: () => {
+      return fetch(`${API_URL}/api/chatwoot/sync-all-users`, {
+        method: 'POST',
+      }).then(handleResponse);
+    },
+  },
 };
 
 export { ApiError };

@@ -1,15 +1,17 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Timer, Users, BarChart3, CheckCircle, Home, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
+import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 
 const translations = {
   en: {
     welcome: 'Welcome to SOLLO',
     subtitle: 'The smart way to manage your time, clients, tasks, and even accounting in one place. Start working smarter, not harder.',
-    startTrial: 'Start 7-Day Free Trial',
+    startTrial: 'Start 5-Day Free Trial',
     existingCustomer: 'Login for existing customers',
     seeHowItWorks: 'See how it works',
     allInOne: 'Everything you need in one place',
@@ -32,7 +34,7 @@ const translations = {
   he: {
     welcome: 'ברוכים הבאים ל- SOLLO',
     subtitle: 'הדרך החכמה לנהל את הזמן, הלקוחות והמשימות שלכם ואפילו את הנהלת החשבונות במקום אחד. התחילו לעבוד חכם יותר, לא קשה יותר.',
-    startTrial: 'התחל 7 ימי ניסיון חינם',
+    startTrial: 'התחל 5 ימי ניסיון חינם',
     existingCustomer: 'כניסה ללקוחות קיימים',
     seeHowItWorks: 'ראו איך זה עובד',
     allInOne: 'כל מה שאתם צריכים במקום אחד',
@@ -60,6 +62,36 @@ export default function Landing() {
   const locale = state.locale || 'en';
   const isRTL = locale === 'he';
   const t = translations[locale as 'en' | 'he'];
+
+  // Check if user has active access and redirect to dashboard
+  useEffect(() => {
+    const checkAccessAndRedirect = async () => {
+      // Wait for user data to be loaded
+      if (state.loading || !state.user?.id) {
+        return; // Still loading or no user, stay on landing
+      }
+
+      try {
+        const subscriptionResponse = await api.subscriptions.getStatus(state.user.id) as any;
+        const hasAccess = subscriptionResponse?.access?.hasFullAccess || false;
+        
+        if (hasAccess) {
+          console.log('✅ Landing: User has active access, redirecting to dashboard');
+          navigate('/', { replace: true });
+        }
+      } catch (error) {
+        // If subscription check fails, stay on landing page
+        console.log('Landing: Could not check subscription (user may not have one)');
+      }
+    };
+
+    // Small delay to ensure state is stable
+    const timeoutId = setTimeout(() => {
+      checkAccessAndRedirect();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [state.user, state.loading, navigate]);
 
   const handleStartTrial = () => {
     navigate('/pricing');
@@ -124,13 +156,17 @@ export default function Landing() {
         >
           <div className="flex items-center justify-center gap-4 mb-6">
             <img 
-              src="/assets/png/sollo Inverted Color Transparent bg.svg"
+              src="/assets/png/sollo%20Inverted%20Color%20Transparent%20bg.svg"
               alt="SOLLO Logo"
               className="h-16 w-auto object-contain"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                if (target.src !== `${window.location.origin}/assets/png/solo logo wide.png`) {
-                  target.src = '/assets/png/solo logo wide.png';
+                const fallbackSrc = '/assets/png/solo logo wide.png';
+                if (target.src !== `${window.location.origin}${fallbackSrc}`) {
+                  target.src = fallbackSrc;
+                } else {
+                  // Try PNG fallback
+                  target.src = '/assets/png/sollo_logo_transparent_sharp.png';
                 }
               }}
             />
