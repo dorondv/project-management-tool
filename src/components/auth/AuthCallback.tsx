@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabase';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { api } from '../../utils/api';
 
 export function AuthCallback() {
   const navigate = useNavigate();
@@ -25,17 +26,32 @@ export function AuthCallback() {
         if (session && session.user) {
           // Session is automatically set by Supabase
           // The auth state listener in AppContext will handle user profile creation
-          // Wait a moment for the auth state to update, then redirect
+          // Wait a moment for the auth state to update, then check subscription and redirect
           console.log('✅ AuthCallback: Session found, waiting for auth state update...');
           
           // Give the auth listener in AppContext time to process the session
           // and create/fetch the user profile (typically takes 1-2 seconds)
-          // Redirect to landing page - ProtectedRoute will handle redirecting to dashboard
-          // if user has active subscription
-          setTimeout(() => {
-            console.log('✅ AuthCallback: Redirecting to landing page');
-            navigate('/landing');
-          }, 2000);
+          setTimeout(async () => {
+            try {
+              // Check if user has active subscription
+              const subscriptionResponse = await api.subscriptions.getStatus(session.user.id) as any;
+              
+              // Check if user has access
+              const hasAccess = subscriptionResponse?.access?.hasFullAccess || false;
+              
+              if (hasAccess) {
+                console.log('✅ AuthCallback: User has active access, redirecting to dashboard');
+                navigate('/');
+              } else {
+                console.log('✅ AuthCallback: User has no active access, redirecting to landing page');
+                navigate('/landing');
+              }
+            } catch (subError: any) {
+              // If subscription check fails, redirect to landing page
+              console.warn('⚠️ AuthCallback: Could not check subscription, redirecting to landing:', subError);
+              navigate('/landing');
+            }
+          }, 2500);
         } else {
           // No session found, redirect to login
           console.log('⚠️ AuthCallback: No session found, redirecting to login');

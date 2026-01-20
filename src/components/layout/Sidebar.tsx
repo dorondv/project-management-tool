@@ -176,15 +176,18 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
               <>
                 <Link to="/landing" className="rounded-lg p-1 bg-transparent">
                   <img 
-                    src="/assets/png/sollo Inverted Color Transparent bg.svg" 
+                    src="/assets/png/sollo%20Inverted%20Color%20Transparent%20bg.svg" 
                     alt="SOLLO" 
                     className="h-8 w-8 object-contain"
                     style={{ backgroundColor: 'transparent', background: 'transparent' }}
                     onError={(e) => {
                       // Fallback to small logo if transparent version doesn't exist
                       const target = e.target as HTMLImageElement;
-                      if (target.src !== `${window.location.origin}/assets/png/solo logo small.png`) {
-                        target.src = '/assets/png/solo logo small.png';
+                      const fallbackSrc = '/assets/png/solo logo small.png';
+                      if (target.src !== `${window.location.origin}${fallbackSrc}`) {
+                        target.src = fallbackSrc;
+                      } else {
+                        target.src = '/assets/png/sollo_logo_transparent_sharp.png';
                       }
                     }}
                   />
@@ -203,15 +206,18 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                   className={`flex items-center ${isRTL ? 'justify-end flex-row-reverse gap-2' : 'gap-2'} rounded-lg p-1 bg-transparent hover:opacity-80 transition-opacity`}
                 >
                   <img 
-                    src="/assets/png/sollo Inverted Color Transparent bg.svg" 
+                    src="/assets/png/sollo%20Inverted%20Color%20Transparent%20bg.svg" 
                     alt="SOLLO" 
                     className="h-8 object-contain"
                     style={{ backgroundColor: 'transparent', background: 'transparent' }}
                     onError={(e) => {
                       // Fallback to wide logo if transparent version doesn't exist
                       const target = e.target as HTMLImageElement;
-                      if (target.src !== `${window.location.origin}/assets/png/solo logo wide.png`) {
-                        target.src = '/assets/png/solo logo wide.png';
+                      const fallbackSrc = '/assets/png/solo logo wide.png';
+                      if (target.src !== `${window.location.origin}${fallbackSrc}`) {
+                        target.src = fallbackSrc;
+                      } else {
+                        target.src = '/assets/png/sollo_logo_transparent_sharp.png';
                       }
                     }}
                   />
@@ -322,7 +328,8 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                 )}
               </button>
             </li>
-            <li>
+            {/* Support Modal - Hidden, using Chatwoot widget instead */}
+            {/* <li>
               <button
                 onClick={() => setIsSupportModalOpen(true)}
                 className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
@@ -342,7 +349,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                   </span>
                 )}
               </button>
-            </li>
+            </li> */}
           </ul>
         </div>
 
