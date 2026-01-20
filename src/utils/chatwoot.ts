@@ -78,9 +78,20 @@ class ChatwootService {
         launcherTitle: 'Chat with us'
       };
 
+      // Get Chatwoot configuration from environment variables
+      const websiteToken = import.meta.env.VITE_CHATWOOT_WEBSITE_TOKEN || '';
+      const baseUrl = import.meta.env.VITE_CHATWOOT_BASE_URL || 'https://app.chatwoot.com';
+      const sdkUrl = import.meta.env.VITE_CHATWOOT_SDK_URL || 'https://app.chatwoot.com/packs/js/sdk.js';
+
+      if (!websiteToken) {
+        console.error('❌ Chatwoot website token not configured. Please set VITE_CHATWOOT_WEBSITE_TOKEN');
+        reject(new Error('Chatwoot website token not configured'));
+        return;
+      }
+
       // Create and load SDK script
       const script = document.createElement('script');
-      script.src = 'https://app.chatwoot.com/packs/js/sdk.js';
+      script.src = sdkUrl;
       script.async = true;
       script.defer = true;
 
@@ -92,8 +103,8 @@ class ChatwootService {
             try {
               // Initialize widget
               window.chatwootSDK.run({
-                websiteToken: 'b62tAoXkCkacJH8o1Tcye3Fr',
-                baseUrl: 'https://app.chatwoot.com'
+                websiteToken,
+                baseUrl
               });
               console.log('✅ Chatwoot widget initialized, waiting for $chatwoot API...');
 
@@ -222,7 +233,7 @@ class ChatwootService {
     try {
       // Generate identifier_hash using identity_secret for secure identification
       // This prevents users from impersonating others
-      const identitySecret = 'mnSVE1c5jBwe2QVzv6JdR4fG'; // From env: CHATWOOT_IDENTITY_SECRET
+      const identitySecret = import.meta.env.VITE_CHATWOOT_IDENTITY_SECRET || '';
       
       if (identitySecret && user.identifier) {
         // Generate HMAC SHA256 hash of identifier using identity_secret

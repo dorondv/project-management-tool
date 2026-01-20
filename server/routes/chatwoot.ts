@@ -215,10 +215,42 @@ router.post('/sync-user', authenticateUser, async (req, res) => {
 });
 
 /**
- * POST /api/chatwoot/sync-all-users - Sync all users to Chatwoot
- * Admin only - should be protected
+ * Middleware to authenticate and check admin role
  */
-router.post('/sync-all-users', async (req, res) => {
+async function requireAdmin(req: any, res: any, next: any) {
+  try {
+    const userId = req.headers['x-user-id'] || req.query.userId || req.body.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    req.user = user;
+    req.userId = userId;
+    next();
+  } catch (error: any) {
+    console.error('Admin authentication error:', error);
+    res.status(500).json({ error: 'Authentication failed' });
+  }
+}
+
+/**
+ * POST /api/chatwoot/sync-all-users - Sync all users to Chatwoot
+ * Admin only - protected
+ */
+router.post('/sync-all-users', requireAdmin, async (req, res) => {
   try {
     // Get all users
     const users = await prisma.user.findMany({
@@ -264,9 +296,9 @@ router.post('/sync-all-users', async (req, res) => {
 
 /**
  * GET /api/chatwoot/active-conversations-count - Get count of active conversations
- * For admin dashboard
+ * For admin dashboard - protected
  */
-router.get('/active-conversations-count', async (req, res) => {
+router.get('/active-conversations-count', requireAdmin, async (req, res) => {
   try {
     const count = await getActiveConversationsCount();
     res.json({ count });
