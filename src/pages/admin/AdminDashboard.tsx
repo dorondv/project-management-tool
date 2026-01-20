@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../utils/api';
-import { Users, CreditCard, Gift, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, CreditCard, Gift, DollarSign, TrendingUp, AlertCircle, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface SubscriptionStats {
@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const { state } = useApp();
   const [subscriptionStats, setSubscriptionStats] = useState<SubscriptionStats | null>(null);
   const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
+  const [activeConversationsCount, setActiveConversationsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,12 +36,14 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const [subStats, payStats] = await Promise.all([
+        const [subStats, payStats, conversationsCount] = await Promise.all([
           api.admin.getSubscriptionStats(state.user.id),
           api.admin.getPaymentStats(state.user.id),
+          api.chatwoot.getActiveConversationsCount().catch(() => ({ count: 0 })),
         ]);
         setSubscriptionStats(subStats);
         setPaymentStats(payStats);
+        setActiveConversationsCount(conversationsCount.count || 0);
       } catch (error: any) {
         console.error('Error fetching admin stats:', error);
         toast.error('Failed to load dashboard statistics');
@@ -102,6 +105,13 @@ export default function AdminDashboard() {
       icon: AlertCircle,
       color: 'text-red-500',
       bgColor: 'bg-red-50 dark:bg-red-900/20',
+    },
+    {
+      title: 'Active Support Conversations',
+      value: activeConversationsCount,
+      icon: MessageCircle,
+      color: 'text-indigo-500',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
     },
   ];
 
