@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Timer, Users, BarChart3, CheckCircle, Home, LogOut } from 'lucide-react';
+import { Timer, Users, BarChart3, CheckCircle, Home, LogOut, Languages } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
+// import { ContactUsModal } from '../components/common/ContactUsModal'; // Optional feature - ready for future use
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -30,6 +31,7 @@ const translations = {
     efficiencyDesc: 'Manage your time better, invest in the right places and grow correctly',
     videoNote: 'You can replace the video with your own marketing video from YouTube or Vimeo.',
     logout: 'Logout',
+    // contactUs: 'Contact Us', // Optional feature - ready for future use
   },
   he: {
     welcome: 'ברוכים הבאים ל- SOLLO',
@@ -53,6 +55,7 @@ const translations = {
     efficiencyDesc: 'נהלו את הזמן שלכם טוב יותר, תשקיעו במקומות שצריך ותצמחו נכון',
     videoNote: 'ניתן להחליף את הסרטון לסרטון שיווקי משלכם מ-YouTube או Vimeo.',
     logout: 'התנתקות',
+    // contactUs: 'צור קשר', // Optional feature - ready for future use
   },
 };
 
@@ -62,13 +65,19 @@ export default function Landing() {
   const locale = state.locale || 'en';
   const isRTL = locale === 'he';
   const t = translations[locale as 'en' | 'he'];
+  // const [isContactModalOpen, setIsContactModalOpen] = useState(false); // Optional feature - ready for future use
 
-  // Check if user has active access and redirect to dashboard
+  // Check if user has active access and redirect to dashboard (only if user is logged in)
   useEffect(() => {
     const checkAccessAndRedirect = async () => {
+      // If no user, stay on landing page (public access)
+      if (!state.user?.id) {
+        return;
+      }
+
       // Wait for user data to be loaded
-      if (state.loading || !state.user?.id) {
-        return; // Still loading or no user, stay on landing
+      if (state.loading) {
+        return; // Still loading, wait
       }
 
       try {
@@ -99,8 +108,11 @@ export default function Landing() {
 
   const handleLogin = () => {
     // If user is already logged in, go to dashboard
-    // Otherwise, this would redirect to login (handled by App.tsx)
+    // Otherwise, navigate to auth page (App.tsx will handle showing AuthPage)
     if (state.user) {
+      navigate('/');
+    } else {
+      // Navigate to root, which will show AuthPage for unauthenticated users
       navigate('/');
     }
   };
@@ -120,6 +132,12 @@ export default function Landing() {
     toast.success(locale === 'he' ? 'התנתקת בהצלחה' : 'Logged out successfully');
   };
 
+  const handleLocaleToggle = () => {
+    const nextLocale = locale === 'he' ? 'en' : 'he';
+    dispatch({ type: 'SET_LOCALE', payload: nextLocale });
+    toast.success(nextLocale === 'he' ? 'עברית הופעלה' : 'English set');
+  };
+
   return (
     <div 
       className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-900 dark:text-white relative"
@@ -134,11 +152,21 @@ export default function Landing() {
         <Home className="w-5 h-5 text-gray-700 dark:text-gray-300" />
       </button>
 
+      {/* Language Toggle Button - Always visible */}
+      <button
+        onClick={handleLocaleToggle}
+        className={`fixed ${isRTL ? 'top-6 left-6' : 'top-6 right-6'} z-50 p-2.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-gray-200 dark:border-gray-700 group`}
+        aria-label={locale === 'he' ? 'Switch to English' : 'עבור לעברית'}
+        title={locale === 'he' ? 'Switch to English' : 'עבור לעברית'}
+      >
+        <Languages className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors" />
+      </button>
+
       {/* Logout Button - Only show if user is logged in */}
       {state.user && (
         <button
           onClick={handleLogout}
-          className={`fixed ${isRTL ? 'top-6 left-6' : 'top-6 right-6'} z-50 p-2.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-gray-200 dark:border-gray-700 group`}
+          className={`fixed ${isRTL ? 'top-20 left-6' : 'top-20 right-6'} z-50 p-2.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-gray-200 dark:border-gray-700 group`}
           aria-label={t.logout}
           title={t.logout}
         >
@@ -201,6 +229,14 @@ export default function Landing() {
               >
                 {t.existingCustomer}
               </button>
+              {/* Contact Us button - Optional feature, ready for future use */}
+              {/* <button
+                onClick={() => setIsContactModalOpen(true)}
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-pink-600 transition-colors mt-2"
+              >
+                <Mail className="w-4 h-4" />
+                {t.contactUs}
+              </button> */}
             </div>
           </div>
         </motion.div>
@@ -217,14 +253,119 @@ export default function Landing() {
           </h2>
           <div className="max-w-4xl mx-auto bg-gray-900 rounded-2xl shadow-2xl overflow-hidden ring-4 ring-pink-500/50">
             <div className="aspect-video">
-              <iframe
-                className="w-full h-full"
-                src="https://www.youtube.com/embed/Gg_g-m3vOCY"
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {(() => {
+                // Video configuration via environment variables
+                // Set VITE_LANDING_VIDEO_TYPE to: 'youtube', 'vimeo', 'supabase', or 'direct'
+                const videoType = import.meta.env.VITE_LANDING_VIDEO_TYPE || 'youtube';
+                const youtubeId = import.meta.env.VITE_LANDING_VIDEO_YOUTUBE_ID || 'Gg_g-m3vOCY';
+                const vimeoId = import.meta.env.VITE_LANDING_VIDEO_VIMEO_ID || '';
+                const supabaseBucket = import.meta.env.VITE_LANDING_VIDEO_SUPABASE_BUCKET || 'landing-videos';
+                const supabaseFile = import.meta.env.VITE_LANDING_VIDEO_SUPABASE_FILE || 'your-video.mp4';
+                const directUrl = import.meta.env.VITE_LANDING_VIDEO_DIRECT_URL || '';
+
+                // YouTube Embed
+                if (videoType === 'youtube' && youtubeId) {
+                  // Parameters to hide related videos and reduce YouTube branding:
+                  // rel=0: Don't show related videos from other channels (only same channel) - BEST for blocking "more videos"
+                  // modestbranding=1: Reduce YouTube branding
+                  // showinfo=0: Hide video info (deprecated but still helps)
+                  // iv_load_policy=3: Disable annotations
+                  // cc_load_policy=0: Disable captions by default
+                  // loop=1 + playlist=VIDEO_ID: Loop the video seamlessly (prevents end-screen suggestions)
+                  // playsinline=1: Allow inline playback on mobile
+                  const youtubeParams = new URLSearchParams({
+                    rel: '0', // Most important: prevents related videos from other channels
+                    modestbranding: '1',
+                    showinfo: '0',
+                    iv_load_policy: '3', // Disable annotations
+                    cc_load_policy: '0', // Disable captions by default
+                    loop: '1', // Loop the video
+                    playlist: youtubeId, // Required for loop to work - prevents end-screen suggestions
+                    playsinline: '1',
+                  });
+                  return (
+                    <iframe
+                      className="w-full h-full"
+                      src={`https://www.youtube.com/embed/${youtubeId}?${youtubeParams.toString()}`}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  );
+                }
+
+                // Vimeo Embed
+                if (videoType === 'vimeo' && vimeoId) {
+                  return (
+                    <iframe
+                      className="w-full h-full"
+                      src={`https://player.vimeo.com/video/${vimeoId}`}
+                      title="Vimeo video player"
+                      frameBorder="0"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  );
+                }
+
+                // Supabase Storage Video
+                if (videoType === 'supabase' && import.meta.env.VITE_SUPABASE_URL) {
+                  const videoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${supabaseBucket}/${supabaseFile}`;
+                  return (
+                    <video
+                      className="w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    >
+                      <source src={videoUrl} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  );
+                }
+
+                // Direct URL Video
+                if (videoType === 'direct' && directUrl) {
+                  return (
+                    <video
+                      className="w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    >
+                      <source src={directUrl} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  );
+                }
+
+                // Default fallback to YouTube
+                const youtubeParams = new URLSearchParams({
+                  rel: '0', // Most important: prevents related videos from other channels
+                  modestbranding: '1',
+                  showinfo: '0',
+                  iv_load_policy: '3', // Disable annotations
+                  cc_load_policy: '0', // Disable captions by default
+                  loop: '1', // Loop the video
+                  playlist: youtubeId, // Required for loop to work - prevents end-screen suggestions
+                  playsinline: '1',
+                });
+                return (
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${youtubeId}?${youtubeParams.toString()}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                );
+              })()}
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-4">{t.videoNote}</p>
@@ -300,6 +441,12 @@ export default function Landing() {
           </div>
         </motion.section>
       </div>
+
+      {/* Contact Us Modal - Optional feature, ready for future use */}
+      {/* <ContactUsModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+      /> */}
     </div>
   );
 }
