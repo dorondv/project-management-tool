@@ -113,13 +113,13 @@ function AppContent() {
         {/* OAuth callback - accessible without authentication */}
         <Route path="/auth/callback" element={<AuthCallback />} />
         
+        {/* Landing page - public, accessible without authentication */}
+        <Route path="/landing" element={<Landing />} />
+        
         {!state.user ? (
           <Route path="*" element={<AuthPage />} />
         ) : (
           <>
-            {/* Landing page without layout - standalone marketing page */}
-            <Route path="/landing" element={<Landing />} />
-          
           {/* All other routes with layout */}
           <Route path="*" element={
             <Layout>
