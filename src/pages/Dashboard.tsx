@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { FolderOpen, CheckSquare, Contact, Clock, Target, TrendingUp, DollarSign, Users, Calculator, Calendar as CalendarIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { Currency } from '../types';
+import { formatCurrency } from '../utils/currencyUtils';
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfDay, endOfDay, format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { StatsCard } from '../components/dashboard/StatsCard';
@@ -74,6 +76,7 @@ const dashboardTranslations = {
 export default function Dashboard() {
   const { state } = useApp();
   const locale = state.locale;
+  const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = dashboardTranslations[locale];
 
@@ -216,21 +219,21 @@ export default function Dashboard() {
       },
       {
         title: t.stats.averageIncomePerCustomer,
-        value: `₪${incomeStats.averageIncomePerCustomer.toFixed(0)}`,
+        value: formatCurrency(incomeStats.averageIncomePerCustomer, currency, locale),
         change: undefined,
         icon: <TrendingUp size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
       {
         title: t.stats.averageIncomePerHour,
-        value: `₪${incomeStats.averageIncomePerHour.toFixed(0)}`,
+        value: formatCurrency(incomeStats.averageIncomePerHour, currency, locale),
         change: undefined,
         icon: <Calculator size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
       {
         title: t.stats.totalIncomeFromCustomers,
-        value: `₪${incomeStats.totalIncome.toFixed(0)}`,
+        value: formatCurrency(incomeStats.totalIncome, currency, locale),
         change: undefined,
         icon: <DollarSign size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
@@ -243,7 +246,7 @@ export default function Dashboard() {
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
     ]
-  ), [incomeStats, t.stats]);
+  ), [incomeStats, t.stats, currency, locale]);
 
   const alignStart = isRTL ? 'text-right' : 'text-left';
 

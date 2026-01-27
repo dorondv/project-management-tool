@@ -6,9 +6,10 @@ import { useApp } from '../context/AppContext';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { SubscriptionStatus } from '../components/settings/SubscriptionStatus';
-import { Locale } from '../types';
+import { Locale, Currency } from '../types';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
+import { formatCurrency } from '../utils/currencyUtils';
 
 const translations: Record<Locale, {
   pageTitle: string;
@@ -31,8 +32,10 @@ const translations: Record<Locale, {
   businessDetails: string;
   businessName: string;
   businessField: string;
+  vatNo: string;
   businessNamePlaceholder: string;
   businessFieldPlaceholder: string;
+  vatNoPlaceholder: string;
   languagePreference: string;
   languageDescription: string;
   currentLanguage: string;
@@ -42,6 +45,13 @@ const translations: Record<Locale, {
   languageUpdated: string;
   languageSaveFailed: string;
   saveLanguage: string;
+  currencyPreference: string;
+  currencyDescription: string;
+  currentCurrency: string;
+  changeCurrency: string;
+  saveCurrency: string;
+  currencyUpdated: string;
+  currencySaveFailed: string;
   save: string;
   cancel: string;
 }> = {
@@ -67,8 +77,10 @@ const translations: Record<Locale, {
     businessDetails: 'Business Details (for invoices)',
     businessName: 'Business Name',
     businessField: 'Field of Business',
+    vatNo: 'VAT No.',
     businessNamePlaceholder: 'Example: Digital Solutions Ltd.',
     businessFieldPlaceholder: 'Example: Software Development',
+    vatNoPlaceholder: 'Enter VAT number',
     languagePreference: 'Language Preference',
     languageDescription: 'Select your preferred language for the application',
     currentLanguage: 'Current Language',
@@ -78,6 +90,13 @@ const translations: Record<Locale, {
     languageUpdated: 'Language preference updated successfully',
     languageSaveFailed: 'Failed to save language preference',
     saveLanguage: 'Save Language',
+    currencyPreference: 'Currency Preference',
+    currencyDescription: 'Select your preferred currency for displaying amounts',
+    currentCurrency: 'Current Currency',
+    changeCurrency: 'Change Currency',
+    saveCurrency: 'Save Currency',
+    currencyUpdated: 'Currency preference updated successfully',
+    currencySaveFailed: 'Failed to save currency preference',
     save: 'Save',
     cancel: 'Cancel',
   },
@@ -100,11 +119,13 @@ const translations: Record<Locale, {
     viewInvoice: 'צפה בחשבונית',
     digitalSignature: 'חתימה דיגיטלית',
     businessOwnerSignature: 'חתימת בעל העסק',
-    businessDetails: 'פרטי עסק (לחשבוניות)',
+    businessDetails: 'פרטי עסק לחשבונית',
     businessName: 'שם העסק',
     businessField: 'תחום עיסוק',
+    vatNo: 'ח.פ.',
     businessNamePlaceholder: 'לדוגמה: פתרונות דיגיטל בע"מ',
     businessFieldPlaceholder: 'לדוגמה: פיתוח תוכנה',
+    vatNoPlaceholder: 'הכנס מספר ח.פ.',
     languagePreference: 'העדפת שפה',
     languageDescription: 'בחר את השפה המועדפת עליך לאפליקציה',
     currentLanguage: 'שפה נוכחית',
@@ -114,6 +135,13 @@ const translations: Record<Locale, {
     languageUpdated: 'העדפת השפה עודכנה בהצלחה',
     languageSaveFailed: 'שגיאה בשמירת העדפת השפה',
     saveLanguage: 'שמור שפה',
+    currencyPreference: 'העדפת מטבע',
+    currencyDescription: 'בחר את המטבע המועדף עליך להצגת סכומים',
+    currentCurrency: 'מטבע נוכחי',
+    changeCurrency: 'שנה מטבע',
+    saveCurrency: 'שמור מטבע',
+    currencyUpdated: 'העדפת המטבע עודכנה בהצלחה',
+    currencySaveFailed: 'שגיאה בשמירת העדפת המטבע',
     save: 'שמור',
     cancel: 'ביטול',
   },
@@ -130,6 +158,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = translations[locale];
   const alignStart = isRTL ? 'text-right' : 'text-left';
@@ -137,11 +166,20 @@ export default function Settings() {
   // Language preference
   const [selectedLanguage, setSelectedLanguage] = useState<Locale>(locale);
   const [isSavingLanguage, setIsSavingLanguage] = useState(false);
+  
+  // Currency preference
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currency);
+  const [isSavingCurrency, setIsSavingCurrency] = useState(false);
 
   // Sync selectedLanguage with locale when locale changes
   useEffect(() => {
     setSelectedLanguage(locale);
   }, [locale]);
+  
+  // Sync selectedCurrency with currency when currency changes
+  useEffect(() => {
+    setSelectedCurrency(currency);
+  }, [currency]);
 
   const handleLanguageSelect = (newLocale: Locale) => {
     setSelectedLanguage(newLocale);
@@ -173,12 +211,36 @@ export default function Settings() {
     }
   };
 
+  const handleCurrencySelect = (newCurrency: Currency) => {
+    setSelectedCurrency(newCurrency);
+  };
+
+  const handleSaveCurrency = async () => {
+    setIsSavingCurrency(true);
+    
+    try {
+      // Save to user profile in backend (if API supports it)
+      // For now, just save to localStorage via dispatch
+      dispatch({ type: 'SET_CURRENCY', payload: selectedCurrency });
+      
+      const currentT = translations[locale];
+      toast.success(currentT.currencyUpdated);
+    } catch (error) {
+      console.error('Failed to update currency preference:', error);
+      const currentT = translations[locale];
+      toast.error(currentT.currencySaveFailed);
+    } finally {
+      setIsSavingCurrency(false);
+    }
+  };
+
   const [billingHistory, setBillingHistory] = useState<any[]>([]);
   const [loadingBillingHistory, setLoadingBillingHistory] = useState(false);
 
   const [businessDetails, setBusinessDetails] = useState({
     businessName: '',
     businessField: '',
+    vatNo: '',
   });
   const [isSavingBusinessDetails, setIsSavingBusinessDetails] = useState(false);
 
@@ -294,11 +356,11 @@ export default function Settings() {
             </p>
 
             {/* Language Options - Constrained width */}
-            <div className="space-y-3 max-w-md">
+            <div className={`flex gap-3 max-w-md ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
                 onClick={() => handleLanguageSelect('he')}
                 disabled={isSavingLanguage}
-                className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                className={`w-1/2 flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
                   selectedLanguage === 'he'
                     ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
@@ -317,7 +379,7 @@ export default function Settings() {
               <button
                 onClick={() => handleLanguageSelect('en')}
                 disabled={isSavingLanguage}
-                className={`w-full flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                className={`w-1/2 flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
                   selectedLanguage === 'en'
                     ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
@@ -351,6 +413,100 @@ export default function Settings() {
                     ? 'לחץ על "שמור שפה" כדי לשמור את הבחירה שלך'
                     : 'Click "Save Language" to save your selection'
                   }
+                </p>
+              )}
+            </div>
+          </Card>
+
+          {/* Currency Preference */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Globe size={20} className="text-primary-500 flex-shrink-0" />
+              <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+                {t.currencyPreference}
+              </h3>
+            </div>
+
+            <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
+              {t.currencyDescription}
+            </p>
+
+            {/* Currency Options */}
+            <div className={`flex gap-3 max-w-md ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <button
+                onClick={() => handleCurrencySelect('ILS')}
+                disabled={isSavingCurrency}
+                className={`w-1/3 flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                  selectedCurrency === 'ILS'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+                } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingCurrency ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className={`font-medium ${selectedCurrency === 'ILS' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+                  ₪
+                </span>
+                {selectedCurrency === 'ILS' && (
+                  <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleCurrencySelect('USD')}
+                disabled={isSavingCurrency}
+                className={`w-1/3 flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                  selectedCurrency === 'USD'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+                } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingCurrency ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className={`font-medium ${selectedCurrency === 'USD' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+                  $
+                </span>
+                {selectedCurrency === 'USD' && (
+                  <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleCurrencySelect('EUR')}
+                disabled={isSavingCurrency}
+                className={`w-1/3 flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                  selectedCurrency === 'EUR'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+                } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingCurrency ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className={`font-medium ${selectedCurrency === 'EUR' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+                  €
+                </span>
+                {selectedCurrency === 'EUR' && (
+                  <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                )}
+              </button>
+            </div>
+
+            {/* Save Button */}
+            <div className={`mt-4 max-w-md ${alignStart}`}>
+              <Button
+                variant="primary"
+                onClick={handleSaveCurrency}
+                disabled={isSavingCurrency || selectedCurrency === currency}
+                className={`${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Save size={16} />
+                {t.saveCurrency}
+              </Button>
+              {selectedCurrency !== currency && (
+                <p className={`text-xs text-amber-600 dark:text-amber-400 mt-2 ${alignStart}`}>
+                  {isRTL 
+                    ? 'לחץ על "שמור מטבע" כדי לשמור את הבחירה שלך'
+                    : 'Click "Save Currency" to save your selection'}
                 </p>
               )}
             </div>
@@ -411,7 +567,7 @@ export default function Settings() {
                 </div>
                 <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-4'}`}>
                   <div className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                    {item.currency}{item.amount.toFixed(2)}
+                    {formatCurrency(item.amount, currency, locale)}
                   </div>
                   {item.invoiceUrl ? (
                     <Button
@@ -518,6 +674,19 @@ export default function Settings() {
               value={businessDetails.businessField}
               onChange={(e) => setBusinessDetails({ ...businessDetails, businessField: e.target.value })}
               placeholder={t.businessFieldPlaceholder}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
+            />
+          </div>
+          <div>
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
+              {t.vatNo}
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={businessDetails.vatNo}
+              onChange={(e) => setBusinessDetails({ ...businessDetails, vatNo: e.target.value })}
+              placeholder={t.vatNoPlaceholder}
               className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
             />
           </div>
