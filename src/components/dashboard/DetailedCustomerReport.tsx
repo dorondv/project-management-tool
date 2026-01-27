@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Calculator, ArrowUpDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Locale, Customer, TimeEntry, Income } from '../../types';
+import { Locale, Customer, TimeEntry, Income, Currency } from '../../types';
 import { Badge } from '../common/Badge';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, differenceInDays } from 'date-fns';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 
 const translations: Record<Locale, {
   title: string;
@@ -241,6 +242,8 @@ const getScoreBadgeColor = (score: string): string => {
 export function DetailedCustomerReport() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
+  const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
   const t = translations[locale];
   
@@ -503,10 +506,10 @@ export function DetailedCustomerReport() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                      ₪{stat.scoreMetrics.monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {currencySymbol}{stat.scoreMetrics.monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                      ₪{stat.scoreMetrics.hourlyRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {currencySymbol}{stat.scoreMetrics.hourlyRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
                       {stat.scoreMetrics.seniority.toFixed(1)}
@@ -515,22 +518,22 @@ export function DetailedCustomerReport() {
                       {stat.scoreMetrics.referralsCount}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                      ₪{stat.scoreMetrics.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {currencySymbol}{stat.scoreMetrics.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                      ₪{stat.scoreMetrics.referredRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {currencySymbol}{stat.scoreMetrics.referredRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <p className="font-medium text-gray-600 dark:text-gray-300">{stat.workedHours.toFixed(1)}h</p>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <p className="font-medium text-gray-600 dark:text-gray-300">
-                        ₪{stat.receivedPayments.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        {currencySymbol}{stat.receivedPayments.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </p>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <p className="font-medium text-gray-600 dark:text-gray-300">
-                        ₪{stat.avgHourlyRate.toFixed(0)}
+                        {currencySymbol}{stat.avgHourlyRate.toFixed(0)}
                       </p>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -547,7 +550,7 @@ export function DetailedCustomerReport() {
                 <td className={`px-4 py-3 font-bold ${isRTL ? 'text-right' : 'text-left'}`}>{t.totals}</td>
                 <td className="px-4 py-3"></td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
-                  ₪{totals.monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {currencySymbol}{totals.monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
                 <td className="px-4 py-3"></td>
                 <td className="px-4 py-3"></td>
@@ -555,19 +558,19 @@ export function DetailedCustomerReport() {
                   {totals.referralsCount}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
-                  ₪{totals.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {currencySymbol}{totals.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
-                  ₪{totals.referredRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {currencySymbol}{totals.referredRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
                   {totals.hours.toFixed(1)}h
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
-                  ₪{totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {currencySymbol}{totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
-                  ₪{totals.hours > 0 ? (totals.revenue / totals.hours).toFixed(0) : 0}
+                  {currencySymbol}{totals.hours > 0 ? (totals.revenue / totals.hours).toFixed(0) : 0}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
                   {(daysInPeriod > 0 ? totals.hours / daysInPeriod : 0).toFixed(1)}h

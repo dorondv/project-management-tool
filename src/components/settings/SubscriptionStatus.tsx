@@ -49,6 +49,18 @@ const translations: Record<Locale, {
   cancelling: string;
   cancelledSuccess: string;
   cancelError: string;
+  upgradeToMonthly: string;
+  upgradeToAnnual: string;
+  upgradeFromMonthlyToAnnual: string;
+  upgradeFromTrialToMonthly: string;
+  upgradeFromTrialToAnnual: string;
+  upgradeConfirmTitle: string;
+  upgradeConfirmMessage: string;
+  upgradeConfirmMessageTrial: string;
+  upgradeConfirm: string;
+  upgradeCancel: string;
+  currentPlan: string;
+  planStatus: string;
 }> = {
   en: {
     subscriptionStatus: 'Subscription Status',
@@ -71,7 +83,7 @@ const translations: Record<Locale, {
     hours: 'Hours',
     minutes: 'Minutes',
     seconds: 'Seconds',
-    manageSubscription: 'Manage Subscription and Plans',
+    manageSubscription: 'Pricing and Plans',
     upgradePlan: 'Upgrade Plan',
     loading: 'Loading subscription status...',
     error: 'Failed to load subscription status',
@@ -84,6 +96,18 @@ const translations: Record<Locale, {
     cancelling: 'Cancelling...',
     cancelledSuccess: 'Subscription cancelled successfully',
     cancelError: 'Failed to cancel subscription',
+    upgradeToMonthly: 'Upgrade to Monthly Plan',
+    upgradeToAnnual: 'Upgrade to Annual Plan',
+    upgradeFromMonthlyToAnnual: 'Upgrade to Annual Plan',
+    upgradeFromTrialToMonthly: 'Upgrade to Monthly Plan',
+    upgradeFromTrialToAnnual: 'Upgrade to Annual Plan',
+    upgradeConfirmTitle: 'Upgrade Subscription',
+    upgradeConfirmMessage: 'Upgrading to annual will cancel your monthly subscription. You\'ll get better value with 30% savings!',
+    upgradeConfirmMessageTrial: 'Upgrading will convert your trial to a paid subscription. The plan includes a trial period and better value!',
+    upgradeConfirm: 'Yes, Upgrade',
+    upgradeCancel: 'Cancel',
+    currentPlan: 'Current Plan',
+    planStatus: 'Status',
   },
   he: {
     subscriptionStatus: 'סטטוס מנוי',
@@ -106,7 +130,7 @@ const translations: Record<Locale, {
     hours: 'שעות',
     minutes: 'דקות',
     seconds: 'שניות',
-    manageSubscription: 'נהל מנוי ותוכניות',
+    manageSubscription: 'תמחור ותוכניות',
     upgradePlan: 'שדרג תוכנית',
     loading: 'טוען סטטוס מנוי...',
     error: 'שגיאה בטעינת סטטוס מנוי',
@@ -119,6 +143,18 @@ const translations: Record<Locale, {
     cancelling: 'מבטל...',
     cancelledSuccess: 'המנוי בוטל בהצלחה',
     cancelError: 'שגיאה בביטול המנוי',
+    upgradeToMonthly: 'שדרג לתוכנית חודשית',
+    upgradeToAnnual: 'שדרג לתוכנית שנתית',
+    upgradeFromMonthlyToAnnual: 'שדרג לתוכנית שנתית',
+    upgradeFromTrialToMonthly: 'שדרג לתוכנית חודשית',
+    upgradeFromTrialToAnnual: 'שדרג לתוכנית שנתית',
+    upgradeConfirmTitle: 'שדרוג מנוי',
+    upgradeConfirmMessage: 'שדרוג לתוכנית שנתית יבטל את המנוי החודשי שלך. תקבל ערך טוב יותר עם חיסכון של 30%!',
+    upgradeConfirmMessageTrial: 'שדרוג יהמיר את תקופת הניסיון שלך למנוי בתשלום. התוכנית כוללת תקופת ניסיון וערך טוב יותר!',
+    upgradeConfirm: 'כן, שדרג',
+    upgradeCancel: 'ביטול',
+    currentPlan: 'תוכנית נוכחית',
+    planStatus: 'סטטוס',
   },
 };
 
@@ -167,6 +203,8 @@ export function SubscriptionStatus() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(false);
+  const [upgradePlan, setUpgradePlan] = useState<'monthly' | 'annual' | null>(null);
   const [countdown, setCountdown] = useState<CountdownTimer>({
     days: 0,
     hours: 0,
@@ -319,18 +357,18 @@ export function SubscriptionStatus() {
   };
 
   const canCancel = () => {
-    if (!subscriptionData?.subscription) return false;
-    const subscription = subscriptionData.subscription;
-    
-    // Cannot cancel trial coupon subscriptions - users can only upgrade to paid plans
-    if (subscription.isTrialCoupon || subscription.planType === 'trial') {
+    if (!subscriptionData?.subscription) {
       return false;
     }
+    const subscription = subscriptionData.subscription;
     
-    // Can cancel if: active subscription (paid or PayPal trial), not already cancelled/expired/suspended
-    return (subscription.status === 'active' || subscription.status === 'trialing') && 
-           subscription.paypalSubscriptionId !== null &&
-           subscription.status !== 'suspended';
+    // Can cancel if: active monthly or annual subscription with PayPal subscription ID
+    // Allow canceling trial coupon subscriptions if they have PayPal subscription ID (backend handles it)
+    const isMonthlyOrAnnual = subscription.planType === 'monthly' || subscription.planType === 'annual';
+    const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+    const hasPayPalSubscription = subscription.paypalSubscriptionId !== null;
+    
+    return isMonthlyOrAnnual && isActive && hasPayPalSubscription;
   };
 
   const isTrialPeriod = () => {
@@ -341,6 +379,87 @@ export function SubscriptionStatus() {
     const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
     return !hasPayments && subscription.paypalSubscriptionId && 
            (subscription.status === 'active' || subscription.status === 'trialing');
+  };
+
+  const canUpgradeFromTrial = () => {
+    if (!subscriptionData?.subscription) return false;
+    const subscription = subscriptionData.subscription;
+    const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
+    // Can upgrade if: trial (no payments) and has PayPal subscription ID
+    return !hasPayments && subscription.paypalSubscriptionId && 
+           (subscription.status === 'active' || subscription.status === 'trialing');
+  };
+
+  const canUpgradeFromMonthlyToAnnual = () => {
+    if (!subscriptionData?.subscription) return false;
+    const subscription = subscriptionData.subscription;
+    // Can upgrade if: monthly plan, active/trialing status, has PayPal subscription ID
+    return subscription.planType === 'monthly' && 
+           (subscription.status === 'active' || subscription.status === 'trialing') &&
+           subscription.paypalSubscriptionId !== null;
+  };
+
+  const handleUpgradeClick = (plan: 'monthly' | 'annual') => {
+    setUpgradePlan(plan);
+    
+    // Show confirmation if upgrading from monthly to annual
+    if (canUpgradeFromMonthlyToAnnual() && plan === 'annual') {
+      setShowUpgradeConfirm(true);
+    } else if (canUpgradeFromTrial() && plan === 'annual') {
+      // Show confirmation for trial to annual upgrade
+      setShowUpgradeConfirm(true);
+    } else {
+      // Direct upgrade for trial to monthly (no confirmation needed)
+      navigate(`/payment?plan=${plan}`);
+    }
+  };
+
+  const handleUpgradeConfirm = () => {
+    if (upgradePlan) {
+      setShowUpgradeConfirm(false);
+      navigate(`/payment?plan=${upgradePlan}`);
+    }
+  };
+
+  const getPlanDisplayName = () => {
+    if (!subscriptionData?.subscription) {
+      return locale === 'he' ? 'אין מנוי' : 'No Subscription';
+    }
+    const subscription = subscriptionData.subscription;
+    const planType = subscription.planType;
+    
+    if (planType === 'monthly') {
+      return t.monthlySubscription;
+    } else if (planType === 'annual') {
+      return t.annualSubscription;
+    } else if (planType === 'trial' || subscription.isTrialCoupon) {
+      return t.trialPeriod;
+    } else if (subscription.isFreeAccess) {
+      return t.freeAccess;
+    }
+    return t.trialPeriod;
+  };
+
+  const getStatusDisplayName = () => {
+    if (!subscriptionData?.subscription) {
+      return locale === 'he' ? 'ללא מנוי' : 'No Subscription';
+    }
+    const status = subscriptionData.subscription.status;
+    
+    switch (status) {
+      case 'active':
+        return locale === 'he' ? 'פעיל' : 'Active';
+      case 'trialing':
+        return locale === 'he' ? 'בתקופת ניסיון' : 'Trialing';
+      case 'cancelled':
+        return t.cancelledSubscription;
+      case 'suspended':
+        return t.suspendedSubscription;
+      case 'expired':
+        return t.expiredSubscription;
+      default:
+        return status;
+    }
   };
 
   const getPlanDetails = () => {
@@ -462,10 +581,18 @@ export function SubscriptionStatus() {
         </h3>
       </div>
 
-      <div className="mb-4">
-        <Badge variant={planDetails.badgeVariant} className="text-base px-4 py-1">
-          {planDetails.title}
-        </Badge>
+      {/* Current Plan and Status */}
+      <div className={`mb-4 space-y-2 ${alignStart}`}>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.currentPlan}:</span>
+          <Badge variant={planDetails.badgeVariant} className="text-sm px-3 py-1">
+            {getPlanDisplayName()}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.planStatus}:</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">{getStatusDisplayName()}</span>
+        </div>
       </div>
 
       <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
@@ -504,6 +631,39 @@ export function SubscriptionStatus() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Upgrade Confirmation Dialog */}
+      {showUpgradeConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="p-6 max-w-md mx-4">
+            <h3 className={`text-xl font-bold mb-4 ${alignStart}`}>
+              {t.upgradeConfirmTitle}
+            </h3>
+            <p className={`text-gray-600 dark:text-gray-400 mb-6 ${alignStart}`}>
+              {canUpgradeFromTrial() ? t.upgradeConfirmMessageTrial : t.upgradeConfirmMessage}
+            </p>
+            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowUpgradeConfirm(false);
+                  setUpgradePlan(null);
+                }}
+                className={isRTL ? 'flex-row-reverse' : ''}
+              >
+                {t.upgradeCancel}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleUpgradeConfirm}
+                className={isRTL ? 'flex-row-reverse' : ''}
+              >
+                {t.upgradeConfirm}
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* Cancel Confirmation Dialog */}
@@ -548,38 +708,73 @@ export function SubscriptionStatus() {
         </div>
       )}
 
-      <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        {canCancel() && (
-          <Button
-            variant="outline"
-            onClick={() => setShowCancelConfirm(true)}
-            disabled={cancelling}
-            className={`flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <X size={16} />
-            {t.cancelSubscription}
-          </Button>
+      <div className={`space-y-3 ${alignStart}`}>
+        {/* Upgrade Options */}
+        {canUpgradeFromTrial() && (
+          <div className={`flex flex-col sm:flex-row gap-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+            <Button
+              variant="primary"
+              onClick={() => handleUpgradeClick('monthly')}
+              className={`flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              {t.upgradeFromTrialToMonthly}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => handleUpgradeClick('annual')}
+              className={`flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              {t.upgradeFromTrialToAnnual}
+            </Button>
+          </div>
         )}
-        <Button
-          variant="primary"
-          onClick={() => navigate('/pricing')}
-          size="sm"
-          className={`${isRTL ? 'flex-row-reverse' : ''}`}
-        >
-          {subscriptionData?.subscription?.status === 'active' || subscriptionData?.subscription?.status === 'trialing' ? (
-            <>
-              {isRTL ? <ArrowLeft size={16} /> : null}
-              {t.manageSubscription}
-              {!isRTL ? <ArrowRight size={16} /> : null}
-            </>
-          ) : (
-            <>
-              {isRTL ? <ArrowLeft size={16} /> : null}
-              {t.upgradePlan}
-              {!isRTL ? <ArrowRight size={16} /> : null}
-            </>
+
+        {/* Action Buttons - All with consistent width */}
+        <div className={`flex flex-col gap-3 ${alignStart}`}>
+          {canUpgradeFromMonthlyToAnnual() && (
+            <Button
+              variant="primary"
+              onClick={() => handleUpgradeClick('annual')}
+              className={`w-full sm:min-w-[240px] sm:w-[240px] ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              {t.upgradeFromMonthlyToAnnual}
+            </Button>
           )}
-        </Button>
+
+          {/* Cancel Button - Show for active paid plans */}
+          {canCancel() && (
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelConfirm(true)}
+              disabled={cancelling}
+              className={`w-full sm:min-w-[240px] sm:w-[240px] ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              <X size={16} />
+              {t.cancelSubscription}
+            </Button>
+          )}
+          
+          {/* Manage Subscription / Upgrade Plan Button - Always show */}
+          <Button
+            variant="primary"
+            onClick={() => navigate('/pricing')}
+            className={`w-full sm:min-w-[240px] sm:w-[240px] ${isRTL ? 'flex-row-reverse' : ''}`}
+          >
+            {subscriptionData?.subscription?.status === 'active' || subscriptionData?.subscription?.status === 'trialing' ? (
+              <>
+                {isRTL ? <ArrowLeft size={16} /> : null}
+                {t.manageSubscription}
+                {!isRTL ? <ArrowRight size={16} /> : null}
+              </>
+            ) : (
+              <>
+                {isRTL ? <ArrowLeft size={16} /> : null}
+                {t.upgradePlan}
+                {!isRTL ? <ArrowRight size={16} /> : null}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </Card>
   );

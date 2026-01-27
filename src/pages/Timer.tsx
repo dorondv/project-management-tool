@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Play, Square, Pause, Plus, FileText, Clock, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
-import { TimeEntry, Locale, Customer } from '../types';
+import { TimeEntry, Locale, Currency, Customer } from '../types';
+import { formatCurrency as formatCurrencyUtil } from '../utils/currencyUtils';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { timerService } from '../utils/timerService';
@@ -89,11 +90,8 @@ function formatDurationShort(seconds: number): string {
   return `${hours}:${minutes.toString().padStart(2, '0')}`;
 }
 
-function formatCurrency(amount: number, currency: string, locale: Locale): string {
-  if (locale === 'he') {
-    return `${currency}${amount.toFixed(2)}`;
-  }
-  return `${currency}${amount.toFixed(2)}`;
+function formatCurrency(amount: number, userCurrency: Currency, locale: Locale): string {
+  return formatCurrencyUtil(amount, userCurrency, locale);
 }
 
 function getHourlyRate(customer: Customer): number {
@@ -109,6 +107,7 @@ function getHourlyRate(customer: Customer): number {
 export default function Timer() {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = translations[locale];
 
@@ -623,7 +622,7 @@ export default function Timer() {
               
               {(isRunning || isPaused) && (
                 <div className="text-2xl font-bold text-gray-700 dark:text-gray-300">
-                  {formatCurrency(currentCost, selectedCustomer.currency || '₪', locale)}
+                  {formatCurrency(currentCost, currency, locale)}
                 </div>
               )}
             </div>
@@ -818,7 +817,7 @@ export default function Timer() {
                       <div className={`${alignStart}`}>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.income}</div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {formatCurrency(entry.income, customer?.currency || '₪', locale)}
+                          {formatCurrency(entry.income, currency, locale)}
                         </div>
                       </div>
                     </div>
@@ -888,7 +887,7 @@ export default function Timer() {
                       </span>
                     </td>
                     <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 font-medium ${alignStart}`}>
-                      {formatCurrency(entry.income, customer?.currency || '₪', locale)}
+                      {formatCurrency(entry.income, currency, locale)}
                     </td>
                   </tr>
                 );

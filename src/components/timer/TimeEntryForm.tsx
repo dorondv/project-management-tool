@@ -173,7 +173,8 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
   const duration = calculateDuration();
   const totalAmount = calculateTotalAmount();
   const selectedCustomer = state.customers.find(c => c.id === formData.customerId);
-  const currency = selectedCustomer?.currency || '₪';
+  const currency: Currency = state.currency ?? 'ILS';
+  const currencySymbol = getCurrencySymbol(currency);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -350,7 +351,7 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
             {t.totalAmount}
           </label>
           <div className={`h-12 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center font-semibold ${alignStart}`}>
-            {isRTL ? `${totalAmount.toFixed(2)}${currency}` : `${currency}${totalAmount.toFixed(2)}`}
+            {isRTL ? `${totalAmount.toFixed(2)}${currencySymbol}` : `${currencySymbol}${totalAmount.toFixed(2)}`}
           </div>
         </div>
       </div>
