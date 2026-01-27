@@ -5,7 +5,8 @@ import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { Customer, CustomerStatus, PaymentMethod, BillingModel, PaymentFrequency, Locale } from '../types';
+import { Customer, CustomerStatus, PaymentMethod, BillingModel, PaymentFrequency, Locale, Currency } from '../types';
+import { formatCurrency as formatCurrencyUtil, getCurrencySymbol } from '../utils/currencyUtils';
 import { CreateCustomerModal } from '../components/customers/CreateCustomerModal';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -247,28 +248,11 @@ function calculateTenureMonths(joinDate: Date): number {
   return Math.max(0, parseFloat(months.toFixed(1)));
 }
 
-function formatCurrency(amount: number, currency: string, locale: Locale) {
+function formatCurrency(amount: number, userCurrency: Currency, locale: Locale) {
   if (!amount) {
     return '—';
   }
-
-  if (currency === '₪') {
-    return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-IL', {
-      style: 'currency',
-      currency: 'ILS',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  }
-
-  if (currency === '$') {
-    return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  }
-
-  return `${currency}${amount.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US')}`;
+  return formatCurrencyUtil(amount, userCurrency, locale);
 }
 
 function formatDate(date: Date, locale: Locale) {
@@ -285,6 +269,7 @@ export default function Customers() {
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = translations[locale];
 
@@ -625,7 +610,7 @@ export default function Customers() {
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm ${alignStart}`}>
           <p className="text-sm text-gray-500 dark:text-gray-400">{t.metrics.monthlyRecurring}</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {formatCurrency(metrics.monthlyRecurring, '₪', locale)}
+            {formatCurrency(metrics.monthlyRecurring, currency, locale)}
           </p>
         </div>
       </div>
@@ -836,10 +821,10 @@ export default function Customers() {
                         {billingCycleLabels[locale][customer.billingCycle]}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
-                        {formatCurrency(customer.annualFee, customer.currency, locale)}
+                        {formatCurrency(customer.annualFee, currency, locale)}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
-                        {formatCurrency(customer.monthlyRetainer, customer.currency, locale)}
+                        {formatCurrency(customer.monthlyRetainer, currency, locale)}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
                         {customer.hoursPerMonth}
@@ -933,7 +918,7 @@ export default function Customers() {
               }
               
               const valueText = rate > 0 
-                ? `${customer.currency || '₪'}${rate.toLocaleString()}/${locale === 'he' ? 'שעה' : 'hr'}${isCalculated ? (locale === 'he' ? ' (מחושב)' : ' (calc)') : ''}` 
+                ? `${getCurrencySymbol(currency)}${rate.toLocaleString()}/${locale === 'he' ? 'שעה' : 'hr'}${isCalculated ? (locale === 'he' ? ' (מחושב)' : ' (calc)') : ''}` 
                 : (locale === 'he' ? 'לא הוגדר תעריף' : 'Rate not set');
               
               return { text: typeText, value: valueText, color };

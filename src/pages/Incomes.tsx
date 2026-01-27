@@ -5,7 +5,8 @@ import { he } from 'date-fns/locale';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { IncomeModal } from '../components/incomes/IncomeModal';
-import { Income, Locale } from '../types';
+import { Income, Locale, Currency } from '../types';
+import { formatCurrency } from '../utils/currencyUtils';
 import toast from 'react-hot-toast';
 
 const translations: Record<
@@ -124,15 +125,6 @@ const translations: Record<
   },
 };
 
-function formatCurrency(amount: number, locale: Locale): string {
-  return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-IL', {
-    style: 'currency',
-    currency: 'ILS',
-    minimumFractionDigits: amount % 1 !== 0 ? 2 : 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 function formatDate(date: Date, locale: Locale): string {
   return new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-US', {
     year: 'numeric',
@@ -144,6 +136,7 @@ function formatDate(date: Date, locale: Locale): string {
 export default function Incomes() {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = translations[locale];
 
@@ -421,7 +414,7 @@ export default function Incomes() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.totalIncomes}</p>
               <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-                {formatCurrency(metrics.totalIncomes.current, locale)}
+                {formatCurrency(metrics.totalIncomes.current, currency, locale)}
               </p>
               {metrics.totalIncomes.previous > 0 && (
                 <p className={`text-xs mt-1 ${metrics.totalIncomes.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -438,7 +431,7 @@ export default function Incomes() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.beforeVat}</p>
               <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-                {formatCurrency(metrics.beforeVat.current, locale)}
+                {formatCurrency(metrics.beforeVat.current, currency, locale)}
               </p>
               {metrics.beforeVat.previous > 0 && (
                 <p className={`text-xs mt-1 ${metrics.beforeVat.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -455,7 +448,7 @@ export default function Incomes() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.totalVat}</p>
               <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-                {formatCurrency(metrics.totalVat.current, locale)}
+                {formatCurrency(metrics.totalVat.current, currency, locale)}
               </p>
               {metrics.totalVat.previous > 0 && (
                 <p className={`text-xs mt-1 ${metrics.totalVat.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -472,7 +465,7 @@ export default function Incomes() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.averagePerClient}</p>
               <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-                {formatCurrency(metrics.averagePerClient.current, locale)}
+                {formatCurrency(metrics.averagePerClient.current, currency, locale)}
               </p>
               {metrics.averagePerClient.previous > 0 && (
                 <p className={`text-xs mt-1 ${metrics.averagePerClient.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -545,10 +538,10 @@ export default function Incomes() {
                 <div className="flex items-center gap-4">
                   <div className="text-left">
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {formatCurrency(income.finalAmount, locale)}
+                      {formatCurrency(income.finalAmount, currency, locale)}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t.incomeList.beforeVat}: {formatCurrency(income.amountBeforeVat, locale)}
+                      {t.incomeList.beforeVat}: {formatCurrency(income.amountBeforeVat, currency, locale)}
                     </p>
                   </div>
 

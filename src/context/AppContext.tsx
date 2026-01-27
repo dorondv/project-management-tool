@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { User, Project, Task, Notification, Activity, Customer, Locale, TimeEntry, Income, ActiveTimer, Event } from '../types';
+import { User, Project, Task, Notification, Activity, Customer, Locale, Currency, TimeEntry, Income, ActiveTimer, Event } from '../types';
 import { mockUsers, mockProjects, mockTasks, mockNotifications, mockActivities, mockCustomers, mockTimeEntries, mockIncomes } from '../data/mockData';
 import { storage, initializeStorage } from '../utils/localStorage';
 import { timerService } from '../utils/timerService';
@@ -21,6 +21,7 @@ interface AppState {
   activeTimer: ActiveTimer | null;
   timerElapsedSeconds: number;
   locale: Locale;
+  currency: Currency;
   theme: 'light' | 'dark';
   loading: boolean;
   error: string | null;
@@ -59,6 +60,7 @@ type AppAction =
   | { type: 'UPDATE_EVENT'; payload: Event }
   | { type: 'DELETE_EVENT'; payload: string }
   | { type: 'SET_LOCALE'; payload: Locale }
+  | { type: 'SET_CURRENCY'; payload: Currency }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' }
   | { type: 'TOGGLE_THEME' }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -81,6 +83,7 @@ const initialState: AppState = {
   activeTimer: null,
   timerElapsedSeconds: 0,
   locale: 'he',
+  currency: 'ILS',
   theme: 'light',
   loading: false,
   error: null,
@@ -636,6 +639,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_LOCALE':
       storage.set('locale', action.payload);
       return { ...state, locale: action.payload };
+    case 'SET_CURRENCY':
+      storage.set('currency', action.payload);
+      return { ...state, currency: action.payload };
 
     case 'SET_THEME':
       storage.set('theme', action.payload);
@@ -911,14 +917,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.log('🔵 AppContext: No authenticated user, showing login page');
         }
 
-        // Load theme and locale from localStorage (these stay local)
+        // Load theme, locale, and currency from localStorage (these stay local)
         const storedTheme = storage.get<'light' | 'dark'>('theme');
         const storedLocale = storage.get<Locale>('locale');
+        const storedCurrency = storage.get<Currency>('currency');
         
         if (storedTheme) {
           dispatch({ type: 'SET_THEME', payload: storedTheme });
         }
         dispatch({ type: 'SET_LOCALE', payload: storedLocale || 'he' });
+        dispatch({ type: 'SET_CURRENCY', payload: storedCurrency || 'ILS' });
         
         // Ensure loading is false if not already set
         if (!authenticatedUser) {

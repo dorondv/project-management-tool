@@ -2,7 +2,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useApp } from '../../context/AppContext';
 import { useMemo } from 'react';
 import { Calculator } from 'lucide-react';
-import { Locale } from '../../types';
+import { Locale, Currency } from '../../types';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 
 const translations = {
   en: {
@@ -22,6 +23,8 @@ interface IncomePerHourChartProps {
 export function IncomePerHourChart({ dateRange }: IncomePerHourChartProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
+  const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
   const t = translations[locale];
 
@@ -82,10 +85,10 @@ export function IncomePerHourChart({ dateRange }: IncomePerHourChartProps) {
             />
             <YAxis 
               tick={{ fill: 'currentColor', textAnchor: isRTL ? 'start' : 'end' }}
-              tickFormatter={(value) => `₪${value.toFixed(0)}`}
+              tickFormatter={(value) => `${currencySymbol}${value.toFixed(0)}`}
             />
             <Tooltip 
-              formatter={(value: number) => [`₪${value.toFixed(2)}`, locale === 'he' ? 'הכנסה ממוצעת לשעה' : 'Avg Income/Hour']}
+              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, locale === 'he' ? 'הכנסה ממוצעת לשעה' : 'Avg Income/Hour']}
               labelStyle={{ color: 'inherit' }}
             />
             <Legend />

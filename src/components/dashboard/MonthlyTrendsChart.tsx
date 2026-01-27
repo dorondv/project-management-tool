@@ -2,7 +2,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useApp } from '../../context/AppContext';
 import { useMemo } from 'react';
 import { TrendingUp } from 'lucide-react';
-import { Locale } from '../../types';
+import { Locale, Currency } from '../../types';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 
 const translations = {
   en: {
@@ -26,6 +27,8 @@ interface MonthlyTrendsChartProps {
 export function MonthlyTrendsChart({ dateRange }: MonthlyTrendsChartProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
+  const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
   const t = translations[locale];
 
@@ -109,7 +112,7 @@ export function MonthlyTrendsChart({ dateRange }: MonthlyTrendsChartProps) {
             <YAxis 
               yAxisId="left"
               tick={{ fill: 'currentColor', textAnchor: isRTL ? 'start' : 'end' }}
-              tickFormatter={(value) => `₪${value.toFixed(0)}`}
+              tickFormatter={(value) => `${currencySymbol}${value.toFixed(0)}`}
             />
             <YAxis 
               yAxisId="right" 
@@ -120,7 +123,7 @@ export function MonthlyTrendsChart({ dateRange }: MonthlyTrendsChartProps) {
             <Tooltip 
               formatter={(value: number, name: string) => {
                 if (name === 'income') {
-                  return [`₪${value.toFixed(2)}`, t.income];
+                  return [`${currencySymbol}${value.toFixed(2)}`, t.income];
                 }
                 return [`${value.toFixed(2)}h`, t.hours];
               }}
