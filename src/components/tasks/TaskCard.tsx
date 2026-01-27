@@ -121,7 +121,7 @@ export function TaskCard({ task, onClick, isDragging = false, onEdit, onDelete }
     >
       <div>
         <div className={`flex items-start justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className="flex-1">
+          <div className={`flex-1 ${isRTL ? 'order-2' : ''}`}>
             <div className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <h4 className="font-semibold text-gray-800 dark:text-white text-sm leading-tight line-clamp-2 flex-1">
                 {task.title}
@@ -129,7 +129,7 @@ export function TaskCard({ task, onClick, isDragging = false, onEdit, onDelete }
               <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-1 ${statusColors.dotColor}`} />
             </div>
           </div>
-          <div className="relative" ref={menuRef}>
+          <div className={`relative ${isRTL ? 'order-1' : ''}`} ref={menuRef}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
