@@ -83,6 +83,7 @@ export interface Activity {
 }
 
 export type Locale = 'en' | 'he';
+export type Currency = 'ILS' | 'USD' | 'EUR';
 
 export type CustomerStatus = 'active' | 'trial' | 'paused' | 'churned';
 
