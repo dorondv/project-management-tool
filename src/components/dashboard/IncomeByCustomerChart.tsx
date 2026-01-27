@@ -2,7 +2,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useApp } from '../../context/AppContext';
 import { useMemo } from 'react';
 import { DollarSign } from 'lucide-react';
-import { Locale } from '../../types';
+import { Locale, Currency } from '../../types';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 
 const translations = {
   en: {
@@ -24,6 +25,8 @@ interface IncomeByCustomerChartProps {
 export function IncomeByCustomerChart({ dateRange }: IncomeByCustomerChartProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
+  const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
   const t = translations[locale];
 
@@ -117,7 +120,7 @@ export function IncomeByCustomerChart({ dateRange }: IncomeByCustomerChartProps)
             <YAxis 
               type="number"
               tick={{ fontSize: 12, fill: 'currentColor', textAnchor: isRTL ? 'start' : 'end', dx: isRTL ? 35 : 0 }}
-              tickFormatter={(value) => `₪${value.toFixed(0)}`}
+              tickFormatter={(value) => `${currencySymbol}${value.toFixed(0)}`}
               orientation={isRTL ? 'right' : 'left'}
             />
             <Tooltip 
@@ -128,7 +131,7 @@ export function IncomeByCustomerChart({ dateRange }: IncomeByCustomerChartProps)
                 border: '1px solid #ddd',
                 color: 'inherit'
               }}
-              formatter={(value: number) => [`₪${value.toFixed(2)}`, t.income]}
+              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, t.income]}
             />
             <Legend />
             <Bar 

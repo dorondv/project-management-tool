@@ -3,7 +3,8 @@ import { DollarSign, Calendar, User, FileText } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useApp } from '../../context/AppContext';
-import { Income, Locale } from '../../types';
+import { Income, Locale, Currency } from '../../types';
+import { formatCurrency as formatCurrencyUtil } from '../../utils/currencyUtils';
 import toast from 'react-hot-toast';
 
 interface IncomeModalProps {
@@ -80,18 +81,10 @@ const translations: Record<
   },
 };
 
-function formatCurrency(amount: number, locale: Locale): string {
-  return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-IL', {
-    style: 'currency',
-    currency: 'ILS',
-    minimumFractionDigits: amount % 1 !== 0 ? 2 : 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = translations[locale];
   const isEditing = !!income;
@@ -332,7 +325,7 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
             </label>
             <div className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg ${inputAlign}`}>
               <span className="text-gray-900 dark:text-white font-medium">
-                {formatCurrency(calculations.vatAmount, locale)}
+                {formatCurrencyUtil(calculations.vatAmount, currency, locale)}
               </span>
             </div>
           </div>
@@ -345,7 +338,7 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
           </label>
           <div className={`w-full px-3 py-2 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg ${inputAlign}`}>
             <span className="text-green-700 dark:text-green-400 font-bold text-lg">
-              {formatCurrency(calculations.finalAmount, locale)}
+              {formatCurrencyUtil(calculations.finalAmount, currency, locale)}
             </span>
           </div>
         </div>

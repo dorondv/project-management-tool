@@ -4,8 +4,9 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { TimeEntry, Locale, Customer, Project, Task } from '../../types';
+import { TimeEntry, Locale, Currency, Customer, Project, Task } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 import toast from 'react-hot-toast';
 
 interface ClientReportModalProps {
@@ -53,6 +54,8 @@ const translations = {
 export function ClientReportModal({ isOpen, onClose }: ClientReportModalProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
+  const currency: Currency = state.currency ?? 'ILS';
+  const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
   const t = translations[locale];
 
@@ -235,10 +238,9 @@ export function ClientReportModal({ isOpen, onClose }: ClientReportModalProps) {
         }
         doc.text(truncatedDesc, 130, y);
         
-        const currency = customer?.currency || '₪';
         const amountText = locale === 'he' 
-          ? `${currency}${entry.income.toFixed(2)}`
-          : `${currency}${entry.income.toFixed(2)}`;
+          ? `${currencySymbol}${entry.income.toFixed(2)}`
+          : `${currencySymbol}${entry.income.toFixed(2)}`;
         doc.text(amountText, 175, y);
         
         y += 7;
@@ -253,10 +255,9 @@ export function ClientReportModal({ isOpen, onClose }: ClientReportModalProps) {
       }
       doc.text(locale === 'he' ? 'סה"כ:' : 'Total:', 20, y);
       doc.text(`${totalHours.toFixed(2)}h`, 100, y);
-      const currency = customer?.currency || '₪';
       const totalText = locale === 'he'
-        ? `${currency}${totalAmount.toFixed(2)}`
-        : `${currency}${totalAmount.toFixed(2)}`;
+        ? `${currencySymbol}${totalAmount.toFixed(2)}`
+        : `${currencySymbol}${totalAmount.toFixed(2)}`;
       doc.text(totalText, 175, y);
 
       // Save
@@ -321,15 +322,14 @@ export function ClientReportModal({ isOpen, onClose }: ClientReportModalProps) {
       csv += `${format(endTime, 'HH:mm')},`;
       csv += `${formatDurationHours(entry.duration)},`;
       csv += `"${description}",`;
-      const currency = customer?.currency || '₪';
-      csv += `${currency}${entry.income.toFixed(2)}\n`;
+      csv += `${currencySymbol}${entry.income.toFixed(2)}\n`;
     });
 
     // Totals
     if (locale === 'he') {
-      csv += `\nסה"כ,,,,${totalHours.toFixed(2)},${customer?.currency || '₪'}${totalAmount.toFixed(2)}`;
+      csv += `\nסה"כ,,,,${totalHours.toFixed(2)},${currencySymbol}${totalAmount.toFixed(2)}`;
     } else {
-      csv += `\nTotal,,,,${totalHours.toFixed(2)},${customer?.currency || '₪'}${totalAmount.toFixed(2)}`;
+      csv += `\nTotal,,,,${totalHours.toFixed(2)},${currencySymbol}${totalAmount.toFixed(2)}`;
     }
 
     // Create and download file
