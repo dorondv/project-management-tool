@@ -107,6 +107,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const userId = req.query.userId as string | undefined;
+    const cascade = req.query.cascade === 'true';
     
     // First, check if customer exists and belongs to the user (if userId provided)
     if (userId) {
@@ -124,6 +125,56 @@ router.delete('/:id', async (req, res) => {
       }
     }
     
+    // If cascade deletion is requested, delete related projects and events first
+    if (cascade) {
+      console.log('🗑️ Cascade deletion requested for customer:', req.params.id);
+      
+      // Find all projects for this customer
+      const projects = await prisma.project.findMany({
+        where: { customerId: req.params.id },
+        select: { id: true },
+      });
+      
+      console.log(`📦 Found ${projects.length} projects to delete`);
+      
+      // Delete each project (tasks will cascade automatically via onDelete: Cascade)
+      for (const project of projects) {
+        try {
+          await prisma.project.delete({
+            where: { id: project.id },
+          });
+          console.log(`✅ Deleted project: ${project.id}`);
+        } catch (error: any) {
+          console.error(`❌ Failed to delete project ${project.id}:`, error);
+          // Continue with other deletions even if one fails
+        }
+      }
+      
+      // Find all events for this customer
+      const events = await prisma.event.findMany({
+        where: { customerId: req.params.id },
+        select: { id: true },
+      });
+      
+      console.log(`📅 Found ${events.length} events to delete`);
+      
+      // Delete each event
+      for (const event of events) {
+        try {
+          await prisma.event.delete({
+            where: { id: event.id },
+          });
+          console.log(`✅ Deleted event: ${event.id}`);
+        } catch (error: any) {
+          console.error(`❌ Failed to delete event ${event.id}:`, error);
+          // Continue with other deletions even if one fails
+        }
+      }
+      
+      console.log('✅ Completed cascade deletion of related entities');
+    }
+    
+    // Finally, delete the customer
     await prisma.customer.delete({
       where: { id: req.params.id },
     });

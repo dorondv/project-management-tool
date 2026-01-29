@@ -427,7 +427,18 @@ export function SubscriptionStatus() {
     }
     const subscription = subscriptionData.subscription;
     const planType = subscription.planType;
+    const status = subscription.status;
     
+    // If subscription is cancelled, suspended, or expired, show status instead of plan type
+    if (status === 'cancelled') {
+      return t.cancelledSubscription;
+    } else if (status === 'suspended') {
+      return t.suspendedSubscription;
+    } else if (status === 'expired') {
+      return t.expiredSubscription;
+    }
+    
+    // Otherwise, show the plan type
     if (planType === 'monthly') {
       return t.monthlySubscription;
     } else if (planType === 'annual') {
