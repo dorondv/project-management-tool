@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, DollarSign, FileText, Calculator, Users, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { Plus, DollarSign, Calculator, Users, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -85,6 +84,7 @@ const translations = {
     cancel: 'Cancel',
     addCustomer: 'Add Customer',
     updateCustomer: 'Update Customer',
+    deleteCustomer: 'Delete Customer',
     active: 'Active',
     inactive: 'Inactive',
     trial: 'Trial',
@@ -411,12 +411,12 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
 
       if (customer) {
         // Update existing customer
-        const updatedCustomer = await api.customers.update(customer.id, customerData);
+        const updatedCustomer = await api.customers.update(customer.id, customerData) as Customer;
         dispatch({ type: 'UPDATE_CUSTOMER', payload: updatedCustomer });
         toast.success(isRTL ? 'לקוח עודכן בהצלחה' : 'Customer updated successfully');
       } else {
         // Create new customer
-        const newCustomer = await api.customers.create(customerData);
+        const newCustomer = await api.customers.create(customerData) as Customer;
         dispatch({ type: 'ADD_CUSTOMER', payload: newCustomer });
         toast.success(isRTL ? 'לקוח נוסף בהצלחה' : 'Customer added successfully');
         
@@ -436,29 +436,17 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!customer || !customer.id || !onDelete) {
       return;
     }
 
-    const projectCount = state.projects.filter(p => p.customerId === customer.id).length;
-    const confirmMessage = isRTL
-      ? projectCount > 0
-        ? `האם אתה בטוח שברצונך למחוק את הלקוח "${customer.name}"? יש ${projectCount} פרויקט(ים) המשויכים ללקוח זה.`
-        : `האם אתה בטוח שברצונך למחוק את הלקוח "${customer.name}"?`
-      : projectCount > 0
-        ? `Are you sure you want to delete the customer "${customer.name}"? There are ${projectCount} project(s) associated with this customer.`
-        : `Are you sure you want to delete the customer "${customer.name}"?`;
-
-    if (window.confirm(confirmMessage)) {
-      try {
-        onDelete(customer.id);
-        onClose();
-      } catch (error: any) {
-        console.error('Failed to delete customer:', error);
-        toast.error(error.message || (isRTL ? 'שגיאה במחיקת הלקוח' : 'Failed to delete customer'));
-      }
-    }
+    // Close the edit modal first, then trigger delete modal in parent
+    onClose();
+    // Small delay to ensure modal closes before delete modal opens
+    setTimeout(() => {
+      onDelete(customer.id);
+    }, 100);
   };
 
   const handleChange = (field: keyof typeof formData, value: any) => {
