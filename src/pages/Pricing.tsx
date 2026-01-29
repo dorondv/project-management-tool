@@ -356,6 +356,27 @@ export default function Pricing() {
     loadSubscriptionStatus();
   };
 
+  /**
+   * Check if user is a free user (no active subscription)
+   * Free users: no subscription, expired, cancelled, or suspended subscriptions
+   */
+  const isFreeUser = () => {
+    if (!subscriptionData?.subscription) {
+      return true; // No subscription = free user
+    }
+    
+    const subscription = subscriptionData.subscription;
+    const status = subscription.status;
+    
+    // User is free if subscription is expired, cancelled, or suspended
+    if (status === 'expired' || status === 'cancelled' || status === 'suspended') {
+      return true;
+    }
+    
+    // User is NOT free if they have an active subscription (paid or trial)
+    return false;
+  };
+
   if (loading) {
     return (
       <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen p-6 flex items-center justify-center">
@@ -383,11 +404,20 @@ export default function Pricing() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Monthly Plan Card */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
-            <div className={`flex justify-center items-end ${isRTL ? 'text-right' : 'text-left'}`} style={{ minHeight: '80px' }}>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t.monthlyPlan}
-              </h3>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col relative">
+            {isFreeUser() && (
+              <div className={`absolute ${isRTL ? 'top-4 right-4' : 'top-4 left-4'}`}>
+                <div className="bg-pink-100 dark:bg-pink-900/20 text-pink-800 dark:text-pink-300 px-3 py-1 rounded-full text-sm">
+                  {locale === 'he' ? '⭐ ניסיון חינם של 5 ימים' : '⭐ 5-day free trial'}
+                </div>
+              </div>
+            )}
+            <div className={`flex justify-center items-end ${isRTL ? 'text-right' : 'text-left'} ${isFreeUser() ? 'mt-10' : ''}`} style={{ minHeight: '80px' }}>
+              <div className={`text-center ${isRTL ? 'text-right' : 'text-left'}`}>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {t.monthlyPlan}
+                </h3>
+              </div>
             </div>
             <div className={`text-4xl font-bold text-primary-500 my-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               ${monthlyPrice.toFixed(2)}
@@ -418,8 +448,15 @@ export default function Pricing() {
           </div>
 
           {/* Annual Plan Card */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-primary-500 dark:border-primary-400 flex flex-col">
-            <div className={`flex justify-center items-end ${isRTL ? 'text-right' : 'text-left'}`} style={{ minHeight: '80px' }}>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-primary-500 dark:border-primary-400 flex flex-col relative">
+            {isFreeUser() && (
+              <div className={`absolute ${isRTL ? 'top-4 right-4' : 'top-4 left-4'}`}>
+                <div className="bg-pink-100 dark:bg-pink-900/20 text-pink-800 dark:text-pink-300 px-3 py-1 rounded-full text-sm">
+                  {locale === 'he' ? '⭐ ניסיון חינם של 5 ימים' : '⭐ 5-day free trial'}
+                </div>
+              </div>
+            )}
+            <div className={`flex justify-center items-end ${isRTL ? 'text-right' : 'text-left'} ${isFreeUser() ? 'mt-10' : ''}`} style={{ minHeight: '80px' }}>
               <div className={`text-center ${isRTL ? 'text-right' : 'text-left'}`}>
                 <div className="bg-primary-500 text-white px-3 py-1 rounded-full text-sm mb-2 inline-block">
                   {t.savings20Percent}

@@ -126,9 +126,13 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }).then(handleResponse),
-    delete: (id: string, userId?: string) => {
-      const url = userId 
-        ? `${API_URL}/api/customers/${id}?userId=${encodeURIComponent(userId)}`
+    delete: (id: string, userId?: string, cascade?: boolean) => {
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId);
+      if (cascade === true) params.append('cascade', 'true');
+      const queryString = params.toString();
+      const url = queryString 
+        ? `${API_URL}/api/customers/${id}?${queryString}`
         : `${API_URL}/api/customers/${id}`;
       return fetch(url, {
         method: 'DELETE',
