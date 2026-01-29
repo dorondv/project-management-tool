@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { LayoutGrid, LayoutList, Plus, Search, FolderOpen, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, User, Building, Clock, CreditCard, MoreVertical, CheckSquare } from 'lucide-react';
+import { LayoutGrid, LayoutList, Plus, Search, FolderOpen, Trash2, ChevronLeft, ChevronRight, User, Building, Clock, CreditCard, MoreVertical, CheckSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Customer, CustomerStatus, PaymentMethod, BillingModel, PaymentFrequency, Locale, Currency } from '../types';
 import { formatCurrency as formatCurrencyUtil, getCurrencySymbol } from '../utils/currencyUtils';
 import { CreateCustomerModal } from '../components/customers/CreateCustomerModal';
+import { DeleteCustomerModal } from '../components/customers/DeleteCustomerModal';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -292,6 +293,8 @@ export default function Customers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -476,7 +479,7 @@ export default function Customers() {
     setIsCustomerModalOpen(true);
   };
 
-  const handleDeleteCustomer = async (customer: Customer) => {
+  const handleDeleteCustomer = (customer: Customer) => {
     // Ensure we have a valid customer with an ID
     if (!customer || !customer.id) {
       console.error('Invalid customer provided to handleDeleteCustomer:', customer);
@@ -484,37 +487,60 @@ export default function Customers() {
       return;
     }
 
-    const customerId = customer.id;
-    const customerName = customer.name;
-    
     // Find the customer in state to ensure we have the latest data
-    const customerFromState = state.customers.find(c => c.id === customerId);
+    const customerFromState = state.customers.find(c => c.id === customer.id);
     if (!customerFromState) {
-      console.error('Customer not found in state:', customerId);
+      console.error('Customer not found in state:', customer.id);
       toast.error(locale === 'he' ? 'שגיאה: לקוח לא נמצא' : 'Error: Customer not found');
       return;
     }
 
-    const projectCount = getCustomerProjectCount(customerId);
-    
-    const confirmMessage = locale === 'he'
-      ? projectCount > 0
-        ? `האם אתה בטוח שברצונך למחוק את הלקוח "${customerName}"? יש ${projectCount} פרויקט(ים) המשויכים ללקוח זה.`
-        : `האם אתה בטוח שברצונך למחוק את הלקוח "${customerName}"?`
-      : projectCount > 0
-        ? `Are you sure you want to delete the customer "${customerName}"? There are ${projectCount} project(s) associated with this customer.`
-        : `Are you sure you want to delete the customer "${customerName}"?`;
-    
-    if (window.confirm(confirmMessage)) {
-      try {
-        console.log('🗑️ Deleting customer:', { id: customerId, name: customerName });
-        await api.customers.delete(customerId, state.user?.id);
-        dispatch({ type: 'DELETE_CUSTOMER', payload: customerId });
-        toast.success(locale === 'he' ? 'הלקוח נמחק בהצלחה' : 'Customer deleted successfully');
-      } catch (error: any) {
-        console.error('Failed to delete customer:', error);
-        toast.error(error.message || (locale === 'he' ? 'שגיאה במחיקת הלקוח' : 'Failed to delete customer'));
+    setCustomerToDelete(customerFromState);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (cascade: boolean) => {
+    if (!customerToDelete || !customerToDelete.id) {
+      return;
+    }
+
+    const customerId = customerToDelete.id;
+    const customerName = customerToDelete.name;
+
+    try {
+      console.log('🗑️ Deleting customer:', { id: customerId, name: customerName, cascade });
+      await api.customers.delete(customerId, state.user?.id, cascade);
+      
+      // Delete customer from state
+      dispatch({ type: 'DELETE_CUSTOMER', payload: customerId });
+
+      // If cascade deletion, also remove related projects, tasks, and events from state
+      // Note: We don't use DELETE_PROJECT/DELETE_TASK/DELETE_EVENT actions here because
+      // they make API calls, and we've already deleted everything on the backend via cascade.
+      // Instead, we'll filter the state directly.
+      if (cascade) {
+        const relatedProjects = state.projects.filter(p => p.customerId === customerId);
+        const relatedProjectIds = new Set(relatedProjects.map(p => p.id));
+
+        // Remove projects from state
+        const remainingProjects = state.projects.filter(p => p.customerId !== customerId);
+        dispatch({ type: 'SET_PROJECTS', payload: remainingProjects });
+
+        // Remove tasks from state
+        const remainingTasks = state.tasks.filter(t => !relatedProjectIds.has(t.projectId));
+        dispatch({ type: 'SET_TASKS', payload: remainingTasks });
+
+        // Remove events from state
+        const remainingEvents = state.events.filter(e => e.customerId !== customerId);
+        dispatch({ type: 'SET_EVENTS', payload: remainingEvents });
       }
+
+      toast.success(locale === 'he' ? 'הלקוח נמחק בהצלחה' : 'Customer deleted successfully');
+      setCustomerToDelete(null);
+      setIsDeleteModalOpen(false);
+    } catch (error: any) {
+      console.error('Failed to delete customer:', error);
+      toast.error(error.message || (locale === 'he' ? 'שגיאה במחיקת הלקוח' : 'Failed to delete customer'));
     }
   };
 
@@ -1080,6 +1106,18 @@ export default function Customers() {
             handleDeleteCustomer(customerToDelete);
           }
         }}
+      />
+
+      {/* Delete Customer Modal */}
+      <DeleteCustomerModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setCustomerToDelete(null);
+        }}
+        customer={customerToDelete}
+        onConfirm={handleConfirmDelete}
+        locale={locale}
       />
     </div>
   );
