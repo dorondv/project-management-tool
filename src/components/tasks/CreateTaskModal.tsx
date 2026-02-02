@@ -60,9 +60,10 @@ interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId?: string;
+  onTaskCreated?: (taskId: string) => void;
 }
 
-export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalProps) {
+export function CreateTaskModal({ isOpen, onClose, projectId, onTaskCreated }: CreateTaskModalProps) {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
@@ -169,6 +170,12 @@ export function CreateTaskModal({ isOpen, onClose, projectId }: CreateTaskModalP
       });
 
       toast.success(t.successCreated);
+      
+      // Call onTaskCreated callback if provided
+      if (onTaskCreated) {
+        onTaskCreated(newTask.id);
+      }
+      
       onClose();
       
       // Reset form

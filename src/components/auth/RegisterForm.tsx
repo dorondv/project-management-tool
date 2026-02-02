@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../common/Button';
@@ -42,7 +42,8 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    agreeToTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -72,6 +73,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
       welcome: 'Welcome to SOLLO',
       continueWithGoogle: 'Continue with Google',
       or: 'or',
+      mustAgree: 'You must agree to the Terms of Service and Privacy Policy',
     },
     he: {
       title: 'יצירת חשבון',
@@ -96,6 +98,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
       welcome: 'ברוך הבא ל SOLLO',
       continueWithGoogle: 'המשך עם Google',
       or: 'או',
+      mustAgree: 'עליך להסכים לתנאי השירות ולמדיניות הפרטיות',
     },
   };
 
@@ -110,7 +113,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
       console.log('🔵 RegisterForm: Current origin:', window.location.origin);
       console.log('🔵 RegisterForm: RedirectTo URL:', redirectTo);
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectTo,
@@ -141,6 +144,11 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.agreeToTerms) {
+      toast.error(t.mustAgree);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast.error(t.passwordsNotMatch);
       return;
@@ -313,22 +321,48 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           </div>
         </div>
 
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <input
-            type="checkbox"
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            required
-          />
-          <span className={`${isRTL ? 'mr-2' : 'ml-2'} text-sm text-gray-600 dark:text-gray-400`}>
-            {t.agreeTerms}{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
-              {t.termsOfService}
-            </a>{' '}
-            {t.and}{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
-              {t.privacyPolicy}
-            </a>
-          </span>
+        <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-end pr-2' : ''} ${isRTL ? 'w-full' : ''}`}>
+          {isRTL ? (
+            <>
+              <span className="ml-3 text-sm text-gray-600 dark:text-gray-400">
+                {t.agreeTerms}{' '}
+                <Link to="/terms" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
+                  {t.termsOfService}
+                </Link>{' '}
+                {t.and}{' '}
+                <Link to="/privacy" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
+                  {t.privacyPolicy}
+                </Link>
+              </span>
+              <input
+                type="checkbox"
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ml-1"
+                checked={formData.agreeToTerms}
+                onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
+                required
+              />
+            </>
+          ) : (
+            <>
+              <input
+                type="checkbox"
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                checked={formData.agreeToTerms}
+                onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
+                required
+              />
+              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                {t.agreeTerms}{' '}
+                <Link to="/terms" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
+                  {t.termsOfService}
+                </Link>{' '}
+                {t.and}{' '}
+                <Link to="/privacy" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
+                  {t.privacyPolicy}
+                </Link>
+              </span>
+            </>
+          )}
         </div>
 
         <Button

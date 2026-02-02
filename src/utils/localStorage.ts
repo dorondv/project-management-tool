@@ -1,3 +1,5 @@
+import { CustomerScoreSettings, defaultCustomerScoreSettings } from './customerScoreSettings';
+
 export interface StorageData {
   user: any;
   projects: any[];
@@ -8,6 +10,7 @@ export interface StorageData {
   theme: 'light' | 'dark';
   locale: 'en' | 'he';
   settings: any;
+  customerScoreSettings?: CustomerScoreSettings;
   activeTimer?: any;
   timerLogs?: any[];
 }
@@ -82,7 +85,8 @@ export const initializeStorage = (): void => {
         notifications: true,
         emailUpdates: true,
         darkMode: false
-      }
+      },
+      customerScoreSettings: defaultCustomerScoreSettings,
     };
     storage.setAll(defaultData);
   }
