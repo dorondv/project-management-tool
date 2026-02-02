@@ -22,6 +22,8 @@ import Payment from './pages/Payment';
 import Profile from './pages/Profile';
 import Admin from './pages/admin/Admin';
 import Landing from './pages/Landing';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import { Loader2 } from 'lucide-react';
 
 function AppContent() {
@@ -115,6 +117,8 @@ function AppContent() {
         
         {/* Landing page - public, accessible without authentication */}
         <Route path="/landing" element={<Landing />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         
         {!state.user ? (
           <Route path="*" element={<AuthPage />} />

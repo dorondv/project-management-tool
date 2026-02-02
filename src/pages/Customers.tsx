@@ -10,6 +10,8 @@ import { formatCurrency as formatCurrencyUtil, getCurrencySymbol } from '../util
 import { CreateCustomerModal } from '../components/customers/CreateCustomerModal';
 import { DeleteCustomerModal } from '../components/customers/DeleteCustomerModal';
 import { api } from '../utils/api';
+import { storage } from '../utils/localStorage';
+import { CustomerScoreSettings, sanitizeCustomerScoreSettings } from '../utils/customerScoreSettings';
 import toast from 'react-hot-toast';
 
 type ViewMode = 'list' | 'grid';
@@ -273,6 +275,12 @@ export default function Customers() {
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = translations[locale];
+  const customerScoreSettings = useMemo(
+    () => sanitizeCustomerScoreSettings(
+      storage.get<CustomerScoreSettings>('customerScoreSettings'),
+    ),
+    [],
+  );
 
   // Force grid view on mobile, allow both on desktop
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -435,16 +443,34 @@ export default function Customers() {
       referredRevenue: activeCustomers.reduce((sum, c) => sum + getIncomeFromReferrals(c.id), 0) / activeCustomers.length
     };
 
-    const scores = {
-      monthlyIncome: averages.monthlyIncome > 0 ? Math.min(customerMetrics.monthlyIncome / averages.monthlyIncome, 2) : 0,
-      hourlyRate: averages.hourlyRate > 0 ? Math.min(customerMetrics.hourlyRate / averages.hourlyRate, 2) : 0,
-      seniority: averages.seniority > 0 ? Math.min(customerMetrics.seniority / averages.seniority, 2) : 0,
-      referralsCount: averages.referralsCount > 0 ? Math.min(customerMetrics.referralsCount / averages.referralsCount, 2) : 0,
-      totalRevenue: averages.totalRevenue > 0 ? Math.min(customerMetrics.totalRevenue / averages.totalRevenue, 2) : 0,
-      referredRevenue: averages.referredRevenue > 0 ? Math.min(customerMetrics.referredRevenue / averages.referredRevenue, 2) : 0
-    };
+    const metrics: Array<{
+      key: keyof typeof customerMetrics;
+      value: number;
+      average: number;
+    }> = [
+      { key: 'monthlyIncome', value: customerMetrics.monthlyIncome, average: averages.monthlyIncome },
+      { key: 'hourlyRate', value: customerMetrics.hourlyRate, average: averages.hourlyRate },
+      { key: 'seniority', value: customerMetrics.seniority, average: averages.seniority },
+      { key: 'referralsCount', value: customerMetrics.referralsCount, average: averages.referralsCount },
+      { key: 'totalRevenue', value: customerMetrics.totalRevenue, average: averages.totalRevenue },
+      { key: 'referredRevenue', value: customerMetrics.referredRevenue, average: averages.referredRevenue },
+    ];
 
-    const totalScore = (scores.monthlyIncome + scores.hourlyRate + scores.seniority + scores.referralsCount + scores.totalRevenue + scores.referredRevenue) / 6;
+    let weightedScoreTotal = 0;
+    let totalWeight = 0;
+
+    metrics.forEach((metric) => {
+      const weight = customerScoreSettings.weights[metric.key];
+      const isEnabled = customerScoreSettings.include[metric.key];
+      if (!isEnabled || weight <= 0 || metric.average <= 0) return;
+      const normalizedScore = Math.min(metric.value / metric.average, 2);
+      weightedScoreTotal += normalizedScore * weight;
+      totalWeight += weight;
+    });
+
+    if (totalWeight === 0) return 'C';
+
+    const totalScore = weightedScoreTotal / totalWeight;
 
     if (totalScore >= 1.2) return 'A';
     if (totalScore >= 0.8) return 'B';

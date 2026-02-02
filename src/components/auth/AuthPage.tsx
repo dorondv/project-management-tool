@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { Button } from '../common/Button';
+import { Footer } from '../layout/Footer';
 import { Sun, Moon } from 'lucide-react';
 
 export function AuthPage() {
@@ -48,6 +49,9 @@ export function AuthPage() {
           ) : (
             <RegisterForm onToggleMode={() => setIsLogin(true)} />
           )}
+        </div>
+        <div className="mt-6">
+          <Footer />
         </div>
       </motion.div>
     </div>

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Timer, Users, BarChart3, CheckCircle, Home, LogOut, Languages } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
+import { Footer } from '../components/layout/Footer';
 // import { ContactUsModal } from '../components/common/ContactUsModal'; // Optional feature - ready for future use
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -447,6 +448,10 @@ export default function Landing() {
         isOpen={isContactModalOpen}
         onClose={() => setIsContactModalOpen(false)}
       /> */}
+
+      <div className="max-w-6xl mx-auto px-6 pb-8">
+        <Footer />
+      </div>
     </div>
   );
 }
