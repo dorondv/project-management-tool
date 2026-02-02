@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { DollarSign, Pen, Folder, Download, Upload, Globe, Save } from 'lucide-react';
+import { DollarSign, Pen, Folder, Download, Upload, Globe, Save, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -10,6 +10,12 @@ import { Locale, Currency } from '../types';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
 import { formatCurrency } from '../utils/currencyUtils';
+import { storage } from '../utils/localStorage';
+import {
+  CustomerScoreSettings,
+  defaultCustomerScoreSettings,
+  sanitizeCustomerScoreSettings,
+} from '../utils/customerScoreSettings';
 
 const translations: Record<Locale, {
   pageTitle: string;
@@ -27,6 +33,7 @@ const translations: Record<Locale, {
   featureInDevelopment: string;
   billingHistoryNote: string;
   downloadInvoice: string;
+  viewInvoice: string;
   digitalSignature: string;
   businessOwnerSignature: string;
   businessDetails: string;
@@ -54,6 +61,27 @@ const translations: Record<Locale, {
   currencySaveFailed: string;
   save: string;
   cancel: string;
+  customerScoreTitle: string;
+  customerScoreDescription: string;
+  customerScoreExplanationTitle: string;
+  customerScoreExplanationSteps: string[];
+  customerScoreFormulaLabel: string;
+  customerScoreFormulaText: string;
+  customerScoreAdjustmentsTitle: string;
+  customerScoreIncludeLabel: string;
+  customerScoreWeightLabel: string;
+  customerScoreWeightHint: string;
+  customerScoreSave: string;
+  customerScoreSaveSuccess: string;
+  customerScoreSaveFailed: string;
+  customerScoreMetrics: {
+    monthlyIncome: string;
+    hourlyRate: string;
+    seniority: string;
+    referralsCount: string;
+    totalRevenue: string;
+    referredRevenue: string;
+  };
 }> = {
   en: {
     pageTitle: 'Settings',
@@ -99,6 +127,32 @@ const translations: Record<Locale, {
     currencySaveFailed: 'Failed to save currency preference',
     save: 'Save',
     cancel: 'Cancel',
+    customerScoreTitle: 'Customer Score',
+    customerScoreDescription: 'Explain how the score is calculated and fine-tune how much each metric matters.',
+    customerScoreExplanationTitle: 'How it works',
+    customerScoreExplanationSteps: [
+      'Each enabled metric is compared to your customer average.',
+      'Each metric is capped at 2x the average to reduce outliers.',
+      'Final score is a weighted average of enabled metrics.',
+      'Grades: A >= 1.2, B >= 0.8, otherwise C.',
+    ],
+    customerScoreFormulaLabel: 'Formula',
+    customerScoreFormulaText: 'Score = sum(weight * min(customer / average, 2)) / sum(weight)',
+    customerScoreAdjustmentsTitle: 'Adjust weights',
+    customerScoreIncludeLabel: 'Include in score',
+    customerScoreWeightLabel: 'Weight',
+    customerScoreWeightHint: '0 = ignore, 2 = double influence',
+    customerScoreSave: 'Save Score Settings',
+    customerScoreSaveSuccess: 'Customer score settings saved successfully',
+    customerScoreSaveFailed: 'Failed to save customer score settings',
+    customerScoreMetrics: {
+      monthlyIncome: 'Monthly Income',
+      hourlyRate: 'Hourly Rate',
+      seniority: 'Seniority (Months)',
+      referralsCount: 'Referrals',
+      totalRevenue: 'Total Revenue',
+      referredRevenue: 'Revenue from Referrals',
+    },
   },
   he: {
     pageTitle: 'הגדרות',
@@ -144,6 +198,32 @@ const translations: Record<Locale, {
     currencySaveFailed: 'שגיאה בשמירת העדפת המטבע',
     save: 'שמור',
     cancel: 'ביטול',
+    customerScoreTitle: 'ציון לקוח',
+    customerScoreDescription: 'הסבר על חישוב הציון והתאמות פשוטות להשפעת המדדים.',
+    customerScoreExplanationTitle: 'איך זה עובד',
+    customerScoreExplanationSteps: [
+      'כל מדד פעיל מושווה לממוצע הלקוחות שלך.',
+      'כל מדד מוגבל עד 2x מהממוצע כדי לצמצם חריגים.',
+      'הציון הסופי הוא ממוצע משוקלל של המדדים הפעילים.',
+      'דירוגים: A >= 1.2, B >= 0.8, אחרת C.',
+    ],
+    customerScoreFormulaLabel: 'נוסחה',
+    customerScoreFormulaText: 'ציון = sum(משקל * min(לקוח / ממוצע, 2)) / sum(משקל)',
+    customerScoreAdjustmentsTitle: 'התאמת משקלים',
+    customerScoreIncludeLabel: 'כלול בציון',
+    customerScoreWeightLabel: 'משקל',
+    customerScoreWeightHint: '0 = התעלמות, 2 = השפעה כפולה',
+    customerScoreSave: 'שמור הגדרות ציון',
+    customerScoreSaveSuccess: 'הגדרות ציון הלקוח נשמרו בהצלחה',
+    customerScoreSaveFailed: 'שגיאה בשמירת הגדרות ציון הלקוח',
+    customerScoreMetrics: {
+      monthlyIncome: 'הכנסה חודשית',
+      hourlyRate: 'תעריף לשעה',
+      seniority: 'וותק (חודשים)',
+      referralsCount: 'הפניות',
+      totalRevenue: 'הכנסה כוללת',
+      referredRevenue: 'הכנסה מהפניות',
+    },
   },
 };
 
@@ -170,6 +250,11 @@ export default function Settings() {
   // Currency preference
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currency);
   const [isSavingCurrency, setIsSavingCurrency] = useState(false);
+  
+  // Customer score settings
+  const [scoreSettings, setScoreSettings] = useState<CustomerScoreSettings>(defaultCustomerScoreSettings);
+  const [savedScoreSettings, setSavedScoreSettings] = useState<CustomerScoreSettings>(defaultCustomerScoreSettings);
+  const [isSavingScoreSettings, setIsSavingScoreSettings] = useState(false);
 
   // Sync selectedLanguage with locale when locale changes
   useEffect(() => {
@@ -180,6 +265,48 @@ export default function Settings() {
   useEffect(() => {
     setSelectedCurrency(currency);
   }, [currency]);
+
+  useEffect(() => {
+    const savedSettings = sanitizeCustomerScoreSettings(
+      storage.get<CustomerScoreSettings>('customerScoreSettings'),
+    );
+    setScoreSettings(savedSettings);
+    setSavedScoreSettings(savedSettings);
+  }, []);
+
+  const scoreMetrics = [
+    { key: 'monthlyIncome', label: t.customerScoreMetrics.monthlyIncome },
+    { key: 'hourlyRate', label: t.customerScoreMetrics.hourlyRate },
+    { key: 'seniority', label: t.customerScoreMetrics.seniority },
+    { key: 'referralsCount', label: t.customerScoreMetrics.referralsCount },
+    { key: 'totalRevenue', label: t.customerScoreMetrics.totalRevenue },
+    { key: 'referredRevenue', label: t.customerScoreMetrics.referredRevenue },
+  ] as const;
+
+  const clampScoreWeight = (value: number) => Math.min(2, Math.max(0, value));
+
+  const handleScoreMetricToggle = (key: keyof CustomerScoreSettings['include']) => {
+    setScoreSettings((prev) => ({
+      ...prev,
+      include: {
+        ...prev.include,
+        [key]: !prev.include[key],
+      },
+    }));
+  };
+
+  const handleScoreWeightChange = (key: keyof CustomerScoreSettings['weights'], value: number) => {
+    const clampedValue = clampScoreWeight(value);
+    setScoreSettings((prev) => ({
+      ...prev,
+      weights: {
+        ...prev.weights,
+        [key]: clampedValue,
+      },
+    }));
+  };
+
+  const isScoreSettingsDirty = JSON.stringify(scoreSettings) !== JSON.stringify(savedScoreSettings);
 
   const handleLanguageSelect = (newLocale: Locale) => {
     setSelectedLanguage(newLocale);
@@ -231,6 +358,20 @@ export default function Settings() {
       toast.error(currentT.currencySaveFailed);
     } finally {
       setIsSavingCurrency(false);
+    }
+  };
+
+  const handleSaveCustomerScoreSettings = async () => {
+    setIsSavingScoreSettings(true);
+    try {
+      storage.set('customerScoreSettings', scoreSettings);
+      setSavedScoreSettings(scoreSettings);
+      toast.success(t.customerScoreSaveSuccess);
+    } catch (error: any) {
+      console.error('Error saving customer score settings:', error);
+      toast.error(t.customerScoreSaveFailed);
+    } finally {
+      setIsSavingScoreSettings(false);
     }
   };
 
@@ -510,6 +651,145 @@ export default function Settings() {
                 </p>
               )}
             </div>
+          </Card>
+
+          {/* Customer Score */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <SlidersHorizontal size={20} className="text-primary-500 flex-shrink-0" />
+              <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
+                {t.customerScoreTitle}
+              </h3>
+            </div>
+
+            <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
+              {t.customerScoreDescription}
+            </p>
+
+            <div className={`mb-6 ${alignStart}`}>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                {t.customerScoreExplanationTitle}
+              </h4>
+              <ul className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                {t.customerScoreExplanationSteps.map((step) => (
+                  <li
+                    key={step}
+                    className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse text-right justify-end' : 'text-left'}`}
+                  >
+                    {isRTL ? (
+                      <>
+                        <span>{step}</span>
+                        <span className="text-primary-500">•</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-primary-500">•</span>
+                        <span>{step}</span>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  {t.customerScoreFormulaLabel}
+                </p>
+                <p className="text-sm font-mono text-gray-700 dark:text-gray-200">
+                  {t.customerScoreFormulaText}
+                </p>
+              </div>
+            </div>
+
+            <details className="rounded-lg border border-gray-200 dark:border-gray-700">
+              <summary
+                className={`cursor-pointer select-none px-4 py-3 font-medium text-gray-900 dark:text-white ${alignStart}`}
+              >
+                {t.customerScoreAdjustmentsTitle}
+              </summary>
+              <div className="px-4 pb-4">
+                <div className={`text-xs text-gray-500 dark:text-gray-400 mb-3 ${alignStart}`}>
+                  {t.customerScoreWeightHint}
+                </div>
+
+                <div className="space-y-4">
+                  {scoreMetrics.map((metric) => {
+                    const isEnabled = scoreSettings.include[metric.key];
+                    const weightValue = scoreSettings.weights[metric.key];
+                    return (
+                      <div
+                        key={metric.key}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                      >
+                        <div className={`flex items-center justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <p className={`font-medium text-gray-900 dark:text-white ${alignStart}`}>
+                            {metric.label}
+                          </p>
+                          <label className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={isEnabled}
+                              onChange={() => handleScoreMetricToggle(metric.key)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {t.customerScoreIncludeLabel}
+                            </span>
+                          </label>
+                        </div>
+
+                        <div className={`mt-3 flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <div className="flex-1">
+                            <label className={`block text-xs text-gray-500 dark:text-gray-400 mb-1 ${alignStart}`}>
+                              {t.customerScoreWeightLabel}
+                            </label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={2}
+                              step={0.1}
+                              value={weightValue}
+                              disabled={!isEnabled}
+                              onChange={(e) => handleScoreWeightChange(metric.key, Number(e.target.value))}
+                              className={`w-full ${!isEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                          </div>
+                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <span className="text-sm text-gray-500">x</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={2}
+                              step={0.1}
+                              value={weightValue}
+                              disabled={!isEnabled}
+                              onChange={(e) => {
+                                const numericValue = Number(e.target.value);
+                                handleScoreWeightChange(metric.key, Number.isNaN(numericValue) ? 0 : numericValue);
+                              }}
+                              className={`w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${
+                                !isEnabled ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className={`mt-4 max-w-md ${alignStart}`}>
+                  <Button
+                    variant="primary"
+                    onClick={handleSaveCustomerScoreSettings}
+                    disabled={isSavingScoreSettings || !isScoreSettingsDirty}
+                    className={`${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    <Save size={16} />
+                    {t.customerScoreSave}
+                  </Button>
+                </div>
+              </div>
+            </details>
           </Card>
 
           {/* Subscription Status */}

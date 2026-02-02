@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useApp } from '../../context/AppContext';
+import { Footer } from './Footer';
 
 interface LayoutProps {
   children: ReactNode;
@@ -29,6 +30,9 @@ export function Layout({ children }: LayoutProps) {
           {children}
         </div>
       </main>
+      <div className={`${sidebarOffsetClass} px-4 lg:px-6`}>
+        <Footer />
+      </div>
       
     </div>
   );

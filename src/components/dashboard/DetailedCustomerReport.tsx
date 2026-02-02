@@ -7,6 +7,8 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, differenceInDays } from 'date-fns';
 import { getCurrencySymbol } from '../../utils/currencyUtils';
+import { storage } from '../../utils/localStorage';
+import { CustomerScoreSettings, sanitizeCustomerScoreSettings } from '../../utils/customerScoreSettings';
 
 const translations: Record<Locale, {
   title: string;
@@ -174,7 +176,13 @@ const getIncomeFromReferrals = (customerId: string, allCustomers: Customer[], al
   }, 0);
 };
 
-const calculateClientScore = (customer: Customer, allCustomers: Customer[], allTimeEntries: TimeEntry[], allIncomes: Income[]): string => {
+const calculateClientScore = (
+  customer: Customer,
+  allCustomers: Customer[],
+  allTimeEntries: TimeEntry[],
+  allIncomes: Income[],
+  scoreSettings: CustomerScoreSettings,
+): string => {
   const activeCustomers = allCustomers.filter(c => c.status === 'active');
   if (activeCustomers.length === 0) return 'C';
 
@@ -211,20 +219,34 @@ const calculateClientScore = (customer: Customer, allCustomers: Customer[], allT
     referredRevenue: activeCustomers.reduce((sum, c) => sum + getIncomeFromReferrals(c.id, allCustomers, allTimeEntries, allIncomes), 0) / activeCustomers.length,
   };
 
-  // Compute total score
-  let totalScore = 0;
-  let metricCount = 0;
+  const metrics: Array<{
+    key: keyof typeof clientMetrics;
+    value: number;
+    average: number;
+  }> = [
+    { key: 'monthlyIncome', value: clientMetrics.monthlyIncome, average: averages.monthlyIncome },
+    { key: 'hourlyRate', value: clientMetrics.hourlyRate, average: averages.hourlyRate },
+    { key: 'seniority', value: clientMetrics.seniority, average: averages.seniority },
+    { key: 'referralsCount', value: clientMetrics.referralsCount, average: averages.referralsCount },
+    { key: 'totalRevenue', value: clientMetrics.totalRevenue, average: averages.totalRevenue },
+    { key: 'referredRevenue', value: clientMetrics.referredRevenue, average: averages.referredRevenue },
+  ];
 
-  if (averages.monthlyIncome > 0) { totalScore += Math.min(clientMetrics.monthlyIncome / averages.monthlyIncome, 2); metricCount++; }
-  if (averages.hourlyRate > 0) { totalScore += Math.min(clientMetrics.hourlyRate / averages.hourlyRate, 2); metricCount++; }
-  if (averages.seniority > 0) { totalScore += Math.min(clientMetrics.seniority / averages.seniority, 2); metricCount++; }
-  if (averages.referralsCount > 0) { totalScore += Math.min(clientMetrics.referralsCount / averages.referralsCount, 2); metricCount++; }
-  if (averages.totalRevenue > 0) { totalScore += Math.min(clientMetrics.totalRevenue / averages.totalRevenue, 2); metricCount++; }
-  if (averages.referredRevenue > 0) { totalScore += Math.min(clientMetrics.referredRevenue / averages.referredRevenue, 2); metricCount++; }
+  let weightedScoreTotal = 0;
+  let totalWeight = 0;
 
-  if (metricCount === 0) return 'C';
+  metrics.forEach((metric) => {
+    const weight = scoreSettings.weights[metric.key];
+    const isEnabled = scoreSettings.include[metric.key];
+    if (!isEnabled || weight <= 0 || metric.average <= 0) return;
+    const normalizedScore = Math.min(metric.value / metric.average, 2);
+    weightedScoreTotal += normalizedScore * weight;
+    totalWeight += weight;
+  });
 
-  const finalScore = totalScore / metricCount;
+  if (totalWeight === 0) return 'C';
+
+  const finalScore = weightedScoreTotal / totalWeight;
   if (finalScore >= 1.2) return 'A';
   if (finalScore >= 0.8) return 'B';
   return 'C';
@@ -246,6 +268,12 @@ export function DetailedCustomerReport() {
   const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
   const t = translations[locale];
+  const customerScoreSettings = useMemo(
+    () => sanitizeCustomerScoreSettings(
+      storage.get<CustomerScoreSettings>('customerScoreSettings'),
+    ),
+    [],
+  );
   
   const [sortBy, setSortBy] = useState<string>('revenue');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -299,7 +327,13 @@ export function DetailedCustomerReport() {
 
       stats.push({
         customer,
-        score: calculateClientScore(customer, state.customers, state.timeEntries, state.incomes),
+        score: calculateClientScore(
+          customer,
+          state.customers,
+          state.timeEntries,
+          state.incomes,
+          customerScoreSettings,
+        ),
         scoreMetrics,
         workedHours,
         receivedPayments,
