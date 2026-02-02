@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { timerService } from '../utils/timerService';
 import { CreateProjectModal } from '../components/projects/CreateProjectModal';
+import { CreateTaskModal } from '../components/tasks/CreateTaskModal';
 import { TimeEntryForm } from '../components/timer/TimeEntryForm';
 import { ClientReportModal } from '../components/timer/ClientReportModal';
 import { Modal } from '../components/common/Modal';
@@ -118,10 +119,13 @@ export default function Timer() {
   const [selectedMonth, setSelectedMonth] = useState<string>('current');
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [isTaskDropdownOpen, setIsTaskDropdownOpen] = useState(false);
   const [isTimeEntryModalOpen, setIsTimeEntryModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
+  const taskDropdownRef = useRef<HTMLDivElement>(null);
 
   // Get timer state from context
   const activeTimer = state.activeTimer;
@@ -395,21 +399,35 @@ export default function Timer() {
     setSelectedTaskId('');
   };
 
-  // Close dropdown when clicking outside
+  const handleCreateTask = () => {
+    setIsCreateTaskModalOpen(true);
+    setIsTaskDropdownOpen(false);
+  };
+
+  const handleTaskCreated = (taskId: string) => {
+    setIsCreateTaskModalOpen(false);
+    // Automatically select the newly created task
+    setSelectedTaskId(taskId);
+  };
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
         setIsProjectDropdownOpen(false);
       }
+      if (taskDropdownRef.current && !taskDropdownRef.current.contains(event.target as Node)) {
+        setIsTaskDropdownOpen(false);
+      }
     };
 
-    if (isProjectDropdownOpen) {
+    if (isProjectDropdownOpen || isTaskDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [isProjectDropdownOpen]);
+  }, [isProjectDropdownOpen, isTaskDropdownOpen]);
 
   const hasProjects = state.projects.length > 0;
   const canStart = selectedCustomerId && selectedProjectId && !isRunning;
@@ -477,6 +495,7 @@ export default function Timer() {
                   setSelectedProjectId('');
                   setSelectedTaskId('');
                   setIsProjectDropdownOpen(false);
+                  setIsTaskDropdownOpen(false);
                 }}
                 disabled={isRunning}
                 className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} appearance-none`}
@@ -538,6 +557,7 @@ export default function Timer() {
                             setSelectedProjectId(project.id);
                             setSelectedTaskId('');
                             setIsProjectDropdownOpen(false);
+                            setIsTaskDropdownOpen(false);
                           }}
                           className={`w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-600 ${alignStart} ${
                             selectedProjectId === project.id ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' : 'text-gray-700 dark:text-gray-300'
@@ -567,21 +587,81 @@ export default function Timer() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t.selectTask}
             </label>
-            <div className="relative">
-              <select
-                value={selectedTaskId}
-                onChange={(e) => setSelectedTaskId(e.target.value)}
+            <div className="relative" ref={taskDropdownRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isRunning && selectedProjectId) {
+                    setIsTaskDropdownOpen(!isTaskDropdownOpen);
+                  }
+                }}
                 disabled={isRunning || !selectedProjectId}
-                className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} appearance-none`}
+                className={`w-full h-12 px-3 py-2 pr-8 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart} text-left disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between`}
               >
-                <option value="">{t.noSpecificTask}</option>
-                {availableTasks.map(task => (
-                  <option key={task.id} value={task.id}>
-                    {task.title}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className={`absolute ${isRTL ? 'left-2' : 'right-2'} top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none`} size={16} />
+                <span className={selectedTaskId ? '' : 'text-gray-500 dark:text-gray-400'}>
+                  {selectedTaskId
+                    ? availableTasks.find(t => t.id === selectedTaskId)?.title || t.selectTask
+                    : t.noSpecificTask}
+                </span>
+                <ChevronDown className={`text-gray-400 ${isTaskDropdownOpen ? 'transform rotate-180' : ''} transition-transform`} size={16} />
+              </button>
+              
+              {isTaskDropdownOpen && selectedProjectId && !isRunning && (
+                <div className={`absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-lg max-h-60 overflow-auto`}>
+                  {availableTasks.length === 0 ? (
+                    <div className="p-3">
+                      <button
+                        type="button"
+                        onClick={handleCreateTask}
+                        className={`w-full px-4 py-3 text-sm font-medium text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg flex items-center justify-center gap-2 ${flexDirection}`}
+                      >
+                        <Plus size={16} />
+                        {isRTL ? 'משימה חדשה' : 'New Task'}
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTaskId('');
+                          setIsTaskDropdownOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-600 ${alignStart} ${
+                          !selectedTaskId ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {t.noSpecificTask}
+                      </button>
+                      {availableTasks.map(task => (
+                        <button
+                          key={task.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTaskId(task.id);
+                            setIsTaskDropdownOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-600 ${alignStart} ${
+                            selectedTaskId === task.id ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {task.title}
+                        </button>
+                      ))}
+                      <div className="border-t border-gray-200 dark:border-gray-600 p-2">
+                        <button
+                          type="button"
+                          onClick={handleCreateTask}
+                          className={`w-full px-4 py-2 text-sm font-medium text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg flex items-center justify-center gap-2 ${flexDirection}`}
+                        >
+                          <Plus size={16} />
+                          {isRTL ? '+ משימה חדשה' : '+ New Task'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -914,6 +994,14 @@ export default function Timer() {
         onClose={() => setIsCreateProjectModalOpen(false)}
         preSelectedCustomerId={selectedCustomerId}
         onProjectCreated={handleProjectCreated}
+      />
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={() => setIsCreateTaskModalOpen(false)}
+        projectId={selectedProjectId}
+        onTaskCreated={handleTaskCreated}
       />
 
       {/* Add Time Entry Modal */}
