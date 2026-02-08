@@ -16,9 +16,9 @@ const translations = {
 
 export function Footer() {
   const { state } = useApp();
-  const locale = state.locale || 'en';
+  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale as 'en' | 'he'];
+  const t = translations[locale] || translations.en;
   const year = new Date().getFullYear();
 
   return (

@@ -29,6 +29,30 @@ const translations: Record<Locale, {
       upcoming: 'קרוב',
     },
   },
+  es: {
+    title: 'Upcoming Deadlines',
+    statuses: {
+      overdue: 'overdue',
+      'due-soon': 'due soon',
+      upcoming: 'upcoming',
+    },
+  },
+  de: {
+    title: 'Upcoming Deadlines',
+    statuses: {
+      overdue: 'overdue',
+      'due-soon': 'due soon',
+      upcoming: 'upcoming',
+    },
+  },
+  'pt-BR': {
+    title: 'Upcoming Deadlines',
+    statuses: {
+      overdue: 'overdue',
+      'due-soon': 'due soon',
+      upcoming: 'upcoming',
+    },
+  },
 };
 
 export function UpcomingDeadlines() {

@@ -20,9 +20,24 @@ model User {
   role              String   @default("manager") // admin, manager, contributor
   avatar            String?
   isOnline          Boolean  @default(false)
-  preferredLanguage String   @default("he") // en, he
+  preferredLanguage String   @default("he") // en, he, es, de, pt-BR
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  // Marketing / UTM fields (first source tracking)
+  utmSource         String? // First UTM source
+  utmMedium         String? // First UTM medium
+  utmCampaign       String? // First UTM campaign
+  utmTerm           String? // First UTM term
+  utmContent        String? // First UTM content
+  firstReferrer     String? // First referrer URL
+  firstLandingUrl   String? // First landing page URL
+  
+  // Geo fields (rough geo via timezone/lang)
+  geoCountry        String? // Detected country (from timezone/lang)
+  geoTz             String? // Timezone (e.g., "Asia/Jerusalem")
+  geoLang           String? // Browser language (e.g., "he-IL")
+  geoCityApprox     String? // Approximate city (if derivable)
 
   // Relations
   createdProjects Project[]       @relation("ProjectCreator")
@@ -38,6 +53,7 @@ model User {
   customers       Customer[]
   subscription    Subscription?
   events          Event[]
+  marketingEvents MarketingEvent[]
 
   @@map("users")
 }
@@ -381,4 +397,50 @@ model Event {
   task     Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@map("events")
+}
+
+model MarketingEvent {
+  id                String   @id @default(uuid())
+  eventType         String   // pageview, signup_start, signup_complete, lead_submit, purchase_complete
+  userId            String?  // Null for anonymous events (pageview before signup)
+  url               String?  // Page URL
+  referrer          String?  // Referrer URL
+  userAgent         String?  // User agent string
+  ipAddress         String?  // IP address (for geo detection if needed later)
+  
+  // UTM parameters (from event)
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  utmTerm           String?
+  utmContent        String?
+  
+  // Click IDs
+  gclid             String? // Google Click ID
+  fbclid            String? // Facebook Click ID
+  msclkid           String? // Microsoft Click ID
+  ttclid            String? // TikTok Click ID
+  
+  // Geo data (rough, from client)
+  timezone          String? // e.g., "Asia/Jerusalem"
+  language          String? // e.g., "he-IL"
+  country           String? // Detected country
+  
+  // Business fields (for purchase/lead events)
+  purchaseAmount    Float?  // Purchase amount
+  currency          String? // Currency code
+  revenueTotal      Float?  // Cumulative revenue from first day (LTV)
+  
+  createdAt         DateTime @default(now())
+
+  // Relations
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([utmSource])
+  @@index([utmCampaign])
+  @@index([country])
+  @@index([createdAt])
+  @@map("marketing_events")
 }

@@ -37,6 +37,36 @@ const translations: Record<Locale, {
     toastMoved: 'המשימה הועברה ל{status}',
     activityDescription: 'משימה "{title}" הועברה ל{status}',
   },
+  es: {
+    columns: {
+      todo: 'To Do',
+      inProgress: 'In Progress',
+      completed: 'Completed',
+    },
+    addTask: 'Add Task',
+    toastMoved: 'Task moved to {status}',
+    activityDescription: 'moved task "{title}" to {status}',
+  },
+  de: {
+    columns: {
+      todo: 'To Do',
+      inProgress: 'In Progress',
+      completed: 'Completed',
+    },
+    addTask: 'Add Task',
+    toastMoved: 'Task moved to {status}',
+    activityDescription: 'moved task "{title}" to {status}',
+  },
+  'pt-BR': {
+    columns: {
+      todo: 'To Do',
+      inProgress: 'In Progress',
+      completed: 'Completed',
+    },
+    addTask: 'Add Task',
+    toastMoved: 'Task moved to {status}',
+    activityDescription: 'moved task "{title}" to {status}',
+  },
 };
 
 interface KanbanBoardProps {

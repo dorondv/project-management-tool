@@ -862,6 +862,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
               // User doesn't exist in backend, create it
               if (apiError.status === 404) {
                 console.log('🔵 AppContext: User not found in backend, creating...');
+                
+                // Get first touch marketing data if available
+                let marketingData = {};
+                try {
+                  const { getFirstTouch } = await import('../utils/tracking');
+                  const firstTouch = getFirstTouch();
+                  if (firstTouch) {
+                    marketingData = {
+                      ...(firstTouch.utm && {
+                        utmSource: firstTouch.utm.utm_source,
+                        utmMedium: firstTouch.utm.utm_medium,
+                        utmCampaign: firstTouch.utm.utm_campaign,
+                        utmTerm: firstTouch.utm.utm_term,
+                        utmContent: firstTouch.utm.utm_content,
+                      }),
+                      ...(firstTouch.referrer && { firstReferrer: firstTouch.referrer }),
+                      ...(firstTouch.url && { firstLandingUrl: firstTouch.url }),
+                      ...(firstTouch.geo && {
+                        geoCountry: firstTouch.geo.country,
+                        geoTz: firstTouch.geo.timezone,
+                        geoLang: firstTouch.geo.language,
+                      }),
+                    };
+                  }
+                } catch (trackingError) {
+                  console.warn('⚠️ AppContext: Failed to get marketing data:', trackingError);
+                }
+                
                 const newUser = {
                   id: session.user.id,
                   name: extractUserName(session.user),
@@ -869,11 +897,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   role: 'contributor' as const,
                   avatar: extractUserAvatar(session.user),
                   isOnline: true,
+                  ...marketingData,
                 };
                 
                 try {
                   userProfile = await api.users.create(newUser);
                   console.log('✅ AppContext: User created in backend');
+                  
+                  // Track signup_complete for OAuth users
+                  try {
+                    const { trackEvent } = await import('../utils/tracking');
+                    await trackEvent('signup_complete', undefined, newUser.id);
+                  } catch (trackingError) {
+                    console.warn('⚠️ AppContext: Failed to track signup_complete:', trackingError);
+                  }
                 } catch (createError) {
                   console.warn('⚠️ AppContext: Failed to create user in backend:', createError);
                   // Use the newUser object anyway
@@ -896,9 +933,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
               dispatch({ type: 'SET_USER', payload: authenticatedUser });
               dispatch({ type: 'SET_AUTHENTICATED', payload: true });
               
-              // Set user's preferred language if available
+              // Set user's preferred language if available (sanitize to only allow 'en' or 'he')
               if (userProfile.preferredLanguage) {
-                dispatch({ type: 'SET_LOCALE', payload: userProfile.preferredLanguage as Locale });
+                const preferredLocale = userProfile.preferredLanguage as Locale;
+                const validPreferredLocale = (preferredLocale === 'en' || preferredLocale === 'he') ? preferredLocale : 'he';
+                dispatch({ type: 'SET_LOCALE', payload: validPreferredLocale });
               }
             }
           } catch (error) {
@@ -925,7 +964,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (storedTheme) {
           dispatch({ type: 'SET_THEME', payload: storedTheme });
         }
-        dispatch({ type: 'SET_LOCALE', payload: storedLocale || 'he' });
+        // Sanitize locale to only allow 'en' or 'he'
+        const validLocale = (storedLocale === 'en' || storedLocale === 'he') ? storedLocale : 'he';
+        dispatch({ type: 'SET_LOCALE', payload: validLocale });
         dispatch({ type: 'SET_CURRENCY', payload: storedCurrency || 'ILS' });
         
         // Ensure loading is false if not already set
@@ -1020,7 +1061,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             
             // Set user's preferred language if available
             if (userProfile.preferredLanguage) {
-              dispatch({ type: 'SET_LOCALE', payload: userProfile.preferredLanguage as Locale });
+              const preferredLocale = userProfile.preferredLanguage as Locale;
+            const validPreferredLocale = (preferredLocale === 'en' || preferredLocale === 'he') ? preferredLocale : 'he';
+            dispatch({ type: 'SET_LOCALE', payload: validPreferredLocale });
             }
             
             // Initialize Chatwoot widget with user identity
@@ -1198,7 +1241,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Apply locale direction and lang
   useEffect(() => {
     const root = document.documentElement;
-    const lang = state.locale === 'he' ? 'he' : 'en';
+    const lang = state.locale;
     const dir = state.locale === 'he' ? 'rtl' : 'ltr';
     root.setAttribute('lang', lang);
     root.setAttribute('dir', dir);

@@ -55,6 +55,51 @@ const translations: Record<Locale, {
       low: 'נמוכה',
     },
   },
+  es: {
+    pageTitle: 'Calendar',
+    pageSubtitle: 'View your tasks and deadlines in calendar format',
+    addEvent: 'Add Event',
+    today: 'Today',
+    upcomingTasks: 'Upcoming Tasks',
+    due: 'Due',
+    more: 'more',
+    dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    priorities: {
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+    },
+  },
+  de: {
+    pageTitle: 'Calendar',
+    pageSubtitle: 'View your tasks and deadlines in calendar format',
+    addEvent: 'Add Event',
+    today: 'Today',
+    upcomingTasks: 'Upcoming Tasks',
+    due: 'Due',
+    more: 'more',
+    dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    priorities: {
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+    },
+  },
+  'pt-BR': {
+    pageTitle: 'Calendar',
+    pageSubtitle: 'View your tasks and deadlines in calendar format',
+    addEvent: 'Add Event',
+    today: 'Today',
+    upcomingTasks: 'Upcoming Tasks',
+    due: 'Due',
+    more: 'more',
+    dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    priorities: {
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+    },
+  },
 };
 
 export default function Calendar() {

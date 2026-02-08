@@ -28,6 +28,27 @@ const translations: Record<Locale, {
     projects: 'פרויקטים',
     tasks: 'משימות',
   },
+  es: {
+    pageTitle: 'Team',
+    pageSubtitle: 'Manage your team members and their roles',
+    inviteMember: 'Invite Member',
+    projects: 'Projects',
+    tasks: 'Tasks',
+  },
+  de: {
+    pageTitle: 'Team',
+    pageSubtitle: 'Manage your team members and their roles',
+    inviteMember: 'Invite Member',
+    projects: 'Projects',
+    tasks: 'Tasks',
+  },
+  'pt-BR': {
+    pageTitle: 'Team',
+    pageSubtitle: 'Manage your team members and their roles',
+    inviteMember: 'Invite Member',
+    projects: 'Projects',
+    tasks: 'Tasks',
+  },
 };
 
 export default function Team() {

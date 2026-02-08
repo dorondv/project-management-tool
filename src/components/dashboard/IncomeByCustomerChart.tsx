@@ -16,6 +16,21 @@ const translations = {
     noData: 'אין נתוני הכנסות להצגה',
     income: 'הכנסה',
   },
+  es: {
+    title: 'Income Distribution by Customer',
+    noData: 'No income data to display',
+    income: 'Income',
+  },
+  de: {
+    title: 'Income Distribution by Customer',
+    noData: 'No income data to display',
+    income: 'Income',
+  },
+  'pt-BR': {
+    title: 'Income Distribution by Customer',
+    noData: 'No income data to display',
+    income: 'Income',
+  },
 } as const;
 
 interface IncomeByCustomerChartProps {

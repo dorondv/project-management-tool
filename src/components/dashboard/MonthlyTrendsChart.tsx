@@ -18,6 +18,24 @@ const translations = {
     income: 'הכנסות',
     hours: 'שעות',
   },
+  es: {
+    title: 'Monthly Trends - Income vs. Hours',
+    noData: 'No trend data to display',
+    income: 'Income',
+    hours: 'Hours',
+  },
+  de: {
+    title: 'Monthly Trends - Income vs. Hours',
+    noData: 'No trend data to display',
+    income: 'Income',
+    hours: 'Hours',
+  },
+  'pt-BR': {
+    title: 'Monthly Trends - Income vs. Hours',
+    noData: 'No trend data to display',
+    income: 'Income',
+    hours: 'Hours',
+  },
 } as const;
 
 interface MonthlyTrendsChartProps {

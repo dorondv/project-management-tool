@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Timer, Users, BarChart3, CheckCircle, Home, LogOut, Languages } from 'lucide-react';
+import { Timer, Users, BarChart3, CheckCircle, Home, LogOut, Languages, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { Footer } from '../components/layout/Footer';
 // import { ContactUsModal } from '../components/common/ContactUsModal'; // Optional feature - ready for future use
 import { api } from '../utils/api';
+import { Locale } from '../types';
 import toast from 'react-hot-toast';
+import { initTracking } from '../utils/tracking';
 
 const translations = {
   en: {
@@ -58,6 +60,75 @@ const translations = {
     logout: 'התנתקות',
     // contactUs: 'צור קשר', // Optional feature - ready for future use
   },
+  es: {
+    welcome: 'Welcome to SOLLO',
+    subtitle: 'The smart way to manage your time, clients, tasks, and even accounting in one place. Start working smarter, not harder.',
+    startTrial: 'Start 5-Day Free Trial',
+    existingCustomer: 'Login for existing customers',
+    seeHowItWorks: 'See how it works',
+    allInOne: 'Everything you need in one place',
+    smartTimeTracking: 'Smart Time Tracking',
+    smartTimeTrackingDesc: 'Track every minute, for every client, in every project. Accurate and simple tracking that saves you time and helps you manage it smarter',
+    clientManagement: 'Client Management',
+    clientManagementDesc: 'Discover your most profitable clients using a smart rating system and grow your business intelligently',
+    taskManagement: 'Task Management',
+    taskManagementDesc: 'Manage your tasks simply and efficiently while accurately and effectively measuring your work time on each task',
+    whySollo: 'Why SOLLO?',
+    convenience: 'Convenience - Everything in one place',
+    convenienceDesc: 'Manage all your business tasks in one place instead of multiple separate tools',
+    saveCosts: 'Save on costs',
+    saveCostsDesc: 'Instead of paying for multiple tools, pay for one. Get more, pay less',
+    efficiency: 'Efficiency - Work smarter and more efficiently',
+    efficiencyDesc: 'Manage your time better, invest in the right places and grow correctly',
+    videoNote: 'You can replace the video with your own marketing video from YouTube or Vimeo.',
+    logout: 'Logout',
+  },
+  de: {
+    welcome: 'Welcome to SOLLO',
+    subtitle: 'The smart way to manage your time, clients, tasks, and even accounting in one place. Start working smarter, not harder.',
+    startTrial: 'Start 5-Day Free Trial',
+    existingCustomer: 'Login for existing customers',
+    seeHowItWorks: 'See how it works',
+    allInOne: 'Everything you need in one place',
+    smartTimeTracking: 'Smart Time Tracking',
+    smartTimeTrackingDesc: 'Track every minute, for every client, in every project. Accurate and simple tracking that saves you time and helps you manage it smarter',
+    clientManagement: 'Client Management',
+    clientManagementDesc: 'Discover your most profitable clients using a smart rating system and grow your business intelligently',
+    taskManagement: 'Task Management',
+    taskManagementDesc: 'Manage your tasks simply and efficiently while accurately and effectively measuring your work time on each task',
+    whySollo: 'Why SOLLO?',
+    convenience: 'Convenience - Everything in one place',
+    convenienceDesc: 'Manage all your business tasks in one place instead of multiple separate tools',
+    saveCosts: 'Save on costs',
+    saveCostsDesc: 'Instead of paying for multiple tools, pay for one. Get more, pay less',
+    efficiency: 'Efficiency - Work smarter and more efficiently',
+    efficiencyDesc: 'Manage your time better, invest in the right places and grow correctly',
+    videoNote: 'You can replace the video with your own marketing video from YouTube or Vimeo.',
+    logout: 'Logout',
+  },
+  'pt-BR': {
+    welcome: 'Welcome to SOLLO',
+    subtitle: 'The smart way to manage your time, clients, tasks, and even accounting in one place. Start working smarter, not harder.',
+    startTrial: 'Start 5-Day Free Trial',
+    existingCustomer: 'Login for existing customers',
+    seeHowItWorks: 'See how it works',
+    allInOne: 'Everything you need in one place',
+    smartTimeTracking: 'Smart Time Tracking',
+    smartTimeTrackingDesc: 'Track every minute, for every client, in every project. Accurate and simple tracking that saves you time and helps you manage it smarter',
+    clientManagement: 'Client Management',
+    clientManagementDesc: 'Discover your most profitable clients using a smart rating system and grow your business intelligently',
+    taskManagement: 'Task Management',
+    taskManagementDesc: 'Manage your tasks simply and efficiently while accurately and effectively measuring your work time on each task',
+    whySollo: 'Why SOLLO?',
+    convenience: 'Convenience - Everything in one place',
+    convenienceDesc: 'Manage all your business tasks in one place instead of multiple separate tools',
+    saveCosts: 'Save on costs',
+    saveCostsDesc: 'Instead of paying for multiple tools, pay for one. Get more, pay less',
+    efficiency: 'Efficiency - Work smarter and more efficiently',
+    efficiencyDesc: 'Manage your time better, invest in the right places and grow correctly',
+    videoNote: 'You can replace the video with your own marketing video from YouTube or Vimeo.',
+    logout: 'Logout',
+  },
 };
 
 export default function Landing() {
@@ -67,6 +138,11 @@ export default function Landing() {
   const isRTL = locale === 'he';
   const t = translations[locale as 'en' | 'he'];
   // const [isContactModalOpen, setIsContactModalOpen] = useState(false); // Optional feature - ready for future use
+
+  // Initialize tracking on landing page
+  useEffect(() => {
+    initTracking();
+  }, []);
 
   // Check if user has active access and redirect to dashboard (only if user is logged in)
   useEffect(() => {
@@ -133,10 +209,32 @@ export default function Landing() {
     toast.success(locale === 'he' ? 'התנתקת בהצלחה' : 'Logged out successfully');
   };
 
-  const handleLocaleToggle = () => {
-    const nextLocale = locale === 'he' ? 'en' : 'he';
-    dispatch({ type: 'SET_LOCALE', payload: nextLocale });
-    toast.success(nextLocale === 'he' ? 'עברית הופעלה' : 'English set');
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleLocaleSelect = (selectedLocale: Locale) => {
+    dispatch({ type: 'SET_LOCALE', payload: selectedLocale });
+    setShowLanguageMenu(false);
+    toast.success(locale === 'he' ? 'השפה שונתה' : 'Language changed');
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
+        setShowLanguageMenu(false);
+      }
+    };
+    if (showLanguageMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showLanguageMenu]);
+
+  const languageNames: Record<Locale, string> = {
+    en: 'English',
+    he: 'Hebrew (עברית)',
   };
 
   return (
@@ -153,15 +251,39 @@ export default function Landing() {
         <Home className="w-5 h-5 text-gray-700 dark:text-gray-300" />
       </button>
 
-      {/* Language Toggle Button - Always visible */}
-      <button
-        onClick={handleLocaleToggle}
-        className={`fixed ${isRTL ? 'top-6 left-6' : 'top-6 right-6'} z-50 p-2.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-gray-200 dark:border-gray-700 group`}
-        aria-label={locale === 'he' ? 'Switch to English' : 'עבור לעברית'}
-        title={locale === 'he' ? 'Switch to English' : 'עבור לעברית'}
-      >
-        <Languages className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors" />
-      </button>
+      {/* Language Dropdown - Always visible */}
+      <div className={`fixed ${isRTL ? 'top-6 left-6' : 'top-6 right-6'} z-50`} ref={languageMenuRef}>
+        <button
+          onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+          className="p-2.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 border border-gray-200 dark:border-gray-700 group flex items-center gap-1"
+          aria-label="Select language"
+          title="Select language"
+        >
+          <Languages className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors" />
+          <ChevronDown className={`w-3 h-3 text-gray-600 dark:text-gray-400 transition-transform ${showLanguageMenu ? 'rotate-180' : ''}`} />
+        </button>
+        {showLanguageMenu && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`absolute ${isRTL ? 'right-0' : 'left-0'} mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2`}
+          >
+            {(['en', 'he'] as Locale[]).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => handleLocaleSelect(lang)}
+                className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                  isRTL ? 'flex-row-reverse text-right' : 'text-left'
+                } ${
+                  locale === lang ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
+                }`}
+              >
+                {languageNames[lang]}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </div>
 
       {/* Logout Button - Only show if user is logged in */}
       {state.user && (

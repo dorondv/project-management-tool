@@ -17,73 +17,7 @@ import {
   sanitizeCustomerScoreSettings,
 } from '../utils/customerScoreSettings';
 
-const translations: Record<Locale, {
-  pageTitle: string;
-  pageSubtitle: string;
-  subscriptionStatus: string;
-  trialPeriod: string;
-  trialDescription: string;
-  timeRemaining: string;
-  days: string;
-  hours: string;
-  minutes: string;
-  seconds: string;
-  manageSubscription: string;
-  billingHistory: string;
-  featureInDevelopment: string;
-  billingHistoryNote: string;
-  downloadInvoice: string;
-  viewInvoice: string;
-  digitalSignature: string;
-  businessOwnerSignature: string;
-  businessDetails: string;
-  businessName: string;
-  businessField: string;
-  vatNo: string;
-  businessNamePlaceholder: string;
-  businessFieldPlaceholder: string;
-  vatNoPlaceholder: string;
-  languagePreference: string;
-  languageDescription: string;
-  currentLanguage: string;
-  changeLanguage: string;
-  english: string;
-  hebrew: string;
-  languageUpdated: string;
-  languageSaveFailed: string;
-  saveLanguage: string;
-  currencyPreference: string;
-  currencyDescription: string;
-  currentCurrency: string;
-  changeCurrency: string;
-  saveCurrency: string;
-  currencyUpdated: string;
-  currencySaveFailed: string;
-  save: string;
-  cancel: string;
-  customerScoreTitle: string;
-  customerScoreDescription: string;
-  customerScoreExplanationTitle: string;
-  customerScoreExplanationSteps: string[];
-  customerScoreFormulaLabel: string;
-  customerScoreFormulaText: string;
-  customerScoreAdjustmentsTitle: string;
-  customerScoreIncludeLabel: string;
-  customerScoreWeightLabel: string;
-  customerScoreWeightHint: string;
-  customerScoreSave: string;
-  customerScoreSaveSuccess: string;
-  customerScoreSaveFailed: string;
-  customerScoreMetrics: {
-    monthlyIncome: string;
-    hourlyRate: string;
-    seniority: string;
-    referralsCount: string;
-    totalRevenue: string;
-    referredRevenue: string;
-  };
-}> = {
-  en: {
+const enTranslations = {
     pageTitle: 'Settings',
     pageSubtitle: 'Customize the application to your taste',
     subscriptionStatus: 'Subscription Status',
@@ -153,7 +87,10 @@ const translations: Record<Locale, {
       totalRevenue: 'Total Revenue',
       referredRevenue: 'Revenue from Referrals',
     },
-  },
+};
+
+const translations: Record<Locale, typeof enTranslations> = {
+  en: enTranslations,
   he: {
     pageTitle: 'הגדרות',
     pageSubtitle: 'התאם את האפליקציה לטעם שלך',
@@ -496,45 +433,30 @@ export default function Settings() {
               {t.languageDescription}
             </p>
 
-            {/* Language Options - Constrained width */}
-            <div className={`flex gap-3 max-w-md ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <button
-                onClick={() => handleLanguageSelect('he')}
-                disabled={isSavingLanguage}
-                className={`w-1/2 flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
-                  selectedLanguage === 'he'
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
-                } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <span className={`font-medium ${selectedLanguage === 'he' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
-                  {t.hebrew}
-                </span>
-                {selectedLanguage === 'he' && (
-                  <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-white"></div>
-                  </div>
-                )}
-              </button>
-
-              <button
-                onClick={() => handleLanguageSelect('en')}
-                disabled={isSavingLanguage}
-                className={`w-1/2 flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
-                  selectedLanguage === 'en'
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
-                } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <span className={`font-medium ${selectedLanguage === 'en' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
-                  {t.english}
-                </span>
-                {selectedLanguage === 'en' && (
-                  <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-white"></div>
-                  </div>
-                )}
-              </button>
+            {/* Language Options - Grid layout for 5 languages */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+              {(['en', 'he'] as Locale[]).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => handleLanguageSelect(lang)}
+                  disabled={isSavingLanguage}
+                  className={`flex items-center justify-between p-3 border-2 rounded-lg transition-all ${
+                    selectedLanguage === lang
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
+                  } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <span className={`font-medium ${selectedLanguage === lang ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
+                    {lang === 'en' && t.english}
+                    {lang === 'he' && t.hebrew}
+                  </span>
+                  {selectedLanguage === lang && (
+                    <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-white"></div>
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
 
             {/* Save Button */}

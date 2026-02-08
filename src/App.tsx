@@ -25,6 +25,7 @@ import Landing from './pages/Landing';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { Loader2 } from 'lucide-react';
+import { GoogleAnalytics } from './components/analytics/GoogleAnalytics';
 
 function AppContent() {
   const { state } = useApp();
@@ -38,7 +39,19 @@ function AppContent() {
 
   if (state.loading) {
     console.log('🟡 AppContent: Showing loading screen');
-    const isHebrew = state.locale === 'he';
+    const loadingTranslations: Record<string, { title: string; message: string; tip: string }> = {
+      en: {
+        title: 'Loading Data...',
+        message: 'Please wait while we prepare your workspace',
+        tip: 'Loading projects, tasks, and data...',
+      },
+      he: {
+        title: 'טוען נתונים...',
+        message: 'אנא המתן בזמן שאנחנו מכינים את המערכת שלך',
+        tip: 'טוען פרויקטים, משימות ונתונים...',
+      },
+    };
+    const t = loadingTranslations[state.locale] || loadingTranslations.en;
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4">
@@ -68,13 +81,10 @@ function AppContent() {
 
           {/* Loading Text */}
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            {isHebrew ? 'טוען נתונים...' : 'Loading Data...'}
+            {t.title}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {isHebrew 
-              ? 'אנא המתן בזמן שאנחנו מכינים את המערכת שלך'
-              : 'Please wait while we prepare your workspace'
-            }
+            {t.message}
           </p>
 
           {/* Progress Bar */}
@@ -90,10 +100,7 @@ function AppContent() {
 
           {/* Loading Tips */}
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-6">
-            {isHebrew 
-              ? 'טוען פרויקטים, משימות ונתונים...'
-              : 'Loading projects, tasks, and data...'
-            }
+            {t.tip}
           </p>
         </div>
 
@@ -111,6 +118,7 @@ function AppContent() {
 
   return (
     <Router>
+      <GoogleAnalytics />
       <Routes>
         {/* OAuth callback - accessible without authentication */}
         <Route path="/auth/callback" element={<AuthCallback />} />
