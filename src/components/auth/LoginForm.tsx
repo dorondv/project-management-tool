@@ -34,7 +34,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onToggleMode }: LoginFormProps) {
   const { dispatch, state } = useApp();
-  const locale = state.locale || 'en';
+  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
   const isRTL = locale === 'he';
   const [formData, setFormData] = useState({
     email: '',
@@ -77,7 +77,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
     },
   };
 
-  const t = translations[locale as 'en' | 'he'];
+  const t = translations[locale];
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);

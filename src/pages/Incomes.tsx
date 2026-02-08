@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Search, Edit, Trash2, DollarSign, TrendingUp, Calendar as CalendarIcon, Users } from 'lucide-react';
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, startOfDay, endOfDay, format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, es, de, ptBR } from 'date-fns/locale';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { IncomeModal } from '../components/incomes/IncomeModal';
@@ -126,7 +126,8 @@ const translations: Record<
 };
 
 function formatDate(date: Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-US', {
+  const intlLocale = locale === 'he' ? 'he-IL' : locale === 'es' ? 'es-ES' : locale === 'de' ? 'de-DE' : locale === 'pt-BR' ? 'pt-BR' : 'en-US';
+  return new Intl.DateTimeFormat(intlLocale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

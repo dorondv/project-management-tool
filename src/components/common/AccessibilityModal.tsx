@@ -17,25 +17,17 @@ interface AccessibilitySettings {
   largeCursor: boolean;
 }
 
-const translations: Record<
-  Locale,
-  {
-    title: string;
-    description: string;
-    textSize: string;
-    highContrast: string;
-    largeCursor: string;
-    resetSettings: string;
-  }
-> = {
-  en: {
-    title: 'Accessibility adjustments',
-    description: 'Adjust the site\'s display to your needs. Changes will be saved for future browsing sessions.',
-    textSize: 'Text size',
-    highContrast: 'High contrast',
-    largeCursor: 'Large cursor',
-    resetSettings: 'Reset settings',
-  },
+const enTranslations = {
+  title: 'Accessibility adjustments',
+  description: 'Adjust the site\'s display to your needs. Changes will be saved for future browsing sessions.',
+  textSize: 'Text size',
+  highContrast: 'High contrast',
+  largeCursor: 'Large cursor',
+  resetSettings: 'Reset settings',
+};
+
+const translations: Record<Locale, typeof enTranslations> = {
+  en: enTranslations,
   he: {
     title: 'התאמות נגישות',
     description: 'התאם את תצוגת האתר לצרכים שלך. השינויים יישמרו לגלישות הבאות.',
@@ -44,6 +36,9 @@ const translations: Record<
     largeCursor: 'סמן גדול',
     resetSettings: 'אפס הגדרות',
   },
+  es: enTranslations,
+  de: enTranslations,
+  'pt-BR': enTranslations,
 };
 
 const TEXT_SIZE_STEP = 25;

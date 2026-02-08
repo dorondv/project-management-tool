@@ -1,10 +1,11 @@
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, CreditCard, Gift, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, Gift, DollarSign, BarChart3 } from 'lucide-react';
 import AdminDashboard from './AdminDashboard';
 import AdminUsers from './AdminUsers';
 import AdminSubscriptions from './AdminSubscriptions';
 import AdminCoupons from './AdminCoupons';
 import AdminPayments from './AdminPayments';
+import AdminMarketingAnalytics from './AdminMarketingAnalytics';
 import { AdminRoute } from '../../components/admin/AdminRoute';
 
 const adminNavItems = [
@@ -13,6 +14,7 @@ const adminNavItems = [
   { path: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
   { path: '/admin/coupons', label: 'Coupons', icon: Gift },
   { path: '/admin/payments', label: 'Payments', icon: DollarSign },
+  { path: '/admin/marketing', label: 'Marketing', icon: BarChart3 },
 ];
 
 export default function Admin() {
@@ -62,6 +64,7 @@ export default function Admin() {
             <Route path="/subscriptions" element={<AdminSubscriptions />} />
             <Route path="/coupons" element={<AdminCoupons />} />
             <Route path="/payments" element={<AdminPayments />} />
+            <Route path="/marketing" element={<AdminMarketingAnalytics />} />
           </Routes>
         </div>
       </div>

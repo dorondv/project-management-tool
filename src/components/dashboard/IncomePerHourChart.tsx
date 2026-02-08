@@ -14,6 +14,18 @@ const translations = {
     title: 'הכנסה ממוצעת לשעה לפי חודש',
     noData: 'אין נתוני תעריפים להצגה',
   },
+  es: {
+    title: 'Average Income Per Hour by Month',
+    noData: 'No rate data to display',
+  },
+  de: {
+    title: 'Average Income Per Hour by Month',
+    noData: 'No rate data to display',
+  },
+  'pt-BR': {
+    title: 'Average Income Per Hour by Month',
+    noData: 'No rate data to display',
+  },
 } as const;
 
 interface IncomePerHourChartProps {

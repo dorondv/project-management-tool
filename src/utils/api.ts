@@ -509,6 +509,38 @@ export const api = {
       const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
       return fetch(`${API_URL}/api/admin/payments/refund-history`, { headers }).then(handleResponse);
     },
+
+    // Marketing Analytics
+    getMarketingAnalytics: (userId: string, filters?: { utmSource?: string; utmCampaign?: string; country?: string; startDate?: string; endDate?: string }) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      const params = new URLSearchParams();
+      if (filters?.utmSource) params.append('utmSource', filters.utmSource);
+      if (filters?.utmCampaign) params.append('utmCampaign', filters.utmCampaign);
+      if (filters?.country) params.append('country', filters.country);
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
+      const query = params.toString();
+      return fetch(`${API_URL}/api/admin/marketing/analytics${query ? `?${query}` : ''}`, { headers }).then(handleResponse);
+    },
+    getMarketingUsers: (userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/marketing/users`, { headers }).then(handleResponse);
+    },
+    getMarketingEvents: (userId: string, filters?: { eventType?: string; utmSource?: string; utmCampaign?: string; country?: string; limit?: number }) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      const params = new URLSearchParams();
+      if (filters?.eventType) params.append('eventType', filters.eventType);
+      if (filters?.utmSource) params.append('utmSource', filters.utmSource);
+      if (filters?.utmCampaign) params.append('utmCampaign', filters.utmCampaign);
+      if (filters?.country) params.append('country', filters.country);
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      const query = params.toString();
+      return fetch(`${API_URL}/api/admin/marketing/events${query ? `?${query}` : ''}`, { headers }).then(handleResponse);
+    },
+    getMarketingBreakdown: (userId: string, groupBy: 'utmSource' | 'utmCampaign' | 'country' = 'utmSource') => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/marketing/breakdown?groupBy=${groupBy}`, { headers }).then(handleResponse);
+    },
   },
 
   // Chatwoot

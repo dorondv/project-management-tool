@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { Locale, Customer, TimeEntry, Income, Currency } from '../../types';
 import { Badge } from '../common/Badge';
 import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, es, de, ptBR } from 'date-fns/locale';
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, differenceInDays } from 'date-fns';
 import { getCurrencySymbol } from '../../utils/currencyUtils';
 import { storage } from '../../utils/localStorage';
@@ -108,6 +108,105 @@ const translations: Record<Locale, {
     },
     totals: 'סה"כ',
     noData: 'אין נתוני לקוחות זמינים',
+  },
+  es: {
+    title: 'Active Customers Report',
+    columns: {
+      client: 'Client',
+      score: 'Score',
+      monthlyIncome: 'Monthly Income',
+      hourlyRate: 'Hourly Rate',
+      seniority: 'Seniority (Months)',
+      referralsCount: 'Referrals',
+      totalRevenue: 'Total Revenue',
+      referredRevenue: 'Revenue from Referrals',
+      hours: 'Work Hours (Period)',
+      revenue: 'Revenue (Period)',
+      avgHourly: 'Avg Income/Hour (Period)',
+      avgDaily: 'Avg Daily Work Hours (Period)',
+    },
+    paymentMethods: {
+      hourly: 'Hourly',
+      retainer: 'Retainer',
+      project: 'Project',
+    },
+    scoreTooltip: {
+      title: 'Client Score Details (All Time):',
+      monthlyIncome: 'Monthly Income:',
+      hourlyRate: 'Hourly Rate:',
+      seniority: 'Seniority (Months):',
+      referralsCount: 'Referrals Brought:',
+      totalRevenue: 'Total Revenue:',
+      referredRevenue: 'Revenue from Referrals:',
+    },
+    totals: 'Total',
+    noData: 'No customer data available',
+  },
+  de: {
+    title: 'Active Customers Report',
+    columns: {
+      client: 'Client',
+      score: 'Score',
+      monthlyIncome: 'Monthly Income',
+      hourlyRate: 'Hourly Rate',
+      seniority: 'Seniority (Months)',
+      referralsCount: 'Referrals',
+      totalRevenue: 'Total Revenue',
+      referredRevenue: 'Revenue from Referrals',
+      hours: 'Work Hours (Period)',
+      revenue: 'Revenue (Period)',
+      avgHourly: 'Avg Income/Hour (Period)',
+      avgDaily: 'Avg Daily Work Hours (Period)',
+    },
+    paymentMethods: {
+      hourly: 'Hourly',
+      retainer: 'Retainer',
+      project: 'Project',
+    },
+    scoreTooltip: {
+      title: 'Client Score Details (All Time):',
+      monthlyIncome: 'Monthly Income:',
+      hourlyRate: 'Hourly Rate:',
+      seniority: 'Seniority (Months):',
+      referralsCount: 'Referrals Brought:',
+      totalRevenue: 'Total Revenue:',
+      referredRevenue: 'Revenue from Referrals:',
+    },
+    totals: 'Total',
+    noData: 'No customer data available',
+  },
+  'pt-BR': {
+    title: 'Active Customers Report',
+    columns: {
+      client: 'Client',
+      score: 'Score',
+      monthlyIncome: 'Monthly Income',
+      hourlyRate: 'Hourly Rate',
+      seniority: 'Seniority (Months)',
+      referralsCount: 'Referrals',
+      totalRevenue: 'Total Revenue',
+      referredRevenue: 'Revenue from Referrals',
+      hours: 'Work Hours (Period)',
+      revenue: 'Revenue (Period)',
+      avgHourly: 'Avg Income/Hour (Period)',
+      avgDaily: 'Avg Daily Work Hours (Period)',
+    },
+    paymentMethods: {
+      hourly: 'Hourly',
+      retainer: 'Retainer',
+      project: 'Project',
+    },
+    scoreTooltip: {
+      title: 'Client Score Details (All Time):',
+      monthlyIncome: 'Monthly Income:',
+      hourlyRate: 'Hourly Rate:',
+      seniority: 'Seniority (Months):',
+      referralsCount: 'Referrals Brought:',
+      totalRevenue: 'Total Revenue:',
+      referredRevenue: 'Revenue from Referrals:',
+    },
+    totals: 'Total',
+    noData: 'No customer data available',
   },
 };
 

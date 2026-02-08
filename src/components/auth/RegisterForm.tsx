@@ -6,6 +6,7 @@ import { useApp } from '../../context/AppContext';
 import { Button } from '../common/Button';
 import { supabase } from '../../utils/supabase';
 import toast from 'react-hot-toast';
+import { trackEvent, getFirstTouch } from '../../utils/tracking';
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -102,11 +103,14 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
     },
   };
 
-  const t = translations[locale as 'en' | 'he'];
+  const t = translations[locale];
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
+      // Track signup_start for Google OAuth
+      await trackEvent('signup_start');
+      
       // Ensure no trailing slash and exact path
       const redirectTo = `${window.location.origin}/auth/callback`;
       console.log('🔵 RegisterForm: Initiating Google OAuth');
@@ -162,6 +166,9 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
     setLoading(true);
 
     try {
+      // Track signup_start event
+      await trackEvent('signup_start');
+
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -187,7 +194,10 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           return;
         }
 
-        // Create user profile in backend database
+        // Get first touch data for user creation
+        const firstTouch = getFirstTouch();
+
+        // Create user profile in backend database with marketing data
         const newUser = {
           id: authData.user.id,
           name: formData.name,
@@ -195,13 +205,31 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
           role: 'manager' as const,
           avatar: authData.user.user_metadata?.avatar_url,
           isOnline: true,
+          // Marketing fields from first touch
+          ...(firstTouch?.utm && {
+            utmSource: firstTouch.utm.utm_source,
+            utmMedium: firstTouch.utm.utm_medium,
+            utmCampaign: firstTouch.utm.utm_campaign,
+            utmTerm: firstTouch.utm.utm_term,
+            utmContent: firstTouch.utm.utm_content,
+          }),
+          ...(firstTouch?.referrer && { firstReferrer: firstTouch.referrer }),
+          ...(firstTouch?.url && { firstLandingUrl: firstTouch.url }),
+          ...(firstTouch?.geo && {
+            geoCountry: firstTouch.geo.country,
+            geoTz: firstTouch.geo.timezone,
+            geoLang: firstTouch.geo.language,
+          }),
         };
 
-        // Insert user into backend database
+          // Insert user into backend database
         try {
           const { api } = await import('../../utils/api');
           await api.users.create(newUser);
           console.log('✅ RegisterForm: User created in backend');
+          
+          // Track signup_complete event with user ID
+          await trackEvent('signup_complete', undefined, newUser.id);
         } catch (dbError) {
           console.warn('⚠️ RegisterForm: Failed to create user profile in backend:', dbError);
           // Continue anyway - user is authenticated

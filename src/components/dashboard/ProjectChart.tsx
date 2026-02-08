@@ -31,6 +31,33 @@ const translations: Record<Locale, {
       'on-hold': 'מושעה',
     },
   },
+  es: {
+    title: 'Project Status Distribution',
+    statuses: {
+      'in-progress': 'In Progress',
+      completed: 'Completed',
+      planning: 'Planning',
+      'on-hold': 'On Hold',
+    },
+  },
+  de: {
+    title: 'Project Status Distribution',
+    statuses: {
+      'in-progress': 'In Progress',
+      completed: 'Completed',
+      planning: 'Planning',
+      'on-hold': 'On Hold',
+    },
+  },
+  'pt-BR': {
+    title: 'Project Status Distribution',
+    statuses: {
+      'in-progress': 'In Progress',
+      completed: 'Completed',
+      planning: 'Planning',
+      'on-hold': 'On Hold',
+    },
+  },
 };
 
 export function ProjectChart() {

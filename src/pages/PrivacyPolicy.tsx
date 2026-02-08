@@ -2,98 +2,86 @@ import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Footer } from '../components/layout/Footer';
 
+const enTranslations = {
+  title: 'Privacy Policy',
+  lastUpdated: 'Last updated: Feb 2, 2026',
+  back: 'Back to Home',
+  intro: 'This Privacy Policy explains how MySollo collects, uses, and protects personal information when you use the Service. We comply with the Israeli Privacy Protection Law, 5741-1981, and the Privacy Protection Regulations (Information Security), 2017.',
+  sections: [
+    {
+      title: '1. Who We Are',
+      paragraphs: [
+        'MySollo is the provider of the Service and acts as the data controller for account and billing data. For customer data you upload, you remain the data controller, and we act as a service provider/processor.',
+      ],
+    },
+    {
+      title: '2. Information We Collect',
+      paragraphs: [
+        'Account data: name, email address, login credentials, and profile details.',
+        'Customer data you upload: client names, contact details, project and billing data, and notes.',
+        'Usage data: device identifiers, IP address, browser type, log data, and activity within the Service.',
+        'Payment data: billing information and transaction details handled by payment providers.',
+      ],
+    },
+    {
+      title: '3. How We Use Information',
+      paragraphs: [
+        'To provide, operate, and improve the Service and customer support.',
+        'To manage subscriptions, billing, and security.',
+        'To comply with legal obligations and enforce our Terms of Service.',
+      ],
+    },
+    {
+      title: '4. Legal Basis',
+      paragraphs: [
+        'We process personal data to perform our contract with you, to comply with legal obligations, and for legitimate business interests such as security and fraud prevention.',
+      ],
+    },
+    {
+      title: '5. Sharing and Disclosure',
+      paragraphs: [
+        'We may share data with service providers (e.g., hosting, analytics, payments) who process data on our behalf under appropriate safeguards.',
+        'We may disclose data if required by law, court order, or regulatory request.',
+      ],
+    },
+    {
+      title: '6. Data Retention',
+      paragraphs: [
+        'We retain data for as long as needed to provide the Service and comply with legal obligations.',
+        'You may request deletion of your account or data, subject to legal and contractual requirements.',
+      ],
+    },
+    {
+      title: '7. Security',
+      paragraphs: [
+        'We implement reasonable administrative, technical, and organizational measures to protect data, in line with the Israeli Privacy Protection Regulations (Information Security), 2017.',
+        'No method of transmission or storage is 100% secure; we cannot guarantee absolute security.',
+      ],
+    },
+    {
+      title: '8. Your Rights',
+      paragraphs: [
+        'You may request access, correction, or deletion of your personal data, subject to applicable law.',
+        'You may object to certain processing activities where permitted by law.',
+      ],
+    },
+    {
+      title: '9. Updates to This Policy',
+      paragraphs: [
+        'We may update this Privacy Policy from time to time. We will post updates in the Service and update the “Last updated” date.',
+      ],
+    },
+    {
+      title: '10. Contact Us',
+      paragraphs: [
+        'If you have questions about this Privacy Policy, please contact support.',
+      ],
+    },
+  ],
+};
+
 const translations = {
-  en: {
-    title: 'Privacy Policy',
-    lastUpdated: 'Last updated: Feb 2, 2026',
-    back: 'Back to Home',
-    intro: 'This Privacy Policy explains how MySollo collects, uses, and protects personal information when you use the Service. We comply with the Israeli Privacy Protection Law, 5741-1981, and the Privacy Protection Regulations (Information Security), 2017.',
-    sections: [
-      {
-        title: '1. Who We Are',
-        paragraphs: [
-          'MySollo is the provider of the Service and acts as the data controller for account and billing data. For customer data you upload, you remain the data controller, and we act as a service provider/processor.',
-        ],
-      },
-      {
-        title: '2. Information We Collect',
-        paragraphs: [
-          'Account data: name, email address, login credentials, and profile details.',
-          'Customer data you upload: client names, contact details, project and billing data, and notes.',
-          'Usage data: device identifiers, IP address, browser type, log data, and activity within the Service.',
-          'Payment data: billing information and transaction details handled by payment providers.',
-        ],
-      },
-      {
-        title: '3. How We Use Information',
-        paragraphs: [
-          'To provide, operate, and improve the Service and customer support.',
-          'To manage subscriptions, billing, and security.',
-          'To comply with legal obligations and enforce our Terms of Service.',
-        ],
-      },
-      {
-        title: '4. Legal Basis',
-        paragraphs: [
-          'We process personal data to perform our contract with you, to comply with legal obligations, and for legitimate business interests such as security and fraud prevention.',
-        ],
-      },
-      {
-        title: '5. Sharing and Disclosure',
-        paragraphs: [
-          'We may share data with service providers (e.g., hosting, analytics, payments) who process data on our behalf under appropriate safeguards.',
-          'We may disclose data if required by law, court order, or regulatory request.',
-        ],
-      },
-      {
-        title: '6. Data Retention',
-        paragraphs: [
-          'We retain data for as long as needed to provide the Service and comply with legal obligations.',
-          'You may request deletion of your account or data, subject to legal and contractual requirements.',
-        ],
-      },
-      {
-        title: '7. Security',
-        paragraphs: [
-          'We implement reasonable administrative, technical, and organizational measures to protect data, in line with the Israeli Privacy Protection Regulations (Information Security), 2017.',
-          'No method of transmission or storage is 100% secure; we cannot guarantee absolute security.',
-        ],
-      },
-      {
-        title: '8. International Transfers',
-        paragraphs: [
-          'Data may be processed or stored in Israel or other countries where our service providers operate.',
-          'When transferring data, we use reasonable safeguards as required by applicable law.',
-        ],
-      },
-      {
-        title: '9. Your Rights',
-        paragraphs: [
-          'You may request access to, correction of, or deletion of your personal data, as provided under Israeli law.',
-          'To exercise your rights, contact us at info@mysollo.co.',
-        ],
-      },
-      {
-        title: '10. Changes to This Policy',
-        paragraphs: [
-          'We may update this Privacy Policy periodically. We will post updates and revise the "Last updated" date.',
-        ],
-      },
-      {
-        title: '11. Governing Law and Jurisdiction',
-        paragraphs: [
-          'This Privacy Policy is governed by the laws of the State of Israel.',
-          'Any disputes related to this Privacy Policy will be subject to the exclusive jurisdiction of the competent courts in Tel Aviv-Yafo, Israel.',
-        ],
-      },
-      {
-        title: '12. Contact',
-        paragraphs: [
-          'If you have questions about this Privacy Policy, contact us at info@mysollo.co.',
-        ],
-      },
-    ],
-  },
+  en: enTranslations,
   he: {
     title: 'מדיניות פרטיות',
     lastUpdated: 'עודכן לאחרונה: 2 בפברואר 2026',
@@ -186,12 +174,15 @@ const translations = {
     ],
   },
 };
+translations.es = enTranslations;
+translations.de = enTranslations;
+translations['pt-BR'] = enTranslations;
 
 export default function PrivacyPolicy() {
   const { state } = useApp();
   const locale = state.locale || 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale as 'en' | 'he'];
+  const t = translations[locale] || translations.en;
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-gray-50 dark:bg-gray-900">

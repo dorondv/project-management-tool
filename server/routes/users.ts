@@ -45,7 +45,27 @@ router.get('/:id', async (req, res) => {
 // POST /api/users - Create user
 router.post('/', async (req, res) => {
   try {
-    const { id, name, email, role, avatar, isOnline, preferredLanguage } = req.body;
+    const { 
+      id, 
+      name, 
+      email, 
+      role, 
+      avatar, 
+      isOnline, 
+      preferredLanguage,
+      // Marketing fields
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      utmTerm,
+      utmContent,
+      firstReferrer,
+      firstLandingUrl,
+      geoCountry,
+      geoTz,
+      geoLang,
+      geoCityApprox,
+    } = req.body;
     
     // If ID is provided, use upsert (create or update)
     if (id) {
@@ -60,6 +80,18 @@ router.post('/', async (req, res) => {
           avatar: avatar !== undefined ? avatar : undefined,
           isOnline: isOnline !== undefined ? isOnline : undefined,
           preferredLanguage: preferredLanguage || undefined,
+          // Only update marketing fields if they're provided and user doesn't have them yet (first touch)
+          ...(utmSource && { utmSource }),
+          ...(utmMedium && { utmMedium }),
+          ...(utmCampaign && { utmCampaign }),
+          ...(utmTerm && { utmTerm }),
+          ...(utmContent && { utmContent }),
+          ...(firstReferrer && { firstReferrer }),
+          ...(firstLandingUrl && { firstLandingUrl }),
+          ...(geoCountry && { geoCountry }),
+          ...(geoTz && { geoTz }),
+          ...(geoLang && { geoLang }),
+          ...(geoCityApprox && { geoCityApprox }),
         },
         create: {
           id,
@@ -69,6 +101,18 @@ router.post('/', async (req, res) => {
           avatar,
           isOnline: isOnline ?? false,
           preferredLanguage: preferredLanguage || 'he',
+          // Marketing fields (first touch)
+          utmSource: utmSource || null,
+          utmMedium: utmMedium || null,
+          utmCampaign: utmCampaign || null,
+          utmTerm: utmTerm || null,
+          utmContent: utmContent || null,
+          firstReferrer: firstReferrer || null,
+          firstLandingUrl: firstLandingUrl || null,
+          geoCountry: geoCountry || null,
+          geoTz: geoTz || null,
+          geoLang: geoLang || null,
+          geoCityApprox: geoCityApprox || null,
         },
       });
       return res.status(201).json(user);
@@ -83,6 +127,18 @@ router.post('/', async (req, res) => {
         avatar,
         isOnline: isOnline ?? false,
         preferredLanguage: preferredLanguage || 'he',
+        // Marketing fields (first touch)
+        utmSource: utmSource || null,
+        utmMedium: utmMedium || null,
+        utmCampaign: utmCampaign || null,
+        utmTerm: utmTerm || null,
+        utmContent: utmContent || null,
+        firstReferrer: firstReferrer || null,
+        firstLandingUrl: firstLandingUrl || null,
+        geoCountry: geoCountry || null,
+        geoTz: geoTz || null,
+        geoLang: geoLang || null,
+        geoCityApprox: geoCityApprox || null,
       },
     });
     res.status(201).json(user);

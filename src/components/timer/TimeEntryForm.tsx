@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, es, de, ptBR } from 'date-fns/locale';
 import { Button } from '../common/Button';
 import { TimeEntry, Locale, Customer, Project, Task } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -60,6 +60,66 @@ const translations = {
     selectClient: 'בחר לקוח',
     invalidTime: 'זמן לא תקין',
     endTimeBeforeStart: 'זמן הסיום חייב להיות אחרי זמן ההתחלה',
+  },
+  es: {
+    project: 'Project',
+    client: 'Client',
+    startDate: 'Start Date',
+    startTime: 'Start Time',
+    endDate: 'End Date',
+    endTime: 'End Time',
+    description: 'Work Description',
+    descriptionPlaceholder: 'What did you do during this time?',
+    hourlyRate: 'Hourly Rate',
+    duration: 'Duration',
+    totalAmount: 'Total Amount',
+    cancel: 'Cancel',
+    add: 'Add Entry',
+    update: 'Update Entry',
+    selectProject: 'Select Project',
+    selectClient: 'Select Client',
+    invalidTime: 'Invalid time',
+    endTimeBeforeStart: 'End time must be after start time',
+  },
+  de: {
+    project: 'Project',
+    client: 'Client',
+    startDate: 'Start Date',
+    startTime: 'Start Time',
+    endDate: 'End Date',
+    endTime: 'End Time',
+    description: 'Work Description',
+    descriptionPlaceholder: 'What did you do during this time?',
+    hourlyRate: 'Hourly Rate',
+    duration: 'Duration',
+    totalAmount: 'Total Amount',
+    cancel: 'Cancel',
+    add: 'Add Entry',
+    update: 'Update Entry',
+    selectProject: 'Select Project',
+    selectClient: 'Select Client',
+    invalidTime: 'Invalid time',
+    endTimeBeforeStart: 'End time must be after start time',
+  },
+  'pt-BR': {
+    project: 'Project',
+    client: 'Client',
+    startDate: 'Start Date',
+    startTime: 'Start Time',
+    endDate: 'End Date',
+    endTime: 'End Time',
+    description: 'Work Description',
+    descriptionPlaceholder: 'What did you do during this time?',
+    hourlyRate: 'Hourly Rate',
+    duration: 'Duration',
+    totalAmount: 'Total Amount',
+    cancel: 'Cancel',
+    add: 'Add Entry',
+    update: 'Update Entry',
+    selectProject: 'Select Project',
+    selectClient: 'Select Client',
+    invalidTime: 'Invalid time',
+    endTimeBeforeStart: 'End time must be after start time',
   },
 } as const;
 
