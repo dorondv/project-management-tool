@@ -1270,7 +1270,11 @@ router.get('/marketing/events', async (req, res) => {
 // GET /api/admin/marketing/breakdown - Get breakdown by UTM source/campaign and country
 router.get('/marketing/breakdown', async (req, res) => {
   try {
-    const { groupBy = 'utmSource' } = req.query; // utmSource, utmCampaign, or country
+    const rawGroupBy = req.query.groupBy;
+    const groupBy: 'utmSource' | 'utmCampaign' | 'country' =
+      rawGroupBy === 'utmCampaign' || rawGroupBy === 'country'
+        ? rawGroupBy
+        : 'utmSource';
     
     const events = await prisma.marketingEvent.findMany({
       select: {
