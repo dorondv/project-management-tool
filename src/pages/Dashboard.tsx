@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { Currency } from '../types';
 import { formatCurrency } from '../utils/currencyUtils';
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfDay, endOfDay, format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, es, de, ptBR } from 'date-fns/locale';
 import { StatsCard } from '../components/dashboard/StatsCard';
 import { ProjectChart } from '../components/dashboard/ProjectChart';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
@@ -75,7 +75,7 @@ const dashboardTranslations = {
 
 export default function Dashboard() {
   const { state } = useApp();
-  const locale = state.locale;
+  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
   const t = dashboardTranslations[locale];
@@ -250,7 +250,16 @@ export default function Dashboard() {
 
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
-  const dateLocale = locale === 'he' ? he : undefined;
+  const getDateFnsLocale = (loc: Locale) => {
+    switch (loc) {
+      case 'he': return he;
+      case 'es': return es;
+      case 'de': return de;
+      case 'pt-BR': return ptBR;
+      default: return undefined;
+    }
+  };
+  const dateLocale = getDateFnsLocale(locale);
   const dateFormat = locale === 'he' ? 'dd/MM/yy' : 'MM/dd/yy';
   const formattedStart = format(start, dateFormat, { locale: dateLocale });
   const formattedEnd = format(end, dateFormat, { locale: dateLocale });

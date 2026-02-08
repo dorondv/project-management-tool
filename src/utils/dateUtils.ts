@@ -2,20 +2,36 @@ import { format, isToday, isTomorrow, isYesterday, differenceInDays, isPast } fr
 import { he } from 'date-fns/locale';
 import { Locale } from '../types';
 
+const getDateFnsLocale = (locale: Locale) => {
+  switch (locale) {
+    case 'he': return he;
+    default: return undefined;
+  }
+};
+
 export const formatDate = (date: Date | string, locale: Locale = 'en'): string => {
   const d = typeof date === 'string' ? new Date(date) : date;
-  const dateLocale = locale === 'he' ? he : undefined;
+  const dateLocale = getDateFnsLocale(locale);
   
-  if (isToday(d)) return locale === 'he' ? 'היום' : 'Today';
-  if (isTomorrow(d)) return locale === 'he' ? 'מחר' : 'Tomorrow';
-  if (isYesterday(d)) return locale === 'he' ? 'אתמול' : 'Yesterday';
+  if (isToday(d)) {
+    if (locale === 'he') return 'היום';
+    return 'Today';
+  }
+  if (isTomorrow(d)) {
+    if (locale === 'he') return 'מחר';
+    return 'Tomorrow';
+  }
+  if (isYesterday(d)) {
+    if (locale === 'he') return 'אתמול';
+    return 'Yesterday';
+  }
   
   return format(d, 'MMM d, yyyy', { locale: dateLocale });
 };
 
 export const formatDateTime = (date: Date | string, locale: Locale = 'en'): string => {
   const d = typeof date === 'string' ? new Date(date) : date;
-  const dateLocale = locale === 'he' ? he : undefined;
+  const dateLocale = getDateFnsLocale(locale);
   return format(d, 'MMM d, yyyy h:mm a', { locale: dateLocale });
 };
 

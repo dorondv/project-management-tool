@@ -16,6 +16,18 @@ const translations: Record<Locale, {
     title: 'פעולות אחרונות',
     noActivity: 'אין פעילות אחרונה',
   },
+  es: {
+    title: 'Recent Activity',
+    noActivity: 'No recent activity',
+  },
+  de: {
+    title: 'Recent Activity',
+    noActivity: 'No recent activity',
+  },
+  'pt-BR': {
+    title: 'Recent Activity',
+    noActivity: 'No recent activity',
+  },
 };
 
 export function RecentActivity() {

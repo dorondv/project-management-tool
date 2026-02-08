@@ -76,6 +76,54 @@ export function DeleteCustomerModal({
       deleteButton: 'מחק לקוח',
       deleting: 'מוחק...',
     },
+    es: {
+      title: 'Delete Customer',
+      message: hasRelatedEntities
+        ? `Are you sure you want to delete "${customer?.name}"? This customer has related data that will be affected.`
+        : `Are you sure you want to delete "${customer?.name}"?`,
+      relatedData: 'Related Data:',
+      projects: 'Projects',
+      tasks: 'Tasks',
+      events: 'Events',
+      warning: 'Warning: This action cannot be undone.',
+      cancel: 'Cancel',
+      deleteOnly: 'Delete Customer Only',
+      deleteAll: 'Delete All Related Data',
+      deleteButton: 'Delete Customer',
+      deleting: 'Deleting...',
+    },
+    de: {
+      title: 'Delete Customer',
+      message: hasRelatedEntities
+        ? `Are you sure you want to delete "${customer?.name}"? This customer has related data that will be affected.`
+        : `Are you sure you want to delete "${customer?.name}"?`,
+      relatedData: 'Related Data:',
+      projects: 'Projects',
+      tasks: 'Tasks',
+      events: 'Events',
+      warning: 'Warning: This action cannot be undone.',
+      cancel: 'Cancel',
+      deleteOnly: 'Delete Customer Only',
+      deleteAll: 'Delete All Related Data',
+      deleteButton: 'Delete Customer',
+      deleting: 'Deleting...',
+    },
+    'pt-BR': {
+      title: 'Delete Customer',
+      message: hasRelatedEntities
+        ? `Are you sure you want to delete "${customer?.name}"? This customer has related data that will be affected.`
+        : `Are you sure you want to delete "${customer?.name}"?`,
+      relatedData: 'Related Data:',
+      projects: 'Projects',
+      tasks: 'Tasks',
+      events: 'Events',
+      warning: 'Warning: This action cannot be undone.',
+      cancel: 'Cancel',
+      deleteOnly: 'Delete Customer Only',
+      deleteAll: 'Delete All Related Data',
+      deleteButton: 'Delete Customer',
+      deleting: 'Deleting...',
+    },
   };
 
   const t = translations[locale];

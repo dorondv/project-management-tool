@@ -52,6 +52,7 @@ import { adminRouter } from './routes/admin.js';
 import { eventsRouter } from './routes/events.js';
 import { chatwootRouter } from './routes/chatwoot.js';
 import { contactRouter } from './routes/contact.js';
+import { marketingRouter } from './routes/marketing.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -115,6 +116,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/chatwoot', chatwootRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/marketing', marketingRouter);
 
 // Error handling middleware with connection retry logic
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -1106,7 +1106,238 @@ router.get('/payments/refund-history', async (req, res) => {
   }
 });
 
-// GET /api/admin/export/users - Export users data (CSV)
+// GET /api/admin/marketing/analytics - Get marketing analytics metrics
+router.get('/marketing/analytics', async (req, res) => {
+  try {
+    const { utmSource, utmCampaign, country, startDate, endDate } = req.query;
+    
+    // Build filters
+    const eventFilters: any = {};
+    if (utmSource) eventFilters.utmSource = utmSource as string;
+    if (utmCampaign) eventFilters.utmCampaign = utmCampaign as string;
+    if (country) eventFilters.country = country as string;
+    
+    const dateFilters: any = {};
+    if (startDate) dateFilters.gte = new Date(startDate as string);
+    if (endDate) dateFilters.lte = new Date(endDate as string);
+    if (Object.keys(dateFilters).length > 0) {
+      eventFilters.createdAt = dateFilters;
+    }
+    
+    // Get event counts
+    const [pageviews, signupStarts, signupCompletes, leadSubmits, purchases] = await Promise.all([
+      prisma.marketingEvent.count({ where: { ...eventFilters, eventType: 'pageview' } }),
+      prisma.marketingEvent.count({ where: { ...eventFilters, eventType: 'signup_start' } }),
+      prisma.marketingEvent.count({ where: { ...eventFilters, eventType: 'signup_complete' } }),
+      prisma.marketingEvent.count({ where: { ...eventFilters, eventType: 'lead_submit' } }),
+      prisma.marketingEvent.count({ where: { ...eventFilters, eventType: 'purchase_complete' } }),
+    ]);
+    
+    // Get conversion rates
+    const conversionRate = pageviews > 0 ? (signupCompletes / pageviews) * 100 : 0;
+    const signupRate = signupStarts > 0 ? (signupCompletes / signupStarts) * 100 : 0;
+    
+    // Get total revenue from purchases
+    const purchaseEvents = await prisma.marketingEvent.findMany({
+      where: { ...eventFilters, eventType: 'purchase_complete', purchaseAmount: { not: null } },
+      select: { purchaseAmount: true, currency: true },
+    });
+    const totalRevenue = purchaseEvents.reduce((sum, e) => sum + (e.purchaseAmount || 0), 0);
+    
+    res.json({
+      metrics: {
+        pageviews,
+        signupStarts,
+        signupCompletes,
+        leadSubmits,
+        purchases,
+        conversionRate: Math.round(conversionRate * 100) / 100,
+        signupRate: Math.round(signupRate * 100) / 100,
+        totalRevenue,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching marketing analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch marketing analytics' });
+  }
+});
+
+// GET /api/admin/marketing/users - Get users with marketing data
+router.get('/marketing/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        subscription: {
+          include: {
+            billingHistory: {
+              orderBy: { paymentDate: 'desc' },
+            },
+          },
+        },
+        marketingEvents: {
+          where: { eventType: 'purchase_complete' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    
+    // Calculate business metrics for each user
+    const usersWithMetrics = users.map((user) => {
+      const subscription = user.subscription;
+      const firstPayment = subscription?.billingHistory?.[0];
+      const lastPayment = subscription?.billingHistory?.[0];
+      const totalPaid = subscription?.billingHistory
+        ?.filter((bh) => bh.status === 'paid' || bh.status === 'refunded')
+        .reduce((sum, bh) => sum + (bh.amount - (bh.refundedAmount || 0)), 0) || 0;
+      
+      // Calculate tenure in months
+      const registrationDate = new Date(user.createdAt);
+      const cancelDate = subscription?.status === 'cancelled' || subscription?.status === 'expired' 
+        ? (subscription.endDate || subscription.updatedAt)
+        : null;
+      const endDate = cancelDate ? new Date(cancelDate) : new Date();
+      const tenureMonths = Math.round(
+        (endDate.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+      );
+      
+      // Get purchase amount from marketing events
+      const purchaseEvent = user.marketingEvents[0];
+      const purchaseAmount = purchaseEvent?.purchaseAmount || totalPaid;
+      const revenueTotal = totalPaid; // LTV = total paid
+      
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        registrationDate: user.createdAt,
+        cancelDate: cancelDate ? new Date(cancelDate) : null,
+        tenureMonths,
+        hasPurchase: purchaseAmount > 0,
+        purchaseAmount,
+        revenueTotal,
+        // Marketing fields
+        utmSource: user.utmSource,
+        utmMedium: user.utmMedium,
+        utmCampaign: user.utmCampaign,
+        geoCountry: user.geoCountry,
+        firstLandingUrl: user.firstLandingUrl,
+        userStatus: getUserStatus(subscription),
+      };
+    });
+    
+    res.json(usersWithMetrics);
+  } catch (error: any) {
+    console.error('Error fetching marketing users:', error);
+    res.status(500).json({ error: 'Failed to fetch marketing users' });
+  }
+});
+
+// GET /api/admin/marketing/events - Get marketing events
+router.get('/marketing/events', async (req, res) => {
+  try {
+    const { eventType, utmSource, utmCampaign, country, limit = 100 } = req.query;
+    
+    const where: any = {};
+    if (eventType) where.eventType = eventType;
+    if (utmSource) where.utmSource = utmSource;
+    if (utmCampaign) where.utmCampaign = utmCampaign;
+    if (country) where.country = country;
+    
+    const events = await prisma.marketingEvent.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+    });
+    
+    res.json(events);
+  } catch (error: any) {
+    console.error('Error fetching marketing events:', error);
+    res.status(500).json({ error: 'Failed to fetch marketing events' });
+  }
+});
+
+// GET /api/admin/marketing/breakdown - Get breakdown by UTM source/campaign and country
+router.get('/marketing/breakdown', async (req, res) => {
+  try {
+    const { groupBy = 'utmSource' } = req.query; // utmSource, utmCampaign, or country
+    
+    const events = await prisma.marketingEvent.findMany({
+      select: {
+        eventType: true,
+        utmSource: true,
+        utmCampaign: true,
+        country: true,
+        purchaseAmount: true,
+      },
+    });
+    
+    // Group by selected field
+    const breakdown: Record<string, any> = {};
+    
+    events.forEach((event) => {
+      let key: string;
+      if (groupBy === 'utmSource') {
+        key = event.utmSource || 'unknown';
+      } else if (groupBy === 'utmCampaign') {
+        key = event.utmCampaign || 'unknown';
+      } else {
+        key = event.country || 'unknown';
+      }
+      
+      if (!breakdown[key]) {
+        breakdown[key] = {
+          pageviews: 0,
+          signupStarts: 0,
+          signupCompletes: 0,
+          leadSubmits: 0,
+          purchases: 0,
+          totalRevenue: 0,
+        };
+      }
+      
+      // Map event types to breakdown keys
+      if (event.eventType === 'pageview') breakdown[key].pageviews++;
+      else if (event.eventType === 'signup_start') breakdown[key].signupStarts++;
+      else if (event.eventType === 'signup_complete') breakdown[key].signupCompletes++;
+      else if (event.eventType === 'lead_submit') breakdown[key].leadSubmits++;
+      else if (event.eventType === 'purchase_complete') breakdown[key].purchases++;
+      
+      if (event.purchaseAmount) {
+        breakdown[key].totalRevenue += event.purchaseAmount;
+      }
+    });
+    
+    // Convert to array format
+    const result = Object.entries(breakdown).map(([key, metrics]) => {
+      const item: any = {
+        [groupBy]: key,
+        ...metrics,
+        conversionRate: metrics.pageviews > 0 
+          ? Math.round((metrics.signupCompletes / metrics.pageviews) * 100 * 100) / 100 
+          : 0,
+      };
+      return item;
+    });
+    
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error fetching marketing breakdown:', error);
+    res.status(500).json({ error: 'Failed to fetch marketing breakdown' });
+  }
+});
+
+// GET /api/admin/export/users - Export users data (CSV) - Updated with marketing fields
 router.get('/export/users', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -1116,6 +1347,11 @@ router.get('/export/users', async (req, res) => {
             billingHistory: true,
           },
         },
+        marketingEvents: {
+          where: { eventType: 'purchase_complete' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
       },
     });
 
@@ -1123,38 +1359,77 @@ router.get('/export/users', async (req, res) => {
     const headers = [
       'User Email',
       'Registration Date',
+      'Cancel Date',
+      'Tenure (Months)',
       'Payment Date',
       'Status',
       'Plan Type',
       'Total Paid',
+      'Purchase Amount',
+      'Revenue Total (LTV)',
       'Coupon Used',
-      'Discount Amount',
       'PayPal Subscription ID',
+      'UTM Source',
+      'UTM Medium',
+      'UTM Campaign',
+      'UTM Term',
+      'UTM Content',
+      'Country',
+      'Timezone',
+      'Language',
+      'First Landing URL',
+      'First Referrer',
     ];
 
     const rows = users.map((user) => {
       const subscription = user.subscription;
       const firstPayment = subscription?.billingHistory?.[0];
       const totalPaid = subscription?.billingHistory
-        ?.filter((bh) => bh.status === 'paid')
-        .reduce((sum, bh) => sum + bh.amount, 0) || 0;
+        ?.filter((bh) => bh.status === 'paid' || bh.status === 'refunded')
+        .reduce((sum, bh) => sum + (bh.amount - (bh.refundedAmount || 0)), 0) || 0;
+      
+      const cancelDate = subscription?.status === 'cancelled' || subscription?.status === 'expired' 
+        ? (subscription.endDate || subscription.updatedAt)
+        : null;
+      
+      const registrationDate = new Date(user.createdAt);
+      const endDate = cancelDate ? new Date(cancelDate) : new Date();
+      const tenureMonths = Math.round(
+        (endDate.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+      );
+      
+      const purchaseEvent = user.marketingEvents[0];
+      const purchaseAmount = purchaseEvent?.purchaseAmount || totalPaid;
 
       return [
         user.email,
         user.createdAt.toISOString(),
+        cancelDate ? new Date(cancelDate).toISOString() : '',
+        tenureMonths.toString(),
         firstPayment?.paymentDate.toISOString() || '',
         getUserStatus(subscription),
         subscription?.planType || '',
         totalPaid.toString(),
+        purchaseAmount.toString(),
+        totalPaid.toString(), // LTV
         subscription?.couponCode ? 'Yes' : 'No',
-        '0', // No discounts, only trial coupons
         subscription?.paypalSubscriptionId || '',
+        user.utmSource || '',
+        user.utmMedium || '',
+        user.utmCampaign || '',
+        user.utmTerm || '',
+        user.utmContent || '',
+        user.geoCountry || '',
+        user.geoTz || '',
+        user.geoLang || '',
+        user.firstLandingUrl || '',
+        user.firstReferrer || '',
       ];
     });
 
     const csv = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
