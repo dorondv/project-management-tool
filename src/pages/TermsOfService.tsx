@@ -2,8 +2,7 @@ import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Footer } from '../components/layout/Footer';
 
-const translations = {
-  en: {
+const enTranslations = {
     title: 'Terms of Service',
     lastUpdated: 'Last updated: Feb 2, 2026',
     back: 'Back to Home',
@@ -92,7 +91,10 @@ const translations = {
         ],
       },
     ],
-  },
+};
+
+const translations = {
+  en: enTranslations,
   he: {
     title: 'תנאי שירות',
     lastUpdated: 'עודכן לאחרונה: 2 בפברואר 2026',
@@ -183,13 +185,16 @@ const translations = {
       },
     ],
   },
+  es: enTranslations,
+  de: enTranslations,
+  'pt-BR': enTranslations,
 };
 
 export default function TermsOfService() {
   const { state } = useApp();
   const locale = state.locale || 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale as 'en' | 'he'];
+  const t = translations[locale] || translations.en;
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen bg-gray-50 dark:bg-gray-900">

@@ -4,7 +4,7 @@ import { Project, Locale } from '../../types';
 import { Badge } from '../common/Badge';
 import { useApp } from '../../context/AppContext';
 import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, es, de, ptBR } from 'date-fns/locale';
 
 const translations = {
   en: {
@@ -21,6 +21,27 @@ const translations = {
     hours: 'שעות',
     ongoing: 'שוטף',
   },
+  es: {
+    editProject: 'Edit Project',
+    deleteProject: 'Delete Project',
+    estimatedHours: 'Estimated Hours',
+    hours: 'hours',
+    ongoing: 'Ongoing',
+  },
+  de: {
+    editProject: 'Edit Project',
+    deleteProject: 'Delete Project',
+    estimatedHours: 'Estimated Hours',
+    hours: 'hours',
+    ongoing: 'Ongoing',
+  },
+  'pt-BR': {
+    editProject: 'Edit Project',
+    deleteProject: 'Delete Project',
+    estimatedHours: 'Estimated Hours',
+    hours: 'hours',
+    ongoing: 'Ongoing',
+  },
 } as const;
 
 const statusLabels: Record<Locale, Record<string, string>> = {
@@ -35,6 +56,24 @@ const statusLabels: Record<Locale, Record<string, string>> = {
     'in-progress': 'בתהליך',
     'completed': 'הושלם',
     'on-hold': 'בהמתנה',
+  },
+  es: {
+    'planning': 'Planning',
+    'in-progress': 'In Progress',
+    'completed': 'Completed',
+    'on-hold': 'On Hold',
+  },
+  de: {
+    'planning': 'Planning',
+    'in-progress': 'In Progress',
+    'completed': 'Completed',
+    'on-hold': 'On Hold',
+  },
+  'pt-BR': {
+    'planning': 'Planning',
+    'in-progress': 'In Progress',
+    'completed': 'Completed',
+    'on-hold': 'On Hold',
   },
 };
 
@@ -180,7 +219,7 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
               <Calendar className="w-4 h-4" />
               <span className="text-sm">
-                {format(new Date(project.endDate), 'dd MMM yyyy', { locale: locale === 'he' ? he : undefined })}
+                {format(new Date(project.endDate), 'dd MMM yyyy', { locale: locale === 'he' ? he : locale === 'es' ? es : locale === 'de' ? de : locale === 'pt-BR' ? ptBR : undefined })}
               </span>
             </div>
           ) : (

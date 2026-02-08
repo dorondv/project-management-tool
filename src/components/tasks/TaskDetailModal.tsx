@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext';
 import { Task, Locale } from '../../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, es, de, ptBR } from 'date-fns/locale';
 
 const translations: Record<Locale, {
   title: string;

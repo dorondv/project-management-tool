@@ -1,27 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, Search, Sun, Moon, LogOut, User, Languages, Menu } from 'lucide-react';
+import { Bell, Search, Sun, Moon, LogOut, User, Languages, Menu, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Badge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
+import { Locale } from '../../types';
 import toast from 'react-hot-toast';
 
 interface HeaderProps {
   onMobileMenuClick?: () => void;
 }
 
-const headerTranslations = {
+const headerTranslations: Record<string, {
+  searchPlaceholder: string;
+  profile: string;
+  logout: string;
+  switchToDark: string;
+  switchToLight: string;
+  localeToast: string;
+  notifications: string;
+  languages: {
+    en: string;
+    he: string;
+  };
+}> = {
   en: {
     searchPlaceholder: 'Search projects or tasks...',
     profile: 'Profile',
     logout: 'Logout',
     switchToDark: 'Switched to dark mode',
     switchToLight: 'Switched to light mode',
-    localeToast: 'עברית הופעלה',
-    localeToastEnglish: 'English set',
+    localeToast: 'Language changed',
     notifications: 'Notifications',
-    switchLocaleLabel: 'Switch to Hebrew',
+    languages: {
+      en: 'English',
+      he: 'Hebrew (עברית)',
+    },
   },
   he: {
     searchPlaceholder: 'חיפוש פרויקטים או משימות...',
@@ -29,20 +44,24 @@ const headerTranslations = {
     logout: 'התנתקות',
     switchToDark: 'הופעלה תצוגה כהה',
     switchToLight: 'הופעלה תצוגה בהירה',
-    localeToast: 'עברית הופעלה',
-    localeToastEnglish: 'English set',
+    localeToast: 'השפה שונתה',
     notifications: 'התראות',
-    switchLocaleLabel: 'Switch to English',
+    languages: {
+      en: 'אנגלית (English)',
+      he: 'עברית',
+    },
   },
-} as const;
+};
 
 export function Header({ onMobileMenuClick }: HeaderProps = {}) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const { state, dispatch } = useApp();
   const isRTL = state.locale === 'he';
-  const t = headerTranslations[state.locale];
+  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
+  const t = headerTranslations[locale];
 
   const unreadNotifications = state.notifications.filter(n => !n.read).length;
 
@@ -51,10 +70,10 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
     toast.success(state.theme === 'light' ? t.switchToDark : t.switchToLight);
   };
 
-  const handleLocaleToggle = () => {
-    const nextLocale = state.locale === 'he' ? 'en' : 'he';
-    dispatch({ type: 'SET_LOCALE', payload: nextLocale });
-    toast.success(nextLocale === 'he' ? headerTranslations.he.localeToast : headerTranslations.en.localeToastEnglish);
+  const handleLocaleSelect = (selectedLocale: Locale) => {
+    dispatch({ type: 'SET_LOCALE', payload: selectedLocale });
+    setShowLanguageMenu(false);
+    toast.success(t.localeToast);
   };
 
   const handleLogout = () => {
@@ -65,10 +84,26 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      toast.info(`Searching for: ${searchQuery}`);
+      toast.success(`Searching for: ${searchQuery}`);
       // Implement search functionality
     }
   };
+
+  // Close language menu when clicking outside
+  const languageMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
+        setShowLanguageMenu(false);
+      }
+    };
+    if (showLanguageMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showLanguageMenu]);
 
   return (
     <>
@@ -101,14 +136,38 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                   {state.theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
                 </button>
 
-                {/* Locale Toggle */}
-                <button
-                  onClick={handleLocaleToggle}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  aria-label={state.locale === 'he' ? headerTranslations.he.switchLocaleLabel : headerTranslations.en.switchLocaleLabel}
-                >
-                  <Languages size={28} />
-                </button>
+                {/* Language Dropdown */}
+                <div className="relative" ref={languageMenuRef}>
+                  <button
+                    onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-1"
+                    aria-label="Select language"
+                  >
+                    <Languages size={28} />
+                    <ChevronDown size={16} className={showLanguageMenu ? 'rotate-180' : ''} />
+                  </button>
+                  {showLanguageMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50`}
+                    >
+                      {(['en', 'he'] as Locale[]).map((locale) => (
+                        <button
+                          key={locale}
+                          onClick={() => handleLocaleSelect(locale)}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            isRTL ? 'flex-row-reverse text-right' : 'text-left'
+                          } ${
+                            state.locale === locale ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
+                          }`}
+                        >
+                          {t.languages[locale]}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </div>
 
                 {/* Notifications */}
                 <div className="relative">
@@ -204,14 +263,38 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                   {state.theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
                 </button>
 
-                {/* Locale Toggle */}
-                <button
-                  onClick={handleLocaleToggle}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  aria-label={state.locale === 'he' ? headerTranslations.he.switchLocaleLabel : headerTranslations.en.switchLocaleLabel}
-                >
-                  <Languages size={28} />
-                </button>
+                {/* Language Dropdown */}
+                <div className="relative" ref={languageMenuRef}>
+                  <button
+                    onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-1"
+                    aria-label="Select language"
+                  >
+                    <Languages size={28} />
+                    <ChevronDown size={16} className={showLanguageMenu ? 'rotate-180' : ''} />
+                  </button>
+                  {showLanguageMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50`}
+                    >
+                      {(['en', 'he'] as Locale[]).map((locale) => (
+                        <button
+                          key={locale}
+                          onClick={() => handleLocaleSelect(locale)}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            isRTL ? 'flex-row-reverse text-right' : 'text-left'
+                          } ${
+                            state.locale === locale ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
+                          }`}
+                        >
+                          {t.languages[locale]}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </div>
 
                 {/* Notifications */}
                 <div className="relative">

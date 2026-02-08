@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Calendar, FileDown, FileSpreadsheet, FileText } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { he, es, de, ptBR } from 'date-fns/locale';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { TimeEntry, Locale, Currency, Customer, Project, Task } from '../../types';
@@ -48,6 +48,57 @@ const translations = {
     cancel: 'ביטול',
     clientRequired: 'יש לבחור לקוח',
     noEntries: 'אין רישומים להצגה בטווח התאריכים שנבחר',
+  },
+  es: {
+    title: 'Generate Client Hours Report',
+    selectClient: 'Select Client',
+    selectClientRequired: 'Select Client *',
+    selectProject: 'Select Project (Optional)',
+    selectTask: 'Select Task (Optional)',
+    allProjects: 'All Projects',
+    allTasks: 'All Tasks',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    entriesFound: 'entries found',
+    exportPDF: 'Export PDF',
+    exportExcel: 'Export Excel',
+    cancel: 'Cancel',
+    clientRequired: 'Please select a client',
+    noEntries: 'No entries found for the selected period',
+  },
+  de: {
+    title: 'Generate Client Hours Report',
+    selectClient: 'Select Client',
+    selectClientRequired: 'Select Client *',
+    selectProject: 'Select Project (Optional)',
+    selectTask: 'Select Task (Optional)',
+    allProjects: 'All Projects',
+    allTasks: 'All Tasks',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    entriesFound: 'entries found',
+    exportPDF: 'Export PDF',
+    exportExcel: 'Export Excel',
+    cancel: 'Cancel',
+    clientRequired: 'Please select a client',
+    noEntries: 'No entries found for the selected period',
+  },
+  'pt-BR': {
+    title: 'Generate Client Hours Report',
+    selectClient: 'Select Client',
+    selectClientRequired: 'Select Client *',
+    selectProject: 'Select Project (Optional)',
+    selectTask: 'Select Task (Optional)',
+    allProjects: 'All Projects',
+    allTasks: 'All Tasks',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    entriesFound: 'entries found',
+    exportPDF: 'Export PDF',
+    exportExcel: 'Export Excel',
+    cancel: 'Cancel',
+    clientRequired: 'Please select a client',
+    noEntries: 'No entries found for the selected period',
   },
 } as const;
 

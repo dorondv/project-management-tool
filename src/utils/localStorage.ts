@@ -1,4 +1,5 @@
 import { CustomerScoreSettings, defaultCustomerScoreSettings } from './customerScoreSettings';
+import { Locale } from '../types';
 
 export interface StorageData {
   user: any;
@@ -8,7 +9,7 @@ export interface StorageData {
   activities: any[];
   customers: any[];
   theme: 'light' | 'dark';
-  locale: 'en' | 'he';
+  locale: Locale;
   settings: any;
   customerScoreSettings?: CustomerScoreSettings;
   activeTimer?: any;

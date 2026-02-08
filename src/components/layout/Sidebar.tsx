@@ -92,7 +92,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const location = useLocation();
   const { state, dispatch } = useApp();
-  const locale = state.locale;
+  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
   const isRTL = locale === 'he';
   const labels = menuLabels[locale];
 

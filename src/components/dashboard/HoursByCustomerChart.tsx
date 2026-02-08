@@ -15,6 +15,21 @@ const translations = {
     noData: 'אין נתוני שעות להצגה',
     hours: 'שעות',
   },
+  es: {
+    title: 'Hours Distribution by Customer',
+    noData: 'No hour data to display',
+    hours: 'Hours',
+  },
+  de: {
+    title: 'Hours Distribution by Customer',
+    noData: 'No hour data to display',
+    hours: 'Hours',
+  },
+  'pt-BR': {
+    title: 'Hours Distribution by Customer',
+    noData: 'No hour data to display',
+    hours: 'Hours',
+  },
 } as const;
 
 interface HoursByCustomerChartProps {

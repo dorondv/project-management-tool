@@ -19,6 +19,21 @@ const translations: Record<Locale, {
     delete: 'מחיקה',
     deleteConfirm: 'האם אתה בטוח שברצונך למחוק משימה זו?',
   },
+  es: {
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteConfirm: 'Are you sure you want to delete this task?',
+  },
+  de: {
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteConfirm: 'Are you sure you want to delete this task?',
+  },
+  'pt-BR': {
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteConfirm: 'Are you sure you want to delete this task?',
+  },
 };
 
 interface TaskCardProps {
