@@ -996,7 +996,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
         userEmail: session?.user?.email 
       });
       
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'INITIAL_SESSION' && session?.user) {
+        // Ensure we have user state when app loads with existing session (e.g. refresh)
+        // initializeApp also handles this, but this covers race conditions
+        console.log('🟣 AppContext: INITIAL_SESSION event, ensuring user state');
+        if (!state.user || state.user.id !== session.user.id) {
+          try {
+            const userProfile = await api.users.getById(session.user.id);
+            if (userProfile) {
+              const user = {
+                id: userProfile.id,
+                name: userProfile.name,
+                email: userProfile.email,
+                role: userProfile.role,
+                avatar: userProfile.avatar,
+                isOnline: true,
+              };
+              dispatch({ type: 'SET_USER', payload: user });
+              dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+            }
+          } catch {
+            // Fallback to auth user data
+            const fallbackUser = {
+              id: session.user.id,
+              name: extractUserName(session.user),
+              email: session.user.email || '',
+              role: 'contributor' as const,
+              avatar: extractUserAvatar(session.user),
+              isOnline: true,
+            };
+            dispatch({ type: 'SET_USER', payload: fallbackUser });
+            dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+          }
+        }
+      } else if (event === 'SIGNED_IN' && session?.user) {
         // Only refetch if this is a new user or if we don't have data yet
         const isNewUser = !state.user || state.user.id !== session.user.id;
         
