@@ -11,7 +11,24 @@ export function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get the session from the URL hash
+        // When detectSessionInUrl is false (workaround for auth-js bug), we must manually
+        // parse OAuth callback URL hash and set the session
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        if (accessToken && refreshToken) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (setSessionError) {
+            console.error('AuthCallback: Failed to set session from URL:', setSessionError);
+          } else {
+            // Clear the hash from URL for security
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }
+
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
