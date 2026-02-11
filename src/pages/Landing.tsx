@@ -9,7 +9,7 @@ import { Footer } from '../components/layout/Footer';
 import { api } from '../utils/api';
 import { Locale } from '../types';
 import toast from 'react-hot-toast';
-import { initTracking } from '../utils/tracking';
+import '../utils/tracking'; // Load tracking module (auto-init runs on import for / and /landing)
 
 const translations = {
   en: {
@@ -139,10 +139,7 @@ export default function Landing() {
   const t = translations[locale as 'en' | 'he'];
   // const [isContactModalOpen, setIsContactModalOpen] = useState(false); // Optional feature - ready for future use
 
-  // Initialize tracking on landing page
-  useEffect(() => {
-    initTracking();
-  }, []);
+  // Note: Pageview tracking is handled by tracking.ts auto-init on module load
 
   // Check if user has active access and redirect to dashboard (only if user is logged in)
   useEffect(() => {
