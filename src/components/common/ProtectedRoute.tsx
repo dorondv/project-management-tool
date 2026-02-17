@@ -16,6 +16,7 @@ interface Subscription {
   paypalSubscriptionId: string | null;
   trialEndDate?: Date | string | null;
   isTrialCoupon?: boolean;
+  isFreeAccess?: boolean;
 }
 
 interface SubscriptionResponse {
@@ -186,11 +187,17 @@ function checkSubscriptionAccess(subscription: {
   paypalSubscriptionId: string | null;
   trialEndDate?: Date | string | null;
   isTrialCoupon?: boolean;
+  isFreeAccess?: boolean;
 } | null): {
   hasFullAccess: boolean;
 } {
   if (!subscription) {
     return { hasFullAccess: false };
+  }
+
+  // Admin-granted free access - always full access
+  if (subscription.isFreeAccess) {
+    return { hasFullAccess: true };
   }
 
   // Suspended subscription - no access

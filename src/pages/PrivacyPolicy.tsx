@@ -176,7 +176,7 @@ const translations = {
 };
 translations.es = enTranslations;
 translations.de = enTranslations;
-translations['pt-BR'] = enTranslations;
+translations['pt'] = enTranslations;
 
 export default function PrivacyPolicy() {
   const { state } = useApp();

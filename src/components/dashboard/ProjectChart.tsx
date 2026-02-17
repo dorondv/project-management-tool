@@ -32,30 +32,39 @@ const translations: Record<Locale, {
     },
   },
   es: {
-    title: 'Project Status Distribution',
+    title: 'Distribucion de estado de proyectos',
     statuses: {
-      'in-progress': 'In Progress',
-      completed: 'Completed',
-      planning: 'Planning',
-      'on-hold': 'On Hold',
+      'in-progress': 'En progreso',
+      completed: 'Completado',
+      planning: 'Planificacion',
+      'on-hold': 'En pausa',
     },
   },
   de: {
-    title: 'Project Status Distribution',
+    title: 'Verteilung der Projektstatus',
     statuses: {
-      'in-progress': 'In Progress',
-      completed: 'Completed',
-      planning: 'Planning',
-      'on-hold': 'On Hold',
+      'in-progress': 'In Bearbeitung',
+      completed: 'Abgeschlossen',
+      planning: 'Planung',
+      'on-hold': 'Pausiert',
     },
   },
-  'pt-BR': {
-    title: 'Project Status Distribution',
+  pt: {
+    title: 'Distribuicao de status dos projetos',
     statuses: {
-      'in-progress': 'In Progress',
-      completed: 'Completed',
-      planning: 'Planning',
-      'on-hold': 'On Hold',
+      'in-progress': 'Em andamento',
+      completed: 'Concluido',
+      planning: 'Planejamento',
+      'on-hold': 'Em pausa',
+    },
+  },
+  fr: {
+    title: 'Repartition des statuts des projets',
+    statuses: {
+      'in-progress': 'En cours',
+      completed: 'Termine',
+      planning: 'Planification',
+      'on-hold': 'En pause',
     },
   },
 };
@@ -64,7 +73,7 @@ export function ProjectChart() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   
   const statusTranslations = t.statuses;
   

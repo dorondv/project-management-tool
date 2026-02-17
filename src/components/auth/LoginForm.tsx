@@ -77,7 +77,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
     },
   };
 
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);

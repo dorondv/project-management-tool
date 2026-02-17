@@ -38,7 +38,7 @@ const translations: Record<Locale, typeof enTranslations> = {
   },
   es: enTranslations,
   de: enTranslations,
-  'pt-BR': enTranslations,
+  pt: enTranslations,
 };
 
 const TEXT_SIZE_STEP = 25;
@@ -49,7 +49,7 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [settings, setSettings] = useState<AccessibilitySettings>({
     textSize: 100,

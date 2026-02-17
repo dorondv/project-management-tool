@@ -187,7 +187,7 @@ const translations = {
   },
   es: enTranslations,
   de: enTranslations,
-  'pt-BR': enTranslations,
+  pt: enTranslations,
 };
 
 export default function TermsOfService() {

@@ -17,16 +17,20 @@ const translations: Record<Locale, {
     noActivity: 'אין פעילות אחרונה',
   },
   es: {
-    title: 'Recent Activity',
-    noActivity: 'No recent activity',
+    title: 'Actividad reciente',
+    noActivity: 'Sin actividad reciente',
   },
   de: {
-    title: 'Recent Activity',
-    noActivity: 'No recent activity',
+    title: 'Letzte Aktivitaet',
+    noActivity: 'Keine aktuelle Aktivitaet',
   },
-  'pt-BR': {
-    title: 'Recent Activity',
-    noActivity: 'No recent activity',
+  pt: {
+    title: 'Atividade recente',
+    noActivity: 'Sem atividade recente',
+  },
+  fr: {
+    title: 'Activite recente',
+    noActivity: 'Aucune activite recente',
   },
 };
 
@@ -34,7 +38,7 @@ export function RecentActivity() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const recentActivities = state.activities.slice(0, 5);
 
   return (

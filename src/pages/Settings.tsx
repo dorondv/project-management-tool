@@ -6,7 +6,8 @@ import { useApp } from '../context/AppContext';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { SubscriptionStatus } from '../components/settings/SubscriptionStatus';
-import { Locale, Currency } from '../types';
+import { Locale, Currency, SUPPORTED_LOCALES, LOCALE_LABELS } from '../types';
+import { t } from '../i18n';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
 import { formatCurrency } from '../utils/currencyUtils';
@@ -16,153 +17,6 @@ import {
   defaultCustomerScoreSettings,
   sanitizeCustomerScoreSettings,
 } from '../utils/customerScoreSettings';
-
-const enTranslations = {
-    pageTitle: 'Settings',
-    pageSubtitle: 'Customize the application to your taste',
-    subscriptionStatus: 'Subscription Status',
-    trialPeriod: 'Trial Period',
-    trialDescription: 'Enjoy all features. Upgrade to continue after the period ends.',
-    timeRemaining: 'Time remaining until renewal/end:',
-    days: 'Days',
-    hours: 'Hours',
-    minutes: 'Minutes',
-    seconds: 'Seconds',
-    manageSubscription: 'Manage Subscription and Plans',
-    billingHistory: 'Billing History',
-    featureInDevelopment: 'Feature in development',
-    billingHistoryNote: 'Click "View Invoice" to view transaction details on PayPal.',
-    downloadInvoice: 'Download Invoice',
-    viewInvoice: 'View Invoice',
-    digitalSignature: 'Digital Signature',
-    businessOwnerSignature: 'Business owner\'s signature',
-    businessDetails: 'Business Details (for invoices)',
-    businessName: 'Business Name',
-    businessField: 'Field of Business',
-    vatNo: 'VAT No.',
-    businessNamePlaceholder: 'Example: Digital Solutions Ltd.',
-    businessFieldPlaceholder: 'Example: Software Development',
-    vatNoPlaceholder: 'Enter VAT number',
-    languagePreference: 'Language Preference',
-    languageDescription: 'Select your preferred language for the application',
-    currentLanguage: 'Current Language',
-    changeLanguage: 'Change Language',
-    english: 'English',
-    hebrew: 'Hebrew (עברית)',
-    languageUpdated: 'Language preference updated successfully',
-    languageSaveFailed: 'Failed to save language preference',
-    saveLanguage: 'Save Language',
-    currencyPreference: 'Currency Preference',
-    currencyDescription: 'Select your preferred currency for displaying amounts',
-    currentCurrency: 'Current Currency',
-    changeCurrency: 'Change Currency',
-    saveCurrency: 'Save Currency',
-    currencyUpdated: 'Currency preference updated successfully',
-    currencySaveFailed: 'Failed to save currency preference',
-    save: 'Save',
-    cancel: 'Cancel',
-    customerScoreTitle: 'Customer Score',
-    customerScoreDescription: 'Explain how the score is calculated and fine-tune how much each metric matters.',
-    customerScoreExplanationTitle: 'How it works',
-    customerScoreExplanationSteps: [
-      'Each enabled metric is compared to your customer average.',
-      'Each metric is capped at 2x the average to reduce outliers.',
-      'Final score is a weighted average of enabled metrics.',
-      'Grades: A >= 1.2, B >= 0.8, otherwise C.',
-    ],
-    customerScoreFormulaLabel: 'Formula',
-    customerScoreFormulaText: 'Score = sum(weight * min(customer / average, 2)) / sum(weight)',
-    customerScoreAdjustmentsTitle: 'Adjust weights',
-    customerScoreIncludeLabel: 'Include in score',
-    customerScoreWeightLabel: 'Weight',
-    customerScoreWeightHint: '0 = ignore, 2 = double influence',
-    customerScoreSave: 'Save Score Settings',
-    customerScoreSaveSuccess: 'Customer score settings saved successfully',
-    customerScoreSaveFailed: 'Failed to save customer score settings',
-    customerScoreMetrics: {
-      monthlyIncome: 'Monthly Income',
-      hourlyRate: 'Hourly Rate',
-      seniority: 'Seniority (Months)',
-      referralsCount: 'Referrals',
-      totalRevenue: 'Total Revenue',
-      referredRevenue: 'Revenue from Referrals',
-    },
-};
-
-const translations: Record<Locale, typeof enTranslations> = {
-  en: enTranslations,
-  he: {
-    pageTitle: 'הגדרות',
-    pageSubtitle: 'התאם את האפליקציה לטעם שלך',
-    subscriptionStatus: 'סטטוס מנוי',
-    trialPeriod: 'תקופת ניסיון',
-    trialDescription: 'תהנה מכל התכונות. שדרג כדי להמשיך לאחר תום התקופה.',
-    timeRemaining: 'זמן נותר עד לחידוש/סיום:',
-    days: 'ימים',
-    hours: 'שעות',
-    minutes: 'דקות',
-    seconds: 'שניות',
-    manageSubscription: 'נהל מנוי ותוכניות',
-    billingHistory: 'היסטוריית חיובים',
-    featureInDevelopment: 'תכונה בפיתוח',
-    billingHistoryNote: 'לחץ על "צפה בחשבונית" כדי לצפות בפרטי העסקה ב-PayPal.',
-    downloadInvoice: 'הורד חשבונית',
-    viewInvoice: 'צפה בחשבונית',
-    digitalSignature: 'חתימה דיגיטלית',
-    businessOwnerSignature: 'חתימת בעל העסק',
-    businessDetails: 'פרטי עסק לחשבונית',
-    businessName: 'שם העסק',
-    businessField: 'תחום עיסוק',
-    vatNo: 'ח.פ.',
-    businessNamePlaceholder: 'לדוגמה: פתרונות דיגיטל בע"מ',
-    businessFieldPlaceholder: 'לדוגמה: פיתוח תוכנה',
-    vatNoPlaceholder: 'הכנס מספר ח.פ.',
-    languagePreference: 'העדפת שפה',
-    languageDescription: 'בחר את השפה המועדפת עליך לאפליקציה',
-    currentLanguage: 'שפה נוכחית',
-    changeLanguage: 'שנה שפה',
-    english: 'אנגלית (English)',
-    hebrew: 'עברית',
-    languageUpdated: 'העדפת השפה עודכנה בהצלחה',
-    languageSaveFailed: 'שגיאה בשמירת העדפת השפה',
-    saveLanguage: 'שמור שפה',
-    currencyPreference: 'העדפת מטבע',
-    currencyDescription: 'בחר את המטבע המועדף עליך להצגת סכומים',
-    currentCurrency: 'מטבע נוכחי',
-    changeCurrency: 'שנה מטבע',
-    saveCurrency: 'שמור מטבע',
-    currencyUpdated: 'העדפת המטבע עודכנה בהצלחה',
-    currencySaveFailed: 'שגיאה בשמירת העדפת המטבע',
-    save: 'שמור',
-    cancel: 'ביטול',
-    customerScoreTitle: 'ציון לקוח',
-    customerScoreDescription: 'הסבר על חישוב הציון והתאמות פשוטות להשפעת המדדים.',
-    customerScoreExplanationTitle: 'איך זה עובד',
-    customerScoreExplanationSteps: [
-      'כל מדד פעיל מושווה לממוצע הלקוחות שלך.',
-      'כל מדד מוגבל עד 2x מהממוצע כדי לצמצם חריגים.',
-      'הציון הסופי הוא ממוצע משוקלל של המדדים הפעילים.',
-      'דירוגים: A >= 1.2, B >= 0.8, אחרת C.',
-    ],
-    customerScoreFormulaLabel: 'נוסחה',
-    customerScoreFormulaText: 'ציון = sum(משקל * min(לקוח / ממוצע, 2)) / sum(משקל)',
-    customerScoreAdjustmentsTitle: 'התאמת משקלים',
-    customerScoreIncludeLabel: 'כלול בציון',
-    customerScoreWeightLabel: 'משקל',
-    customerScoreWeightHint: '0 = התעלמות, 2 = השפעה כפולה',
-    customerScoreSave: 'שמור הגדרות ציון',
-    customerScoreSaveSuccess: 'הגדרות ציון הלקוח נשמרו בהצלחה',
-    customerScoreSaveFailed: 'שגיאה בשמירת הגדרות ציון הלקוח',
-    customerScoreMetrics: {
-      monthlyIncome: 'הכנסה חודשית',
-      hourlyRate: 'תעריף לשעה',
-      seniority: 'וותק (חודשים)',
-      referralsCount: 'הפניות',
-      totalRevenue: 'הכנסה כוללת',
-      referredRevenue: 'הכנסה מהפניות',
-    },
-  },
-};
 
 interface CountdownTimer {
   days: number;
@@ -177,7 +31,6 @@ export default function Settings() {
   const locale: Locale = state.locale ?? 'en';
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
-  const t = translations[locale];
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
   // Language preference
@@ -212,12 +65,12 @@ export default function Settings() {
   }, []);
 
   const scoreMetrics = [
-    { key: 'monthlyIncome', label: t.customerScoreMetrics.monthlyIncome },
-    { key: 'hourlyRate', label: t.customerScoreMetrics.hourlyRate },
-    { key: 'seniority', label: t.customerScoreMetrics.seniority },
-    { key: 'referralsCount', label: t.customerScoreMetrics.referralsCount },
-    { key: 'totalRevenue', label: t.customerScoreMetrics.totalRevenue },
-    { key: 'referredRevenue', label: t.customerScoreMetrics.referredRevenue },
+    { key: 'monthlyIncome', label: t('settings.customerScoreMetrics.monthlyIncome', locale) },
+    { key: 'hourlyRate', label: t('settings.customerScoreMetrics.hourlyRate', locale) },
+    { key: 'seniority', label: t('settings.customerScoreMetrics.seniority', locale) },
+    { key: 'referralsCount', label: t('settings.customerScoreMetrics.referralsCount', locale) },
+    { key: 'totalRevenue', label: t('settings.customerScoreMetrics.totalRevenue', locale) },
+    { key: 'referredRevenue', label: t('settings.customerScoreMetrics.referredRevenue', locale) },
   ] as const;
 
   const clampScoreWeight = (value: number) => Math.min(2, Math.max(0, value));
@@ -264,12 +117,10 @@ export default function Settings() {
       // Update UI after successful save
       dispatch({ type: 'SET_LOCALE', payload: selectedLanguage });
       
-      const currentT = translations[selectedLanguage];
-      toast.success(currentT.languageUpdated);
+      toast.success(t('settings.languageUpdated', selectedLanguage));
     } catch (error) {
       console.error('Failed to update language preference:', error);
-      const currentT = translations[selectedLanguage];
-      toast.error(currentT.languageSaveFailed);
+      toast.error(t('settings.languageSaveFailed', selectedLanguage));
     } finally {
       setIsSavingLanguage(false);
     }
@@ -287,12 +138,10 @@ export default function Settings() {
       // For now, just save to localStorage via dispatch
       dispatch({ type: 'SET_CURRENCY', payload: selectedCurrency });
       
-      const currentT = translations[locale];
-      toast.success(currentT.currencyUpdated);
+      toast.success(t('settings.currencyUpdated', locale));
     } catch (error) {
       console.error('Failed to update currency preference:', error);
-      const currentT = translations[locale];
-      toast.error(currentT.currencySaveFailed);
+      toast.error(t('settings.currencySaveFailed', locale));
     } finally {
       setIsSavingCurrency(false);
     }
@@ -303,10 +152,10 @@ export default function Settings() {
     try {
       storage.set('customerScoreSettings', scoreSettings);
       setSavedScoreSettings(scoreSettings);
-      toast.success(t.customerScoreSaveSuccess);
+      toast.success(t('settings.customerScoreSaveSuccess', locale));
     } catch (error: any) {
       console.error('Error saving customer score settings:', error);
-      toast.error(t.customerScoreSaveFailed);
+      toast.error(t('settings.customerScoreSaveFailed', locale));
     } finally {
       setIsSavingScoreSettings(false);
     }
@@ -319,6 +168,8 @@ export default function Settings() {
     businessName: '',
     businessField: '',
     vatNo: '',
+    address: '',
+    country: '',
   });
   const [isSavingBusinessDetails, setIsSavingBusinessDetails] = useState(false);
 
@@ -335,7 +186,15 @@ export default function Settings() {
       const saved = localStorage.getItem(`businessDetails_${state.user.id}`);
       if (saved) {
         try {
-          setBusinessDetails(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          setBusinessDetails({
+            businessName: '',
+            businessField: '',
+            vatNo: '',
+            address: '',
+            country: '',
+            ...parsed,
+          });
         } catch (error) {
           console.error('Error loading business details:', error);
         }
@@ -379,7 +238,7 @@ export default function Settings() {
 
   const handleSaveBusinessDetails = async () => {
     if (!state.user?.id) {
-      toast.error(locale === 'he' ? 'נדרש משתמש מחובר' : 'User must be logged in');
+      toast.error(t('settings.userMustBeLoggedIn', locale));
       return;
     }
 
@@ -394,10 +253,10 @@ export default function Settings() {
       //   businessField: businessDetails.businessField,
       // });
       
-      toast.success(locale === 'he' ? 'פרטי העסק נשמרו בהצלחה' : 'Business details saved successfully');
+      toast.success(t('settings.businessDetailsSavedSuccess', locale));
     } catch (error: any) {
       console.error('Error saving business details:', error);
-      toast.error(locale === 'he' ? 'שגיאה בשמירת פרטי העסק' : 'Failed to save business details');
+      toast.error(t('settings.businessDetailsSaveFailed', locale));
     } finally {
       setIsSavingBusinessDetails(false);
     }
@@ -412,10 +271,10 @@ export default function Settings() {
       <div className="max-w-4xl mx-auto">
         <div className={`mb-8 ${alignStart}`}>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            {t.pageTitle}
+            {t('settings.pageTitle', locale)}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            {t.pageSubtitle}
+            {t('settings.pageSubtitle', locale)}
           </p>
         </div>
 
@@ -425,17 +284,17 @@ export default function Settings() {
             <div className="flex items-center gap-2 mb-6">
               <Globe size={20} className="text-primary-500 flex-shrink-0" />
               <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                {t.languagePreference}
+                {t('settings.languagePreference', locale)}
               </h3>
             </div>
 
             <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-              {t.languageDescription}
+              {t('settings.languageDescription', locale)}
             </p>
 
-            {/* Language Options - Grid layout for 5 languages */}
+            {/* Language Options - Grid layout */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-              {(['en', 'he'] as Locale[]).map((lang) => (
+              {SUPPORTED_LOCALES.map((lang) => (
                 <button
                   key={lang}
                   onClick={() => handleLanguageSelect(lang)}
@@ -447,8 +306,7 @@ export default function Settings() {
                   } ${isRTL ? 'flex-row-reverse' : ''} ${isSavingLanguage ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <span className={`font-medium ${selectedLanguage === lang ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
-                    {lang === 'en' && t.english}
-                    {lang === 'he' && t.hebrew}
+                    {LOCALE_LABELS[lang]}
                   </span>
                   {selectedLanguage === lang && (
                     <div className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
@@ -468,7 +326,7 @@ export default function Settings() {
                 className={`${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 <Save size={16} />
-                {t.saveLanguage}
+                {t('settings.saveLanguage', locale)}
               </Button>
               {selectedLanguage !== locale && (
                 <p className={`text-xs text-amber-600 dark:text-amber-400 mt-2 ${alignStart}`}>
@@ -486,12 +344,12 @@ export default function Settings() {
             <div className="flex items-center gap-2 mb-6">
               <Globe size={20} className="text-primary-500 flex-shrink-0" />
               <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                {t.currencyPreference}
+                {t('settings.currencyPreference', locale)}
               </h3>
             </div>
 
             <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-              {t.currencyDescription}
+              {t('settings.currencyDescription', locale)}
             </p>
 
             {/* Currency Options */}
@@ -563,7 +421,7 @@ export default function Settings() {
                 className={`${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 <Save size={16} />
-                {t.saveCurrency}
+                {t('settings.saveCurrency', locale)}
               </Button>
               {selectedCurrency !== currency && (
                 <p className={`text-xs text-amber-600 dark:text-amber-400 mt-2 ${alignStart}`}>
@@ -580,57 +438,49 @@ export default function Settings() {
             <div className="flex items-center gap-2 mb-6">
               <SlidersHorizontal size={20} className="text-primary-500 flex-shrink-0" />
               <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                {t.customerScoreTitle}
+                {t('settings.customerScoreTitle', locale)}
               </h3>
             </div>
 
             <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-              {t.customerScoreDescription}
+              {t('settings.customerScoreDescription', locale)}
             </p>
 
             <div className={`mb-6 ${alignStart}`}>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                {t.customerScoreExplanationTitle}
+                {t('settings.customerScoreExplanationTitle', locale)}
               </h4>
               <ul className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                {t.customerScoreExplanationSteps.map((step) => (
+                {[1, 2, 3, 4].map((i) => (
                   <li
-                    key={step}
+                    key={i}
                     className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse text-right justify-end' : 'text-left'}`}
                   >
                     {isRTL ? (
                       <>
-                        <span>{step}</span>
+                        <span>{t(`settings.customerScoreExplanationStep${i}`, locale)}</span>
                         <span className="text-primary-500">•</span>
                       </>
                     ) : (
                       <>
                         <span className="text-primary-500">•</span>
-                        <span>{step}</span>
+                        <span>{t(`settings.customerScoreExplanationStep${i}`, locale)}</span>
                       </>
                     )}
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3">
-                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {t.customerScoreFormulaLabel}
-                </p>
-                <p className="text-sm font-mono text-gray-700 dark:text-gray-200">
-                  {t.customerScoreFormulaText}
-                </p>
-              </div>
             </div>
 
             <details className="rounded-lg border border-gray-200 dark:border-gray-700">
               <summary
                 className={`cursor-pointer select-none px-4 py-3 font-medium text-gray-900 dark:text-white ${alignStart}`}
               >
-                {t.customerScoreAdjustmentsTitle}
+                {t('settings.customerScoreAdjustmentsTitle', locale)}
               </summary>
               <div className="px-4 pb-4">
                 <div className={`text-xs text-gray-500 dark:text-gray-400 mb-3 ${alignStart}`}>
-                  {t.customerScoreWeightHint}
+                  {t('settings.customerScoreWeightHint', locale)}
                 </div>
 
                 <div className="space-y-4">
@@ -654,7 +504,7 @@ export default function Settings() {
                               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {t.customerScoreIncludeLabel}
+                              {t('settings.customerScoreIncludeLabel', locale)}
                             </span>
                           </label>
                         </div>
@@ -662,7 +512,7 @@ export default function Settings() {
                         <div className={`mt-3 flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <div className="flex-1">
                             <label className={`block text-xs text-gray-500 dark:text-gray-400 mb-1 ${alignStart}`}>
-                              {t.customerScoreWeightLabel}
+                              {t('settings.customerScoreWeightLabel', locale)}
                             </label>
                             <input
                               type="range"
@@ -707,7 +557,7 @@ export default function Settings() {
                     className={`${isRTL ? 'flex-row-reverse' : ''}`}
                   >
                     <Save size={16} />
-                    {t.customerScoreSave}
+                    {t('settings.customerScoreSave', locale)}
                   </Button>
                 </div>
               </div>
@@ -722,7 +572,7 @@ export default function Settings() {
             <div className="flex items-center gap-2 mb-6">
               <DollarSign size={20} className="text-primary-500 flex-shrink-0" />
               <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                {t.billingHistory}
+                {t('settings.billingHistory', locale)}
               </h3>
             </div>
 
@@ -740,7 +590,7 @@ export default function Settings() {
         ) : (
           <>
             <p className={`text-sm text-gray-500 dark:text-gray-400 mb-4 ${alignStart}`}>
-              {t.billingHistoryNote}
+              {t('settings.billingHistoryNote', locale)}
             </p>
           <div className="space-y-3">
             {billingHistory.map((item) => (
@@ -790,7 +640,7 @@ export default function Settings() {
                       className={isRTL ? 'flex-row-reverse' : ''}
                     >
                       <Download size={16} />
-                      {t.downloadInvoice}
+                      {t('settings.downloadInvoice', locale)}
                     </Button>
                   )}
                 </div>
@@ -806,12 +656,12 @@ export default function Settings() {
             <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
               <Pen size={20} className="text-primary-500" />
               <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                {t.digitalSignature}
+                {t('settings.digitalSignature', locale)}
               </h3>
             </div>
 
             <p className={`text-gray-600 dark:text-gray-400 mb-4 ${alignStart}`}>
-              {t.businessOwnerSignature}
+              {t('settings.businessOwnerSignature', locale)}
             </p>
 
             <label
@@ -850,45 +700,69 @@ export default function Settings() {
             <div className="flex items-center gap-2 mb-6">
               <Folder size={20} className="text-primary-500 flex-shrink-0" />
               <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
-                {t.businessDetails}
+                {t('settings.businessDetails', locale)}
               </h3>
             </div>
 
         <div className="space-y-4 max-w-md">
           <div>
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
-              {t.businessName}
+              {t('settings.businessName', locale)}
             </label>
             <input
               type="text"
               value={businessDetails.businessName}
               onChange={(e) => setBusinessDetails({ ...businessDetails, businessName: e.target.value })}
-              placeholder={t.businessNamePlaceholder}
+              placeholder={t('settings.businessNamePlaceholder', locale)}
               className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
             />
           </div>
           <div>
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
-              {t.businessField}
+              {t('settings.businessField', locale)}
             </label>
             <input
               type="text"
               value={businessDetails.businessField}
               onChange={(e) => setBusinessDetails({ ...businessDetails, businessField: e.target.value })}
-              placeholder={t.businessFieldPlaceholder}
+              placeholder={t('settings.businessFieldPlaceholder', locale)}
               className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
             />
           </div>
           <div>
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
-              {t.vatNo}
+              {t('settings.vatNo', locale)}
             </label>
             <input
               type="text"
               inputMode="numeric"
               value={businessDetails.vatNo}
               onChange={(e) => setBusinessDetails({ ...businessDetails, vatNo: e.target.value })}
-              placeholder={t.vatNoPlaceholder}
+              placeholder={t('settings.vatNoPlaceholder', locale)}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
+            />
+          </div>
+          <div>
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
+              {t('settings.businessAddress', locale)}
+            </label>
+            <input
+              type="text"
+              value={businessDetails.address ?? ''}
+              onChange={(e) => setBusinessDetails({ ...businessDetails, address: e.target.value })}
+              placeholder={t('settings.businessAddressPlaceholder', locale)}
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
+            />
+          </div>
+          <div>
+            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
+              {t('settings.businessCountry', locale)}
+            </label>
+            <input
+              type="text"
+              value={businessDetails.country ?? ''}
+              onChange={(e) => setBusinessDetails({ ...businessDetails, country: e.target.value })}
+              placeholder={t('settings.businessCountryPlaceholder', locale)}
               className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${alignStart}`}
             />
           </div>
@@ -900,7 +774,7 @@ export default function Settings() {
               loading={isSavingBusinessDetails}
               className={isRTL ? 'flex-row-reverse' : ''}
             >
-              {t.save}
+              {t('settings.save', locale)}
             </Button>
             <Button
               variant="outline"
@@ -910,7 +784,7 @@ export default function Settings() {
               disabled={isSavingBusinessDetails}
               className={isRTL ? 'flex-row-reverse' : ''}
             >
-              {t.cancel}
+              {t('settings.cancel', locale)}
             </Button>
           </div>
         </div>

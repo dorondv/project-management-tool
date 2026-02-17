@@ -1,10 +1,14 @@
 import { format, isToday, isTomorrow, isYesterday, differenceInDays, isPast } from 'date-fns';
-import { he } from 'date-fns/locale';
-import { Locale } from '../types';
+import { he, es, de, ptBR, fr } from 'date-fns/locale';
+import type { Locale } from '../types';
 
 const getDateFnsLocale = (locale: Locale) => {
   switch (locale) {
     case 'he': return he;
+    case 'es': return es;
+    case 'de': return de;
+    case 'pt': return ptBR;
+    case 'fr': return fr;
     default: return undefined;
   }
 };
@@ -15,14 +19,26 @@ export const formatDate = (date: Date | string, locale: Locale = 'en'): string =
   
   if (isToday(d)) {
     if (locale === 'he') return 'היום';
+    if (locale === 'es') return 'Hoy';
+    if (locale === 'de') return 'Heute';
+    if (locale === 'pt') return 'Hoje';
+    if (locale === 'fr') return 'Aujourd\'hui';
     return 'Today';
   }
   if (isTomorrow(d)) {
     if (locale === 'he') return 'מחר';
+    if (locale === 'es') return 'Mañana';
+    if (locale === 'de') return 'Morgen';
+    if (locale === 'pt') return 'Amanhã';
+    if (locale === 'fr') return 'Demain';
     return 'Tomorrow';
   }
   if (isYesterday(d)) {
     if (locale === 'he') return 'אתמול';
+    if (locale === 'es') return 'Ayer';
+    if (locale === 'de') return 'Gestern';
+    if (locale === 'pt') return 'Ontem';
+    if (locale === 'fr') return 'Hier';
     return 'Yesterday';
   }
   

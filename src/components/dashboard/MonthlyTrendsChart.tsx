@@ -19,22 +19,28 @@ const translations = {
     hours: 'שעות',
   },
   es: {
-    title: 'Monthly Trends - Income vs. Hours',
-    noData: 'No trend data to display',
-    income: 'Income',
-    hours: 'Hours',
+    title: 'Tendencias mensuales - Ingresos vs. Horas',
+    noData: 'No hay datos de tendencias para mostrar',
+    income: 'Ingresos',
+    hours: 'Horas',
   },
   de: {
-    title: 'Monthly Trends - Income vs. Hours',
-    noData: 'No trend data to display',
-    income: 'Income',
-    hours: 'Hours',
+    title: 'Monatliche Trends - Einnahmen vs. Stunden',
+    noData: 'Keine Trenddaten zur Anzeige',
+    income: 'Einnahmen',
+    hours: 'Stunden',
   },
-  'pt-BR': {
-    title: 'Monthly Trends - Income vs. Hours',
-    noData: 'No trend data to display',
-    income: 'Income',
-    hours: 'Hours',
+  pt: {
+    title: 'Tendencias mensais - Receita vs. Horas',
+    noData: 'Sem dados de tendencia para exibir',
+    income: 'Receita',
+    hours: 'Horas',
+  },
+  fr: {
+    title: 'Tendances mensuelles - Revenus vs. Heures',
+    noData: 'Aucune donnee de tendance a afficher',
+    income: 'Revenus',
+    hours: 'Heures',
   },
 } as const;
 
@@ -48,7 +54,7 @@ export function MonthlyTrendsChart({ dateRange }: MonthlyTrendsChartProps) {
   const currency: Currency = state.currency ?? 'ILS';
   const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const chartData = useMemo(() => {
     // Filter time entries and incomes by date range if provided

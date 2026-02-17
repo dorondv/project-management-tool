@@ -16,19 +16,24 @@ const translations = {
     hours: 'שעות',
   },
   es: {
-    title: 'Hours Distribution by Customer',
-    noData: 'No hour data to display',
-    hours: 'Hours',
+    title: 'Distribucion de horas por cliente',
+    noData: 'No hay datos de horas para mostrar',
+    hours: 'Horas',
   },
   de: {
-    title: 'Hours Distribution by Customer',
-    noData: 'No hour data to display',
-    hours: 'Hours',
+    title: 'Stundenverteilung nach Kunde',
+    noData: 'Keine Stundendaten zur Anzeige',
+    hours: 'Stunden',
   },
-  'pt-BR': {
-    title: 'Hours Distribution by Customer',
-    noData: 'No hour data to display',
-    hours: 'Hours',
+  pt: {
+    title: 'Distribuicao de horas por cliente',
+    noData: 'Sem dados de horas para exibir',
+    hours: 'Horas',
+  },
+  fr: {
+    title: 'Repartition des heures par client',
+    noData: 'Aucune donnee d heures a afficher',
+    hours: 'Heures',
   },
 } as const;
 
@@ -40,7 +45,7 @@ export function HoursByCustomerChart({ dateRange }: HoursByCustomerChartProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const chartData = useMemo(() => {
     // Filter time entries by date range if provided

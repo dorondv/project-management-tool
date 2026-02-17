@@ -141,7 +141,7 @@ const translations: Record<Locale, {
     manager: 'Manager',
     contributor: 'Contributor',
   },
-  'pt-BR': {
+  pt: {
     pageTitle: 'Profile',
     pageSubtitle: 'Manage your profile information',
     profileInformation: 'Profile Information',
@@ -164,7 +164,7 @@ export default function Profile() {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const alignStart = isRTL ? 'text-right' : 'text-left';
   const isAdmin = state.user?.role === 'admin';
 
@@ -277,7 +277,7 @@ export default function Profile() {
 
       {/* Profile Information */}
       <Card className="p-6">
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-3'} mb-6`}>
+        <div className="flex items-center gap-3 mb-6">
           <User size={20} className="text-primary-500" />
           <h3 className={`text-lg font-semibold text-gray-900 dark:text-white ${alignStart}`}>
             {t.profileInformation}
@@ -285,7 +285,7 @@ export default function Profile() {
         </div>
 
         {/* Avatar Section */}
-        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-6 mb-6`}>
+        <div className="flex items-center gap-6 mb-6">
           <div className="relative">
             <Avatar
               src={avatarPreview || state.user.avatar}

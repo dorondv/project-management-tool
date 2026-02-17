@@ -50,7 +50,7 @@ const translations: Record<Locale, {
 }> = {
   en: {
     pageTitle: 'Purchase Completion',
-    pageSubtitle: 'Complete the payment to start using sollo',
+    pageSubtitle: 'Update your credit card to start using Sollo and enjoy your free days',
     backToPricing: 'Back to Pricing Page',
     planSummary: 'Summary of the selected plan',
     annualPlan: 'Annual Plan',
@@ -72,7 +72,7 @@ const translations: Record<Locale, {
   },
   he: {
     pageTitle: 'השלמת רכישה',
-    pageSubtitle: 'השלם את התשלום כדי להתחיל להשתמש ב-sollo',
+    pageSubtitle: 'עדכן כרטיס אשראי כדי להתחיל להשתמש ב Sollo וליהנות מימי החינם',
     backToPricing: 'חזרה לעמוד התמחור',
     planSummary: 'סיכום התוכנית שנבחרה',
     annualPlan: 'תוכנית שנתית',
@@ -94,7 +94,7 @@ const translations: Record<Locale, {
   },
   es: {
     pageTitle: 'Purchase Completion',
-    pageSubtitle: 'Complete the payment to start using sollo',
+    pageSubtitle: 'Actualiza tu tarjeta de credito para empezar a usar Sollo y disfrutar de tus dias gratis',
     backToPricing: 'Back to Pricing Page',
     planSummary: 'Summary of the selected plan',
     annualPlan: 'Annual Plan',
@@ -116,7 +116,7 @@ const translations: Record<Locale, {
   },
   de: {
     pageTitle: 'Purchase Completion',
-    pageSubtitle: 'Complete the payment to start using sollo',
+    pageSubtitle: 'Aktualisiere deine Kreditkarte, um Sollo zu nutzen und deine kostenlosen Tage zu geniessen',
     backToPricing: 'Back to Pricing Page',
     planSummary: 'Summary of the selected plan',
     annualPlan: 'Annual Plan',
@@ -136,9 +136,9 @@ const translations: Record<Locale, {
     processPayment: 'PayPal',
     payWithCard: 'Debit or Credit Card',
   },
-  'pt-BR': {
+  pt: {
     pageTitle: 'Purchase Completion',
-    pageSubtitle: 'Complete the payment to start using sollo',
+    pageSubtitle: 'Atualize seu cartao de credito para comecar a usar o Sollo e aproveitar seus dias gratis',
     backToPricing: 'Back to Pricing Page',
     planSummary: 'Summary of the selected plan',
     annualPlan: 'Annual Plan',
@@ -167,7 +167,7 @@ export default function Payment() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
   const [paypalLoading, setPaypalLoading] = useState(true);

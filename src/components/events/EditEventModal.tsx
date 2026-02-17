@@ -172,7 +172,7 @@ const translations = {
     successUpdated: 'Event updated successfully!',
     successDeleted: 'Event deleted successfully!',
   },
-  'pt-BR': {
+  pt: {
     title: 'Edit Event',
     eventTitle: 'Event Title',
     eventTitlePlaceholder: 'Enter event title',
@@ -225,7 +225,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   // Helper to format date for input
   const formatDateForInput = (date: Date) => {

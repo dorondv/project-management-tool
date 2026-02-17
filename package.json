@@ -17,7 +17,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:migrate:customers": "node scripts/run-migration.js",
-    "test:db": "node scripts/test-connection.js"
+    "test:db": "node scripts/test-connection.js",
+    "i18n:check": "node scripts/validate-locales.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

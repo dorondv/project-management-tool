@@ -3,8 +3,9 @@ import { Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { he, es, de, ptBR } from 'date-fns/locale';
 import { Button } from '../common/Button';
-import { TimeEntry, Locale, Customer, Project, Task } from '../../types';
+import { TimeEntry, Locale, Customer, Project, Task, Currency } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 
 interface TimeEntryFormProps {
   entry?: TimeEntry | null;
@@ -101,7 +102,7 @@ const translations = {
     invalidTime: 'Invalid time',
     endTimeBeforeStart: 'End time must be after start time',
   },
-  'pt-BR': {
+  pt: {
     project: 'Project',
     client: 'Client',
     startDate: 'Start Date',
@@ -137,7 +138,7 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [formData, setFormData] = useState({
     projectId: '',
