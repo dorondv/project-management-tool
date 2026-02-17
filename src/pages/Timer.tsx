@@ -4,8 +4,8 @@ import { Play, Square, Pause, Plus, FileText, Clock, AlertTriangle, ChevronDown 
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { TimeEntry, Locale, Currency, Customer } from '../types';
-import { formatCurrency as formatCurrencyUtil } from '../utils/currencyUtils';
-import { format } from 'date-fns';
+import { formatCurrency as formatCurrencyUtil, getCurrencySymbol } from '../utils/currencyUtils';
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
 import toast from 'react-hot-toast';
 import { timerService } from '../utils/timerService';
 import { CreateProjectModal } from '../components/projects/CreateProjectModal';
@@ -45,6 +45,15 @@ const translations = {
     noEntries: 'No time entries found',
     noEntriesSubtitle: 'Start tracking time to see entries here',
     currentCost: 'Current Cost',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    last7Days: 'Last 7 Days',
+    thisMonth: 'This Month',
+    lastMonth: 'Last Month',
+    customRange: 'Custom Range',
+    fromDate: 'From',
+    toDate: 'To',
+    dateRange: 'Date Range',
   },
   he: {
     title: 'מעקב זמן',
@@ -75,96 +84,171 @@ const translations = {
     noEntries: 'לא נמצאו רישומי זמן',
     noEntriesSubtitle: 'התחל לעקוב אחר זמן כדי לראות רישומים כאן',
     currentCost: 'עלות נוכחית',
+    today: 'היום',
+    yesterday: 'אתמול',
+    last7Days: '7 הימים האחרונים',
+    thisMonth: 'החודש',
+    lastMonth: 'חודש קודם',
+    customRange: 'טווח מותאם אישית',
+    fromDate: 'מתאריך',
+    toDate: 'עד תאריך',
+    dateRange: 'טווח תאריכים',
   },
   es: {
-    title: 'Timer',
-    subtitle: 'Start tracking your time on projects',
-    selectCustomer: 'Select Customer',
-    selectProject: 'Select Project',
-    selectTask: 'Select Task',
-    allCustomers: 'All Customers',
-    noSpecificTask: 'No specific task',
-    whatAreYouDoing: 'What are you doing now?',
-    start: 'Start',
-    stop: 'Stop',
-    selectProjectAndCustomer: 'Select a project and customer to start time tracking',
-    noProjectsWarning: 'No projects in the system',
-    noProjectsMessage: 'To start tracking time, first create a client and project on the appropriate pages.',
-    timeLog: 'Time Entry Log',
-    currentMonth: 'Current Month',
-    addEntry: 'Add Entry',
-    addTimeRecord: 'Add Time Record',
-    generateReport: 'Generate Client Hours Report',
-    demoData: 'Demo Data',
-    client: 'Client',
-    project: 'Project',
-    startTime: 'Start',
-    endTime: 'End',
-    duration: 'Duration',
-    income: 'Income',
-    noEntries: 'No time entries found',
-    noEntriesSubtitle: 'Start tracking time to see entries here',
-    currentCost: 'Current Cost',
+    title: 'Temporizador',
+    subtitle: 'Comienza a registrar tu tiempo en proyectos',
+    selectCustomer: 'Seleccionar cliente',
+    selectProject: 'Seleccionar proyecto',
+    selectTask: 'Seleccionar tarea',
+    allCustomers: 'Todos los clientes',
+    noSpecificTask: 'Sin tarea especifica',
+    whatAreYouDoing: 'Que estas haciendo ahora?',
+    start: 'Iniciar',
+    stop: 'Detener',
+    selectProjectAndCustomer: 'Selecciona un proyecto y cliente para iniciar el registro',
+    noProjectsWarning: 'No hay proyectos en el sistema',
+    noProjectsMessage: 'Para comenzar a registrar tiempo, crea primero un cliente y un proyecto.',
+    timeLog: 'Registro de tiempo',
+    currentMonth: 'Mes actual',
+    addEntry: 'Agregar registro',
+    addTimeRecord: 'Agregar registro de tiempo',
+    generateReport: 'Generar informe de horas por cliente',
+    demoData: 'Datos de demostracion',
+    client: 'Cliente',
+    project: 'Proyecto',
+    startTime: 'Inicio',
+    endTime: 'Fin',
+    duration: 'Duracion',
+    income: 'Ingresos',
+    noEntries: 'No se encontraron registros',
+    noEntriesSubtitle: 'Comienza a registrar tiempo para ver entradas aqui',
+    currentCost: 'Costo actual',
+    today: 'Hoy',
+    yesterday: 'Ayer',
+    last7Days: 'Ultimos 7 dias',
+    thisMonth: 'Este mes',
+    lastMonth: 'Mes pasado',
+    customRange: 'Rango personalizado',
+    fromDate: 'Desde',
+    toDate: 'Hasta',
+    dateRange: 'Rango de fechas',
   },
   de: {
-    title: 'Timer',
-    subtitle: 'Start tracking your time on projects',
-    selectCustomer: 'Select Customer',
-    selectProject: 'Select Project',
-    selectTask: 'Select Task',
-    allCustomers: 'All Customers',
-    noSpecificTask: 'No specific task',
-    whatAreYouDoing: 'What are you doing now?',
+    title: 'Zeiterfassung',
+    subtitle: 'Starte die Zeiterfassung fuer deine Projekte',
+    selectCustomer: 'Kunde auswaehlen',
+    selectProject: 'Projekt auswaehlen',
+    selectTask: 'Aufgabe auswaehlen',
+    allCustomers: 'Alle Kunden',
+    noSpecificTask: 'Keine bestimmte Aufgabe',
+    whatAreYouDoing: 'Was machst du gerade?',
     start: 'Start',
-    stop: 'Stop',
-    selectProjectAndCustomer: 'Select a project and customer to start time tracking',
-    noProjectsWarning: 'No projects in the system',
-    noProjectsMessage: 'To start tracking time, first create a client and project on the appropriate pages.',
-    timeLog: 'Time Entry Log',
-    currentMonth: 'Current Month',
-    addEntry: 'Add Entry',
-    addTimeRecord: 'Add Time Record',
-    generateReport: 'Generate Client Hours Report',
-    demoData: 'Demo Data',
-    client: 'Client',
-    project: 'Project',
+    stop: 'Stopp',
+    selectProjectAndCustomer: 'Waehle ein Projekt und einen Kunden zum Starten aus',
+    noProjectsWarning: 'Keine Projekte im System',
+    noProjectsMessage: 'Um die Zeiterfassung zu starten, erstelle zuerst Kunde und Projekt.',
+    timeLog: 'Zeiterfassungsprotokoll',
+    currentMonth: 'Aktueller Monat',
+    addEntry: 'Eintrag hinzufuegen',
+    addTimeRecord: 'Zeiteintrag hinzufuegen',
+    generateReport: 'Kundenstundenbericht erstellen',
+    demoData: 'Demo-Daten',
+    client: 'Kunde',
+    project: 'Projekt',
     startTime: 'Start',
-    endTime: 'End',
-    duration: 'Duration',
-    income: 'Income',
-    noEntries: 'No time entries found',
-    noEntriesSubtitle: 'Start tracking time to see entries here',
-    currentCost: 'Current Cost',
+    endTime: 'Ende',
+    duration: 'Dauer',
+    income: 'Einnahmen',
+    noEntries: 'Keine Zeiteintraege gefunden',
+    noEntriesSubtitle: 'Starte die Erfassung, um hier Eintraege zu sehen',
+    currentCost: 'Aktuelle Kosten',
+    today: 'Heute',
+    yesterday: 'Gestern',
+    last7Days: 'Letzte 7 Tage',
+    thisMonth: 'Dieser Monat',
+    lastMonth: 'Letzter Monat',
+    customRange: 'Benutzerdefinierter Zeitraum',
+    fromDate: 'Von',
+    toDate: 'Bis',
+    dateRange: 'Datumsbereich',
   },
-  'pt-BR': {
-    title: 'Timer',
-    subtitle: 'Start tracking your time on projects',
-    selectCustomer: 'Select Customer',
-    selectProject: 'Select Project',
-    selectTask: 'Select Task',
-    allCustomers: 'All Customers',
-    noSpecificTask: 'No specific task',
-    whatAreYouDoing: 'What are you doing now?',
-    start: 'Start',
-    stop: 'Stop',
-    selectProjectAndCustomer: 'Select a project and customer to start time tracking',
-    noProjectsWarning: 'No projects in the system',
-    noProjectsMessage: 'To start tracking time, first create a client and project on the appropriate pages.',
-    timeLog: 'Time Entry Log',
-    currentMonth: 'Current Month',
-    addEntry: 'Add Entry',
-    addTimeRecord: 'Add Time Record',
-    generateReport: 'Generate Client Hours Report',
-    demoData: 'Demo Data',
+  pt: {
+    title: 'Temporizador',
+    subtitle: 'Comece a registrar seu tempo nos projetos',
+    selectCustomer: 'Selecionar cliente',
+    selectProject: 'Selecionar projeto',
+    selectTask: 'Selecionar tarefa',
+    allCustomers: 'Todos os clientes',
+    noSpecificTask: 'Sem tarefa especifica',
+    whatAreYouDoing: 'O que voce esta fazendo agora?',
+    start: 'Iniciar',
+    stop: 'Parar',
+    selectProjectAndCustomer: 'Selecione um projeto e cliente para iniciar o registro',
+    noProjectsWarning: 'Nao ha projetos no sistema',
+    noProjectsMessage: 'Para comecar, crie primeiro um cliente e um projeto.',
+    timeLog: 'Registro de tempo',
+    currentMonth: 'Mes atual',
+    addEntry: 'Adicionar registro',
+    addTimeRecord: 'Adicionar registro de tempo',
+    generateReport: 'Gerar relatorio de horas por cliente',
+    demoData: 'Dados de demonstracao',
+    client: 'Cliente',
+    project: 'Projeto',
+    startTime: 'Inicio',
+    endTime: 'Fim',
+    duration: 'Duracao',
+    income: 'Receita',
+    noEntries: 'Nenhum registro de tempo encontrado',
+    noEntriesSubtitle: 'Comece a registrar tempo para ver entradas aqui',
+    currentCost: 'Custo atual',
+    today: 'Hoje',
+    yesterday: 'Ontem',
+    last7Days: 'Ultimos 7 dias',
+    thisMonth: 'Este mes',
+    lastMonth: 'Mes passado',
+    customRange: 'Intervalo personalizado',
+    fromDate: 'De',
+    toDate: 'Ate',
+    dateRange: 'Intervalo de datas',
+  },
+  fr: {
+    title: 'Minuteur',
+    subtitle: 'Commencez a suivre votre temps sur vos projets',
+    selectCustomer: 'Selectionner un client',
+    selectProject: 'Selectionner un projet',
+    selectTask: 'Selectionner une tache',
+    allCustomers: 'Tous les clients',
+    noSpecificTask: 'Aucune tache specifique',
+    whatAreYouDoing: 'Que faites-vous maintenant ?',
+    start: 'Demarrer',
+    stop: 'Arreter',
+    selectProjectAndCustomer: 'Selectionnez un projet et un client pour commencer',
+    noProjectsWarning: 'Aucun projet dans le systeme',
+    noProjectsMessage: 'Pour commencer, creez d abord un client et un projet.',
+    timeLog: 'Journal des saisies de temps',
+    currentMonth: 'Mois en cours',
+    addEntry: 'Ajouter une saisie',
+    addTimeRecord: 'Ajouter un enregistrement de temps',
+    generateReport: 'Generer un rapport d heures client',
+    demoData: 'Donnees de demonstration',
     client: 'Client',
-    project: 'Project',
-    startTime: 'Start',
-    endTime: 'End',
-    duration: 'Duration',
-    income: 'Income',
-    noEntries: 'No time entries found',
-    noEntriesSubtitle: 'Start tracking time to see entries here',
-    currentCost: 'Current Cost',
+    project: 'Projet',
+    startTime: 'Debut',
+    endTime: 'Fin',
+    duration: 'Duree',
+    income: 'Revenus',
+    noEntries: 'Aucune saisie de temps trouvee',
+    noEntriesSubtitle: 'Commencez le suivi pour voir les saisies ici',
+    currentCost: 'Cout actuel',
+    today: "Aujourd'hui",
+    yesterday: 'Hier',
+    last7Days: '7 derniers jours',
+    thisMonth: 'Ce mois-ci',
+    lastMonth: 'Mois dernier',
+    customRange: 'Plage personnalisee',
+    fromDate: 'De',
+    toDate: 'A',
+    dateRange: 'Plage de dates',
   },
 } as const;
 
@@ -185,6 +269,43 @@ function formatCurrency(amount: number, userCurrency: Currency, locale: Locale):
   return formatCurrencyUtil(amount, userCurrency, locale);
 }
 
+function formatLiveCurrentCost(amount: number, userCurrency: Currency): string {
+  const formattedAmount = amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const symbol = getCurrencySymbol(userCurrency);
+  return userCurrency === 'ILS' ? `${formattedAmount} ${symbol}` : `${symbol}${formattedAmount}`;
+}
+
+function getIntlLocale(locale: Locale): string {
+  const localeMap: Record<Locale, string> = {
+    en: 'en-US',
+    he: 'he-IL',
+    es: 'es-ES',
+    de: 'de-DE',
+    pt: 'pt-PT',
+    fr: 'fr-FR',
+  };
+
+  return localeMap[locale] ?? 'en-US';
+}
+
+function formatMonthYear(date: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+
+function formatShortDate(date: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(getIntlLocale(locale), {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
 function getHourlyRate(customer: Customer): number {
   if (customer.billingModel === 'hourly' && customer.hoursPerMonth > 0) {
     return customer.monthlyRetainer / customer.hoursPerMonth;
@@ -200,13 +321,17 @@ export default function Timer() {
   const locale: Locale = state.locale ?? 'en';
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [description, setDescription] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState<string>('current');
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'yesterday' | 'last7Days' | 'thisMonth' | 'lastMonth' | 'custom'>('thisMonth');
+  const [customRange, setCustomRange] = useState({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
@@ -267,33 +392,43 @@ export default function Timer() {
     }
   }, [description, isRunning, activeTimer]);
 
-  // Filter time entries by month
-  const filteredTimeEntries = useMemo(() => {
-    let entries = state.timeEntries;
-    
-    if (selectedMonth === 'current') {
-      const now = new Date();
-      entries = entries.filter(entry => {
-        const entryDate = new Date(entry.startTime);
-        return entryDate.getMonth() === now.getMonth() && 
-               entryDate.getFullYear() === now.getFullYear();
-      });
-    } else if (selectedMonth && selectedMonth !== 'current') {
-      // Handle format: "month-year" (e.g., "11-2024")
-      const [month, year] = selectedMonth.split('-').map(Number);
-      if (!isNaN(month) && !isNaN(year)) {
-        entries = entries.filter(entry => {
-          const entryDate = new Date(entry.startTime);
-          return entryDate.getMonth() === month && 
-                 entryDate.getFullYear() === year;
-        });
+  const { rangeStart, rangeEnd } = useMemo(() => {
+    const now = new Date();
+    switch (selectedPeriod) {
+      case 'today':
+        return { rangeStart: startOfDay(now), rangeEnd: endOfDay(now) };
+      case 'yesterday': {
+        const yesterday = subDays(now, 1);
+        return { rangeStart: startOfDay(yesterday), rangeEnd: endOfDay(yesterday) };
       }
+      case 'last7Days':
+        return { rangeStart: startOfDay(subDays(now, 6)), rangeEnd: endOfDay(now) };
+      case 'lastMonth': {
+        const lastMonthDate = subMonths(now, 1);
+        return {
+          rangeStart: startOfMonth(lastMonthDate),
+          rangeEnd: endOfMonth(lastMonthDate),
+        };
+      }
+      case 'custom':
+        return { rangeStart: startOfDay(customRange.from), rangeEnd: endOfDay(customRange.to) };
+      case 'thisMonth':
+      default:
+        return { rangeStart: startOfMonth(now), rangeEnd: endOfMonth(now) };
     }
-    
-    return entries.sort((a, b) => 
+  }, [selectedPeriod, customRange.from, customRange.to]);
+
+  // Filter time entries by date range
+  const filteredTimeEntries = useMemo(() => {
+    return state.timeEntries
+      .filter(entry => {
+        const entryDate = new Date(entry.startTime);
+        return entryDate >= rangeStart && entryDate <= rangeEnd;
+      })
+      .sort((a, b) =>
       new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     );
-  }, [state.timeEntries, selectedMonth]);
+  }, [state.timeEntries, rangeStart, rangeEnd]);
 
   const handleStart = () => {
     if (!selectedCustomerId || !selectedProjectId) {
@@ -524,27 +659,35 @@ export default function Timer() {
   const alignStart = isRTL ? 'text-right' : 'text-left';
   const flexDirection = isRTL ? 'flex-row-reverse' : '';
 
-  // Get month options
-  const monthOptions = useMemo(() => {
-    const options: { value: string; label: string }[] = [
-      { value: 'current', label: t.currentMonth },
-    ];
-    
+  const selectedPeriodDisplay = useMemo(() => {
     const now = new Date();
-    for (let i = 1; i <= 6; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = format(date, locale === 'he' ? 'MMMM yyyy' : 'MMMM yyyy');
-      options.push({ value: `${date.getMonth()}-${date.getFullYear()}`, label });
+    switch (selectedPeriod) {
+      case 'today':
+        return `${t.today} (${formatShortDate(now, locale)})`;
+      case 'yesterday': {
+        const yesterday = subDays(now, 1);
+        return `${t.yesterday} (${formatShortDate(yesterday, locale)})`;
+      }
+      case 'last7Days':
+        return `${t.last7Days} (${formatShortDate(subDays(now, 6), locale)} - ${formatShortDate(now, locale)})`;
+      case 'thisMonth':
+        return `${t.thisMonth} (${formatMonthYear(now, locale)})`;
+      case 'lastMonth': {
+        const lastMonthDate = subMonths(now, 1);
+        return `${t.lastMonth} (${formatMonthYear(lastMonthDate, locale)})`;
+      }
+      case 'custom':
+        return `${t.customRange} (${formatShortDate(customRange.from, locale)} - ${formatShortDate(customRange.to, locale)})`;
+      default:
+        return t.thisMonth;
     }
-    
-    return options;
-  }, [locale, t.currentMonth]);
+  }, [selectedPeriod, customRange.from, customRange.to, locale, t.today, t.yesterday, t.last7Days, t.thisMonth, t.lastMonth, t.customRange]);
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="space-y-6">
       {/* Header */}
       <div className={`mb-8 ${alignStart}`}>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
           {t.title}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
@@ -792,7 +935,7 @@ export default function Timer() {
               
               {(isRunning || isPaused) && (
                 <div className="text-2xl font-bold text-gray-700 dark:text-gray-300">
-                  {formatCurrency(currentCost, currency, locale)}
+                  {formatLiveCurrentCost(currentCost, currency)}
                 </div>
               )}
             </div>
@@ -881,23 +1024,54 @@ export default function Timer() {
           <div className={`flex items-center gap-2 ${flexDirection}`}>
             <Clock size={20} className="text-gray-600 dark:text-gray-400" />
             <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
-              {t.timeLog} - {format(new Date(), locale === 'he' ? 'MMMM yyyy' : 'MMMM yyyy')}
+              {t.timeLog} - {selectedPeriodDisplay}
             </h2>
           </div>
           <div className={`flex items-center gap-2 ${flexDirection}`}>
             <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value as typeof selectedPeriod)}
               className={`w-full md:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} text-sm`}
             >
-              {monthOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              <option value="today">{t.today}</option>
+              <option value="yesterday">{t.yesterday}</option>
+              <option value="last7Days">{t.last7Days}</option>
+              <option value="thisMonth">{t.thisMonth}</option>
+              <option value="lastMonth">{t.lastMonth}</option>
+              <option value="custom">{t.customRange}</option>
             </select>
           </div>
         </div>
+
+        {selectedPeriod === 'custom' && (
+          <div className={`flex flex-col md:flex-row md:items-center gap-3 mb-6 ${flexDirection}`}>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.dateRange}:</span>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">{t.fromDate}</label>
+              <input
+                type="date"
+                value={format(customRange.from, 'yyyy-MM-dd')}
+                onChange={(e) => {
+                  const date = e.target.value ? new Date(e.target.value) : startOfMonth(new Date());
+                  setCustomRange(prev => ({ ...prev, from: date }));
+                }}
+                className={`px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} text-sm`}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">{t.toDate}</label>
+              <input
+                type="date"
+                value={format(customRange.to, 'yyyy-MM-dd')}
+                onChange={(e) => {
+                  const date = e.target.value ? new Date(e.target.value) : endOfMonth(new Date());
+                  setCustomRange(prev => ({ ...prev, to: date }));
+                }}
+                className={`px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${alignStart} text-sm`}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className={`flex flex-col sm:flex-row gap-3 mb-6 ${isRTL ? 'sm:flex-row-reverse sm:justify-end' : ''}`}>

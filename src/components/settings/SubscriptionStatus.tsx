@@ -250,7 +250,7 @@ const translations: Record<Locale, {
     currentPlan: 'Current Plan',
     planStatus: 'Status',
   },
-  'pt-BR': {
+  pt: {
     subscriptionStatus: 'Subscription Status',
     trialPeriod: 'Trial Period',
     activeSubscription: 'Active Subscription',
@@ -337,7 +337,7 @@ export function SubscriptionStatus() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);

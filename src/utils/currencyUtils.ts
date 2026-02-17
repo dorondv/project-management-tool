@@ -7,16 +7,12 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
 };
 
 export const CURRENCY_NAMES: Record<Locale, Record<Currency, string>> = {
-  en: {
-    ILS: 'Israeli Shekel (₪)',
-    USD: 'US Dollar ($)',
-    EUR: 'Euro (€)',
-  },
-  he: {
-    ILS: 'שקל ישראלי (₪)',
-    USD: 'דולר אמריקאי ($)',
-    EUR: 'אירו (€)',
-  },
+  en: { ILS: 'Israeli Shekel (₪)', USD: 'US Dollar ($)', EUR: 'Euro (€)' },
+  he: { ILS: 'שקל ישראלי (₪)', USD: 'דולר אמריקאי ($)', EUR: 'אירו (€)' },
+  es: { ILS: 'Nuevo séquel (₪)', USD: 'Dólar estadounidense ($)', EUR: 'Euro (€)' },
+  de: { ILS: 'Israelischer Schekel (₪)', USD: 'US-Dollar ($)', EUR: 'Euro (€)' },
+  pt: { ILS: 'Novo shekel (₪)', USD: 'Dólar americano ($)', EUR: 'Euro (€)' },
+  fr: { ILS: 'Nouveau shekel (₪)', USD: 'Dollar américain ($)', EUR: 'Euro (€)' },
 };
 
 export function getCurrencySymbol(currency: Currency): string {
@@ -26,10 +22,12 @@ export function getCurrencySymbol(currency: Currency): string {
 const getIntlLocale = (locale: Locale, currency: Currency): string => {
   switch (locale) {
     case 'he': return 'he-IL';
+    case 'es': return 'es-ES';
+    case 'de': return 'de-DE';
+    case 'pt': return 'pt-PT';
+    case 'fr': return 'fr-FR';
     default:
       if (currency === 'ILS') return 'en-IL';
-      if (currency === 'USD') return 'en-US';
-      if (currency === 'EUR') return 'en-US';
       return 'en-US';
   }
 };

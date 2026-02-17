@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bell, Check, RefreshCw } from 'lucide-react';
+import { Bell, Check, RefreshCw, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -26,6 +26,10 @@ const translations: Record<Locale, {
   newBadge: string;
   markAsReadToast: string;
   markAllReadToast: string;
+  delete: string;
+  deleteConfirm: string;
+  deleteSuccess: string;
+  deleteError: string;
 }> = {
   en: {
     pageTitle: 'Notifications',
@@ -44,6 +48,10 @@ const translations: Record<Locale, {
     newBadge: 'New',
     markAsReadToast: 'Notification marked as read',
     markAllReadToast: 'All notifications marked as read',
+    delete: 'Delete',
+    deleteConfirm: 'Are you sure you want to delete this notification?',
+    deleteSuccess: 'Notification deleted',
+    deleteError: 'Failed to delete notification',
   },
   he: {
     pageTitle: 'התראות',
@@ -62,60 +70,98 @@ const translations: Record<Locale, {
     newBadge: 'חדש',
     markAsReadToast: 'התראה סומנה כנקראה',
     markAllReadToast: 'כל ההתראות סומנו כנקראו',
+    delete: 'מחיקה',
+    deleteConfirm: 'האם אתה בטוח שברצונך למחוק התראה זו?',
+    deleteSuccess: 'ההתראה נמחקה',
+    deleteError: 'מחיקת ההתראה נכשלה',
   },
   es: {
-    pageTitle: 'Notifications',
-    pageSubtitle: 'Stay updated with your project activities',
-    markAllRead: 'Mark All Read',
-    refresh: 'Refresh',
-    refreshing: 'Refreshing...',
-    refreshSuccess: 'Notifications refreshed',
-    refreshError: 'Failed to refresh notifications',
+    pageTitle: 'Notificaciones',
+    pageSubtitle: 'Mantente al dia con la actividad de tus proyectos',
+    markAllRead: 'Marcar todo como leido',
+    refresh: 'Actualizar',
+    refreshing: 'Actualizando...',
+    refreshSuccess: 'Notificaciones actualizadas',
+    refreshError: 'Error al actualizar notificaciones',
     total: 'Total',
-    unread: 'Unread',
-    read: 'Read',
-    recentNotifications: 'Recent Notifications',
-    emptyTitle: 'No notifications yet',
-    emptySubtitle: "You'll see notifications here when there's activity on your projects",
-    newBadge: 'New',
-    markAsReadToast: 'Notification marked as read',
-    markAllReadToast: 'All notifications marked as read',
+    unread: 'No leidas',
+    read: 'Leidas',
+    recentNotifications: 'Notificaciones recientes',
+    emptyTitle: 'Aun no hay notificaciones',
+    emptySubtitle: 'Veras notificaciones aqui cuando haya actividad en tus proyectos',
+    newBadge: 'Nuevo',
+    markAsReadToast: 'Notificacion marcada como leida',
+    markAllReadToast: 'Todas las notificaciones marcadas como leidas',
+    delete: 'Eliminar',
+    deleteConfirm: 'Seguro que quieres eliminar esta notificacion?',
+    deleteSuccess: 'Notificacion eliminada',
+    deleteError: 'No se pudo eliminar la notificacion',
   },
   de: {
-    pageTitle: 'Notifications',
-    pageSubtitle: 'Stay updated with your project activities',
-    markAllRead: 'Mark All Read',
-    refresh: 'Refresh',
-    refreshing: 'Refreshing...',
-    refreshSuccess: 'Notifications refreshed',
-    refreshError: 'Failed to refresh notifications',
-    total: 'Total',
-    unread: 'Unread',
-    read: 'Read',
-    recentNotifications: 'Recent Notifications',
-    emptyTitle: 'No notifications yet',
-    emptySubtitle: "You'll see notifications here when there's activity on your projects",
-    newBadge: 'New',
-    markAsReadToast: 'Notification marked as read',
-    markAllReadToast: 'All notifications marked as read',
+    pageTitle: 'Benachrichtigungen',
+    pageSubtitle: 'Bleib ueber Projektaktivitaeten auf dem Laufenden',
+    markAllRead: 'Alle als gelesen markieren',
+    refresh: 'Aktualisieren',
+    refreshing: 'Wird aktualisiert...',
+    refreshSuccess: 'Benachrichtigungen aktualisiert',
+    refreshError: 'Aktualisierung fehlgeschlagen',
+    total: 'Gesamt',
+    unread: 'Ungelesen',
+    read: 'Gelesen',
+    recentNotifications: 'Letzte Benachrichtigungen',
+    emptyTitle: 'Noch keine Benachrichtigungen',
+    emptySubtitle: 'Hier erscheinen Benachrichtigungen bei Aktivitaeten in deinen Projekten',
+    newBadge: 'Neu',
+    markAsReadToast: 'Benachrichtigung als gelesen markiert',
+    markAllReadToast: 'Alle Benachrichtigungen als gelesen markiert',
+    delete: 'Loeschen',
+    deleteConfirm: 'Moechtest du diese Benachrichtigung wirklich loeschen?',
+    deleteSuccess: 'Benachrichtigung geloescht',
+    deleteError: 'Benachrichtigung konnte nicht geloescht werden',
   },
-  'pt-BR': {
-    pageTitle: 'Notifications',
-    pageSubtitle: 'Stay updated with your project activities',
-    markAllRead: 'Mark All Read',
-    refresh: 'Refresh',
-    refreshing: 'Refreshing...',
-    refreshSuccess: 'Notifications refreshed',
-    refreshError: 'Failed to refresh notifications',
+  pt: {
+    pageTitle: 'Notificacoes',
+    pageSubtitle: 'Fique por dentro das atividades dos seus projetos',
+    markAllRead: 'Marcar tudo como lido',
+    refresh: 'Atualizar',
+    refreshing: 'Atualizando...',
+    refreshSuccess: 'Notificacoes atualizadas',
+    refreshError: 'Falha ao atualizar notificacoes',
     total: 'Total',
-    unread: 'Unread',
-    read: 'Read',
-    recentNotifications: 'Recent Notifications',
-    emptyTitle: 'No notifications yet',
-    emptySubtitle: "You'll see notifications here when there's activity on your projects",
-    newBadge: 'New',
-    markAsReadToast: 'Notification marked as read',
-    markAllReadToast: 'All notifications marked as read',
+    unread: 'Nao lidas',
+    read: 'Lidas',
+    recentNotifications: 'Notificacoes recentes',
+    emptyTitle: 'Ainda nao ha notificacoes',
+    emptySubtitle: 'Voce vera notificacoes aqui quando houver atividade nos seus projetos',
+    newBadge: 'Novo',
+    markAsReadToast: 'Notificacao marcada como lida',
+    markAllReadToast: 'Todas as notificacoes marcadas como lidas',
+    delete: 'Excluir',
+    deleteConfirm: 'Tem certeza de que deseja excluir esta notificacao?',
+    deleteSuccess: 'Notificacao excluida',
+    deleteError: 'Falha ao excluir notificacao',
+  },
+  fr: {
+    pageTitle: 'Notifications',
+    pageSubtitle: 'Restez informe des activites de vos projets',
+    markAllRead: 'Tout marquer comme lu',
+    refresh: 'Actualiser',
+    refreshing: 'Actualisation...',
+    refreshSuccess: 'Notifications actualisees',
+    refreshError: 'Echec de l actualisation des notifications',
+    total: 'Total',
+    unread: 'Non lues',
+    read: 'Lues',
+    recentNotifications: 'Notifications recentes',
+    emptyTitle: 'Aucune notification pour le moment',
+    emptySubtitle: 'Vous verrez ici les notifications quand il y aura de l activite',
+    newBadge: 'Nouveau',
+    markAsReadToast: 'Notification marquee comme lue',
+    markAllReadToast: 'Toutes les notifications marquees comme lues',
+    delete: 'Supprimer',
+    deleteConfirm: 'Voulez-vous vraiment supprimer cette notification ?',
+    deleteSuccess: 'Notification supprimee',
+    deleteError: 'Echec de la suppression de la notification',
   },
 };
 
@@ -123,7 +169,7 @@ export default function Notifications() {
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -157,6 +203,19 @@ export default function Notifications() {
         dispatch({ type: 'MARK_NOTIFICATION_READ', payload: n.id });
       });
     toast.success(t.markAllReadToast);
+  };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    if (!window.confirm(t.deleteConfirm)) return;
+    try {
+      await api.notifications.delete(notificationId);
+      const nextNotifications = state.notifications.filter(n => n.id !== notificationId);
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: nextNotifications });
+      toast.success(t.deleteSuccess);
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      toast.error(t.deleteError);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -255,9 +314,9 @@ export default function Notifications() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className={`flex items-center ${isRTL ? 'gap-4' : 'space-x-3'}`}>
               <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <p className={`text-sm font-medium text-gray-600 dark:text-gray-400 ${isRTL ? 'text-right' : 'text-left'}`}>{t.total}</p>
@@ -270,9 +329,9 @@ export default function Notifications() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className={`flex items-center ${isRTL ? 'gap-4' : 'space-x-3'}`}>
               <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
-                <Bell className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <Bell className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
                 <p className={`text-sm font-medium text-gray-600 dark:text-gray-400 ${isRTL ? 'text-right' : 'text-left'}`}>{t.unread}</p>
@@ -285,9 +344,9 @@ export default function Notifications() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className={`flex items-center ${isRTL ? 'gap-4' : 'space-x-3'}`}>
               <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <p className={`text-sm font-medium text-gray-600 dark:text-gray-400 ${isRTL ? 'text-right' : 'text-left'}`}>{t.read}</p>
@@ -349,6 +408,13 @@ export default function Notifications() {
                         {t.newBadge}
                       </Badge>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteNotification(notification.id)}
+                      icon={<Trash2 size={16} />}
+                      className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    />
                     <Button
                       variant="ghost"
                       size="sm"

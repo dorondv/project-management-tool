@@ -341,6 +341,7 @@ export function checkSubscriptionAccess(subscription: {
   status: string;
   endDate: Date | null;
   paypalSubscriptionId: string | null;
+  isFreeAccess?: boolean;
 }): {
   hasFullAccess: boolean;
   canAccessSettings: boolean;
@@ -358,6 +359,17 @@ export function checkSubscriptionAccess(subscription: {
       canAccessPricing: true,
       expirationDate: null,
       status: 'none',
+    };
+  }
+
+  // Admin-granted free access - always full access (highest priority)
+  if (subscription.isFreeAccess) {
+    return {
+      hasFullAccess: true,
+      canAccessSettings: true,
+      canAccessPricing: true,
+      expirationDate: subscription.endDate,
+      status: 'active',
     };
   }
 

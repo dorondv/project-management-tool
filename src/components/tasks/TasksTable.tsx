@@ -105,101 +105,134 @@ const translations: Record<Locale, {
   },
   es: {
     columns: {
-      task: 'Task',
-      status: 'Status',
-      priority: 'Priority',
-      dueDate: 'Due Date',
-      project: 'Project',
-      client: 'Client',
-      actions: 'Actions',
+      task: 'Tarea',
+      status: 'Estado',
+      priority: 'Prioridad',
+      dueDate: 'Fecha limite',
+      project: 'Proyecto',
+      client: 'Cliente',
+      actions: 'Acciones',
     },
     statuses: {
-      todo: 'To Do',
-      'in-progress': 'In Progress',
-      completed: 'Completed',
+      todo: 'Por hacer',
+      'in-progress': 'En progreso',
+      completed: 'Completada',
     },
     priorities: {
-      high: 'High',
-      medium: 'Medium',
-      low: 'Low',
+      high: 'Alta',
+      medium: 'Media',
+      low: 'Baja',
     },
-    overdue: 'Overdue',
+    overdue: 'Atrasada',
     noDate: '-',
-    noTasks: 'No tasks to display',
-    noCustomer: 'No customer',
-    edit: 'Edit',
-    delete: 'Delete',
+    noTasks: 'No hay tareas para mostrar',
+    noCustomer: 'Sin cliente',
+    edit: 'Editar',
+    delete: 'Eliminar',
     customerStatuses: {
-      active: 'Active',
-      trial: 'Trial',
-      paused: 'Paused',
-      churned: 'Churned',
+      active: 'Activo',
+      trial: 'Prueba',
+      paused: 'Pausado',
+      churned: 'Baja',
     },
   },
   de: {
     columns: {
-      task: 'Task',
+      task: 'Aufgabe',
       status: 'Status',
-      priority: 'Priority',
-      dueDate: 'Due Date',
-      project: 'Project',
-      client: 'Client',
-      actions: 'Actions',
+      priority: 'Prioritaet',
+      dueDate: 'Faelligkeit',
+      project: 'Projekt',
+      client: 'Kunde',
+      actions: 'Aktionen',
     },
     statuses: {
-      todo: 'To Do',
-      'in-progress': 'In Progress',
-      completed: 'Completed',
+      todo: 'Zu erledigen',
+      'in-progress': 'In Bearbeitung',
+      completed: 'Abgeschlossen',
     },
     priorities: {
-      high: 'High',
-      medium: 'Medium',
-      low: 'Low',
+      high: 'Hoch',
+      medium: 'Mittel',
+      low: 'Niedrig',
     },
-    overdue: 'Overdue',
+    overdue: 'Ueberfaellig',
     noDate: '-',
-    noTasks: 'No tasks to display',
-    noCustomer: 'No customer',
-    edit: 'Edit',
-    delete: 'Delete',
+    noTasks: 'Keine Aufgaben zum Anzeigen',
+    noCustomer: 'Kein Kunde',
+    edit: 'Bearbeiten',
+    delete: 'Loeschen',
     customerStatuses: {
-      active: 'Active',
-      trial: 'Trial',
-      paused: 'Paused',
-      churned: 'Churned',
+      active: 'Aktiv',
+      trial: 'Test',
+      paused: 'Pausiert',
+      churned: 'Gekuendigt',
     },
   },
-  'pt-BR': {
+  pt: {
     columns: {
-      task: 'Task',
+      task: 'Tarefa',
       status: 'Status',
-      priority: 'Priority',
-      dueDate: 'Due Date',
-      project: 'Project',
+      priority: 'Prioridade',
+      dueDate: 'Data limite',
+      project: 'Projeto',
+      client: 'Cliente',
+      actions: 'Acoes',
+    },
+    statuses: {
+      todo: 'A fazer',
+      'in-progress': 'Em andamento',
+      completed: 'Concluida',
+    },
+    priorities: {
+      high: 'Alta',
+      medium: 'Media',
+      low: 'Baixa',
+    },
+    overdue: 'Atrasada',
+    noDate: '-',
+    noTasks: 'Nenhuma tarefa para exibir',
+    noCustomer: 'Sem cliente',
+    edit: 'Editar',
+    delete: 'Excluir',
+    customerStatuses: {
+      active: 'Ativo',
+      trial: 'Teste',
+      paused: 'Pausado',
+      churned: 'Encerrado',
+    },
+  },
+  fr: {
+    columns: {
+      task: 'Tache',
+      status: 'Statut',
+      priority: 'Priorite',
+      dueDate: 'Date limite',
+      project: 'Projet',
       client: 'Client',
       actions: 'Actions',
     },
     statuses: {
-      todo: 'To Do',
-      'in-progress': 'In Progress',
-      completed: 'Completed',
+      todo: 'A faire',
+      'in-progress': 'En cours',
+      completed: 'Terminee',
     },
     priorities: {
-      high: 'High',
-      medium: 'Medium',
-      low: 'Low',
+      high: 'Haute',
+      medium: 'Moyenne',
+      low: 'Basse',
     },
-    overdue: 'Overdue',
+    overdue: 'En retard',
     noDate: '-',
-    noTasks: 'No tasks to display',
-    noCustomer: 'No customer',
-    edit: 'Edit',
-    delete: 'Delete',
+    noTasks: 'Aucune tache a afficher',
+    noCustomer: 'Aucun client',
+    edit: 'Modifier',
+    delete: 'Supprimer',
     customerStatuses: {
-      active: 'Active',
-      trial: 'Trial',
-      paused: 'Paused',
-      churned: 'Churned',
+      active: 'Actif',
+      trial: 'Essai',
+      paused: 'En pause',
+      churned: 'Resilie',
     },
   },
 };
@@ -220,7 +253,7 @@ const StatusBadge = ({ status, onStatusChange, taskId, locale }: {
   taskId: string;
   locale: Locale;
 }) => {
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const [isOpen, setIsOpen] = useState(false);
 
   const getStatusConfig = (status: Task['status']) => {
@@ -316,7 +349,7 @@ const StatusBadge = ({ status, onStatusChange, taskId, locale }: {
 };
 
 const PriorityBadge = ({ priority, locale }: { priority: Task['priority']; locale: Locale }) => {
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   
   const getPriorityConfig = (priority: Task['priority']) => {
     switch(priority) {
@@ -486,7 +519,7 @@ function TaskRow({ task, overdue, locale, isRTL, t, getProjectName, getCustomerF
 
 export function TasksTable({ tasks, projects, customers, onStatusChange, onEdit, onDelete, locale = 'en' }: TasksTableProps) {
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const getProjectName = (projectId: string) => {
     const project = projects.find(p => p.id === projectId);

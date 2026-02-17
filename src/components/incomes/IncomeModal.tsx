@@ -86,7 +86,7 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
   const locale: Locale = state.locale ?? 'en';
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const isEditing = !!income;
 
   const [formData, setFormData] = useState({
