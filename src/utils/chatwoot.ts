@@ -37,6 +37,42 @@ class ChatwootService {
   private isInitialized = false;
   private isSDKLoading = false;
   private currentUser: ChatwootUser | null = null;
+  private readonly positionStorageKey = 'chatwoot-position';
+  private readonly hiddenStorageKey = 'chatwoot-hidden';
+
+  private getStoredPosition(): 'left' | 'right' {
+    if (typeof window === 'undefined') {
+      return 'right';
+    }
+
+    const stored = window.localStorage.getItem(this.positionStorageKey);
+    return stored === 'left' ? 'left' : 'right';
+  }
+
+  private getStoredHidden(): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.localStorage.getItem(this.hiddenStorageKey) === 'true';
+  }
+
+  private applyWidgetPosition(position: 'left' | 'right'): void {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-chatwoot-position', position);
+    }
+
+    window.chatwootSettings = {
+      ...(window.chatwootSettings || {}),
+      position,
+    };
+  }
+
+  private applyWidgetVisibility(hidden: boolean): void {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-chatwoot-hidden', hidden ? 'true' : 'false');
+    }
+  }
 
   /**
    * Load Chatwoot SDK script dynamically
@@ -70,13 +106,17 @@ class ChatwootService {
       this.isSDKLoading = true;
 
       // Set widget settings before loading SDK
+      const preferredPosition = this.getStoredPosition();
+
       window.chatwootSettings = {
         hideMessageBubble: false,
-        position: 'right',
+        position: preferredPosition,
         locale: 'en',
         type: 'standard',
         launcherTitle: 'Chat with us'
       };
+      this.applyWidgetPosition(preferredPosition);
+      this.applyWidgetVisibility(this.getStoredHidden());
 
       // Get Chatwoot configuration from environment variables
       const websiteToken = import.meta.env.VITE_CHATWOOT_WEBSITE_TOKEN || '';
@@ -122,6 +162,8 @@ class ChatwootService {
               window.addEventListener('chatwoot:ready', () => {
                 clearInterval(checkAPI);
                 this.isSDKLoading = false;
+                this.applyWidgetPosition(this.getStoredPosition());
+                this.applyWidgetVisibility(this.getStoredHidden());
                 console.log('✅ Chatwoot widget ready event received');
                 resolve();
               }, { once: true });
@@ -178,6 +220,9 @@ class ChatwootService {
       return;
     }
 
+    this.applyWidgetPosition(this.getStoredPosition());
+    this.applyWidgetVisibility(this.getStoredHidden());
+
     // If already initialized, return
     if (window.$chatwoot) {
       this.isInitialized = true;
@@ -193,6 +238,44 @@ class ChatwootService {
       .catch((error) => {
         console.error('❌ Failed to initialize Chatwoot widget:', error);
       });
+  }
+
+  setPosition(position: 'left' | 'right'): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(this.positionStorageKey, position);
+    this.applyWidgetPosition(position);
+  }
+
+  getPosition(): 'left' | 'right' {
+    return this.getStoredPosition();
+  }
+
+  togglePosition(): 'left' | 'right' {
+    const next = this.getStoredPosition() === 'right' ? 'left' : 'right';
+    this.setPosition(next);
+    return next;
+  }
+
+  setHidden(hidden: boolean): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(this.hiddenStorageKey, hidden ? 'true' : 'false');
+    this.applyWidgetVisibility(hidden);
+  }
+
+  isHidden(): boolean {
+    return this.getStoredHidden();
+  }
+
+  toggleHidden(): boolean {
+    const next = !this.getStoredHidden();
+    this.setHidden(next);
+    return next;
   }
 
   /**

@@ -37,6 +37,10 @@ const statusLabels: Record<Locale, Record<CustomerStatus, string>> = {
     paused: 'מושהה',
     churned: 'בוטל',
   },
+  es: { active: 'Activo', trial: 'Prueba', paused: 'Pausado', churned: 'Baja' },
+  de: { active: 'Aktiv', trial: 'Test', paused: 'Pausiert', churned: 'Gekuendigt' },
+  pt: { active: 'Ativo', trial: 'Teste', paused: 'Pausado', churned: 'Encerrado' },
+  fr: { active: 'Actif', trial: 'Essai', paused: 'En pause', churned: 'Resilie' },
 };
 
 const paymentMethodLabels: Record<Locale, Record<PaymentMethod, string>> = {
@@ -52,6 +56,10 @@ const paymentMethodLabels: Record<Locale, Record<PaymentMethod, string>> = {
     'direct-debit': 'הוראת קבע',
     cash: 'מזומן',
   },
+  es: { 'bank-transfer': 'Transferencia bancaria', 'credit-card': 'Tarjeta de credito', 'direct-debit': 'Debito directo', cash: 'Efectivo' },
+  de: { 'bank-transfer': 'Bankueberweisung', 'credit-card': 'Kreditkarte', 'direct-debit': 'Lastschrift', cash: 'Bar' },
+  pt: { 'bank-transfer': 'Transferencia bancaria', 'credit-card': 'Cartao de credito', 'direct-debit': 'Debito direto', cash: 'Dinheiro' },
+  fr: { 'bank-transfer': 'Virement bancaire', 'credit-card': 'Carte de credit', 'direct-debit': 'Prelevement automatique', cash: 'Especes' },
 };
 
 const billingModelLabels: Record<Locale, Record<BillingModel, string>> = {
@@ -65,6 +73,10 @@ const billingModelLabels: Record<Locale, Record<BillingModel, string>> = {
     hourly: 'שעתי',
     project: 'פרויקטלי',
   },
+  es: { retainer: 'Retenedor', hourly: 'Por hora', project: 'Por proyecto' },
+  de: { retainer: 'Retainer', hourly: 'Stundenbasiert', project: 'Projektbasiert' },
+  pt: { retainer: 'Retainer', hourly: 'Por hora', project: 'Por projeto' },
+  fr: { retainer: 'Forfait', hourly: 'Horaire', project: 'Par projet' },
 };
 
 const billingCycleLabels: Record<Locale, Record<PaymentFrequency, string>> = {
@@ -78,19 +90,19 @@ const billingCycleLabels: Record<Locale, Record<PaymentFrequency, string>> = {
     quarterly: 'רבעוני',
     annual: 'שנתי',
   },
+  es: { monthly: 'Mensual', quarterly: 'Trimestral', annual: 'Anual' },
+  de: { monthly: 'Monatlich', quarterly: 'Vierteljaehrlich', annual: 'Jaehrlich' },
+  pt: { monthly: 'Mensal', quarterly: 'Trimestral', annual: 'Anual' },
+  fr: { monthly: 'Mensuel', quarterly: 'Trimestriel', annual: 'Annuel' },
 };
 
 const statusFilterLabels: Record<Locale, Record<StatusFilter, string>> = {
-  en: {
-    all: 'All statuses',
-    active: 'Active',
-    inactive: 'Inactive',
-  },
-  he: {
-    all: 'כל הסטטוסים',
-    active: 'פעיל',
-    inactive: 'לא פעיל',
-  },
+  en: { all: 'All statuses', active: 'Active', inactive: 'Inactive' },
+  he: { all: 'כל הסטטוסים', active: 'פעיל', inactive: 'לא פעיל' },
+  es: { all: 'Todos los estados', active: 'Activo', inactive: 'Inactivo' },
+  de: { all: 'Alle Status', active: 'Aktiv', inactive: 'Inaktiv' },
+  pt: { all: 'Todos os status', active: 'Ativo', inactive: 'Inativo' },
+  fr: { all: 'Tous les statuts', active: 'Actif', inactive: 'Inactif' },
 };
 
 const statusFilterOrder: StatusFilter[] = ['all', 'active', 'inactive'];
@@ -243,147 +255,195 @@ const translations: Record<
     },
   },
   es: {
-    pageTitle: 'Customers',
-    pageSubtitle: 'All of your customers in one place',
-    newCustomer: 'New Customer',
+    pageTitle: 'Clientes',
+    pageSubtitle: 'Todos tus clientes en un solo lugar',
+    newCustomer: 'Nuevo cliente',
     metrics: {
-      totalCustomers: 'Total Customers',
-      activeCustomers: 'Active Customers',
-      monthlyRecurring: 'Monthly Revenue',
+      totalCustomers: 'Total de clientes',
+      activeCustomers: 'Clientes activos',
+      monthlyRecurring: 'Ingresos mensuales',
     },
     filters: {
-      searchPlaceholder: 'Search customer by name, tax ID, or email',
+      searchPlaceholder: 'Buscar cliente por nombre, NIF o correo',
     },
     table: {
-      customerName: 'Customer Name',
-      status: 'Status',
-      joinDate: 'Join Date',
-      tenure: 'Tenure (months)',
-      customerScore: 'Customer Score',
-      taxId: 'Tax ID / VAT',
-      country: 'Country',
-      paymentMethod: 'Payment Method',
-      billingModel: 'Billing Model',
-      billingCycle: 'Billing Cycle',
-      annualFee: 'Annual Fee',
-      monthlyRetainer: 'Retainer/Hourly',
-      hourlyRate: 'Hourly Rate',
-      hoursPerMonth: 'Hours / Month',
-      referralSource: 'Lead Source',
-      details: 'Details',
-      delete: 'Delete',
-      noResults: 'No matching customers found',
+      customerName: 'Nombre del cliente',
+      status: 'Estado',
+      joinDate: 'Fecha de alta',
+      tenure: 'Antiguedad (meses)',
+      customerScore: 'Puntuacion del cliente',
+      taxId: 'NIF / IVA',
+      country: 'Pais',
+      paymentMethod: 'Metodo de pago',
+      billingModel: 'Modelo de cobro',
+      billingCycle: 'Ciclo de cobro',
+      annualFee: 'Tarifa anual',
+      monthlyRetainer: 'Retenedor/Hora',
+      hourlyRate: 'Tarifa por hora',
+      hoursPerMonth: 'Horas / mes',
+      referralSource: 'Origen del lead',
+      details: 'Detalles',
+      delete: 'Eliminar',
+      noResults: 'No se encontraron clientes',
       referralFallback: '—',
     },
     grid: {
-      industryFallback: 'Industry not specified',
-      tenureLabel: 'Tenure',
-      tenureUnit: 'months',
-      monthlyRetainerLabel: 'Monthly Retainer',
-      hourlyRateLabel: 'Hourly Rate',
+      industryFallback: 'Sector no especificado',
+      tenureLabel: 'Antiguedad',
+      tenureUnit: 'meses',
+      monthlyRetainerLabel: 'Retenedor mensual',
+      hourlyRateLabel: 'Tarifa por hora',
       scoreLabel: 'Score',
-      activeProjects: 'Active Projects',
-      viewProjects: 'View Projects',
-      detailsButton: 'Customer Details',
-      tasksToDo: 'Tasks to do',
-      delete: 'Delete',
-      empty: 'No customers to display',
+      activeProjects: 'Proyectos activos',
+      viewProjects: 'Ver proyectos',
+      detailsButton: 'Detalles del cliente',
+      tasksToDo: 'Tareas pendientes',
+      delete: 'Eliminar',
+      empty: 'No hay clientes para mostrar',
     },
   },
   de: {
-    pageTitle: 'Customers',
-    pageSubtitle: 'All of your customers in one place',
-    newCustomer: 'New Customer',
+    pageTitle: 'Kunden',
+    pageSubtitle: 'Alle deine Kunden an einem Ort',
+    newCustomer: 'Neuer Kunde',
     metrics: {
-      totalCustomers: 'Total Customers',
-      activeCustomers: 'Active Customers',
-      monthlyRecurring: 'Monthly Revenue',
+      totalCustomers: 'Gesamtkunden',
+      activeCustomers: 'Aktive Kunden',
+      monthlyRecurring: 'Monatlicher Umsatz',
     },
     filters: {
-      searchPlaceholder: 'Search customer by name, tax ID, or email',
+      searchPlaceholder: 'Kunde nach Name, USt-ID oder E-Mail suchen',
     },
     table: {
-      customerName: 'Customer Name',
+      customerName: 'Kundenname',
       status: 'Status',
-      joinDate: 'Join Date',
-      tenure: 'Tenure (months)',
-      customerScore: 'Customer Score',
-      taxId: 'Tax ID / VAT',
-      country: 'Country',
-      paymentMethod: 'Payment Method',
-      billingModel: 'Billing Model',
-      billingCycle: 'Billing Cycle',
-      annualFee: 'Annual Fee',
-      monthlyRetainer: 'Retainer/Hourly',
-      hourlyRate: 'Hourly Rate',
-      hoursPerMonth: 'Hours / Month',
-      referralSource: 'Lead Source',
+      joinDate: 'Beitrittsdatum',
+      tenure: 'Betriebszugehoerigkeit (Monate)',
+      customerScore: 'Kunden-Score',
+      taxId: 'Steuer-ID / USt',
+      country: 'Land',
+      paymentMethod: 'Zahlungsart',
+      billingModel: 'Abrechnungsmodell',
+      billingCycle: 'Abrechnungszyklus',
+      annualFee: 'Jahresgebuehr',
+      monthlyRetainer: 'Retainer/Stunde',
+      hourlyRate: 'Stundensatz',
+      hoursPerMonth: 'Stunden / Monat',
+      referralSource: 'Lead-Quelle',
       details: 'Details',
-      delete: 'Delete',
-      noResults: 'No matching customers found',
+      delete: 'Loeschen',
+      noResults: 'Keine passenden Kunden gefunden',
       referralFallback: '—',
     },
     grid: {
-      industryFallback: 'Industry not specified',
-      tenureLabel: 'Tenure',
-      tenureUnit: 'months',
-      monthlyRetainerLabel: 'Monthly Retainer',
-      hourlyRateLabel: 'Hourly Rate',
+      industryFallback: 'Branche nicht angegeben',
+      tenureLabel: 'Dauer',
+      tenureUnit: 'Monate',
+      monthlyRetainerLabel: 'Monatlicher Retainer',
+      hourlyRateLabel: 'Stundensatz',
       scoreLabel: 'Score',
-      activeProjects: 'Active Projects',
-      viewProjects: 'View Projects',
-      detailsButton: 'Customer Details',
-      tasksToDo: 'Tasks to do',
-      delete: 'Delete',
-      empty: 'No customers to display',
+      activeProjects: 'Aktive Projekte',
+      viewProjects: 'Projekte anzeigen',
+      detailsButton: 'Kundendetails',
+      tasksToDo: 'Offene Aufgaben',
+      delete: 'Loeschen',
+      empty: 'Keine Kunden zur Anzeige',
     },
   },
-  'pt-BR': {
-    pageTitle: 'Customers',
-    pageSubtitle: 'All of your customers in one place',
-    newCustomer: 'New Customer',
+  pt: {
+    pageTitle: 'Clientes',
+    pageSubtitle: 'Todos os seus clientes em um so lugar',
+    newCustomer: 'Novo cliente',
     metrics: {
-      totalCustomers: 'Total Customers',
-      activeCustomers: 'Active Customers',
-      monthlyRecurring: 'Monthly Revenue',
+      totalCustomers: 'Total de clientes',
+      activeCustomers: 'Clientes ativos',
+      monthlyRecurring: 'Receita mensal',
     },
     filters: {
-      searchPlaceholder: 'Search customer by name, tax ID, or email',
+      searchPlaceholder: 'Buscar cliente por nome, NIF ou e-mail',
     },
     table: {
-      customerName: 'Customer Name',
+      customerName: 'Nome do cliente',
       status: 'Status',
-      joinDate: 'Join Date',
-      tenure: 'Tenure (months)',
-      customerScore: 'Customer Score',
-      taxId: 'Tax ID / VAT',
-      country: 'Country',
-      paymentMethod: 'Payment Method',
-      billingModel: 'Billing Model',
-      billingCycle: 'Billing Cycle',
-      annualFee: 'Annual Fee',
-      monthlyRetainer: 'Retainer/Hourly',
-      hourlyRate: 'Hourly Rate',
-      hoursPerMonth: 'Hours / Month',
-      referralSource: 'Lead Source',
-      details: 'Details',
-      delete: 'Delete',
-      noResults: 'No matching customers found',
+      joinDate: 'Data de entrada',
+      tenure: 'Tempo de casa (meses)',
+      customerScore: 'Pontuacao do cliente',
+      taxId: 'NIF / IVA',
+      country: 'Pais',
+      paymentMethod: 'Metodo de pagamento',
+      billingModel: 'Modelo de cobranca',
+      billingCycle: 'Ciclo de cobranca',
+      annualFee: 'Tarifa anual',
+      monthlyRetainer: 'Retainer/Hora',
+      hourlyRate: 'Valor por hora',
+      hoursPerMonth: 'Horas / mes',
+      referralSource: 'Origem do lead',
+      details: 'Detalhes',
+      delete: 'Excluir',
+      noResults: 'Nenhum cliente correspondente encontrado',
       referralFallback: '—',
     },
     grid: {
-      industryFallback: 'Industry not specified',
-      tenureLabel: 'Tenure',
-      tenureUnit: 'months',
-      monthlyRetainerLabel: 'Monthly Retainer',
-      hourlyRateLabel: 'Hourly Rate',
+      industryFallback: 'Setor nao especificado',
+      tenureLabel: 'Tempo',
+      tenureUnit: 'meses',
+      monthlyRetainerLabel: 'Retainer mensal',
+      hourlyRateLabel: 'Valor por hora',
       scoreLabel: 'Score',
-      activeProjects: 'Active Projects',
-      viewProjects: 'View Projects',
-      detailsButton: 'Customer Details',
-      tasksToDo: 'Tasks to do',
-      delete: 'Delete',
-      empty: 'No customers to display',
+      activeProjects: 'Projetos ativos',
+      viewProjects: 'Ver projetos',
+      detailsButton: 'Detalhes do cliente',
+      tasksToDo: 'Tarefas pendentes',
+      delete: 'Excluir',
+      empty: 'Nenhum cliente para exibir',
+    },
+  },
+  fr: {
+    pageTitle: 'Clients',
+    pageSubtitle: 'Tous vos clients au meme endroit',
+    newCustomer: 'Nouveau client',
+    metrics: {
+      totalCustomers: 'Total des clients',
+      activeCustomers: 'Clients actifs',
+      monthlyRecurring: 'Revenu mensuel',
+    },
+    filters: {
+      searchPlaceholder: 'Rechercher un client par nom, TVA ou e-mail',
+    },
+    table: {
+      customerName: 'Nom du client',
+      status: 'Status',
+      joinDate: 'Date d adhesion',
+      tenure: 'Anciennete (mois)',
+      customerScore: 'Score client',
+      taxId: 'ID fiscal / TVA',
+      country: 'Pays',
+      paymentMethod: 'Mode de paiement',
+      billingModel: 'Mode de facturation',
+      billingCycle: 'Cycle de facturation',
+      annualFee: 'Tarif annuel',
+      monthlyRetainer: 'Forfait/Horaire',
+      hourlyRate: 'Taux horaire',
+      hoursPerMonth: 'Heures / mois',
+      referralSource: 'Source du lead',
+      details: 'Details',
+      delete: 'Supprimer',
+      noResults: 'Aucun client correspondant',
+      referralFallback: '—',
+    },
+    grid: {
+      industryFallback: 'Secteur non specifie',
+      tenureLabel: 'Anciennete',
+      tenureUnit: 'mois',
+      monthlyRetainerLabel: 'Forfait mensuel',
+      hourlyRateLabel: 'Taux horaire',
+      scoreLabel: 'Score',
+      activeProjects: 'Projets actifs',
+      viewProjects: 'Voir les projets',
+      detailsButton: 'Details du client',
+      tasksToDo: 'Taches a faire',
+      delete: 'Supprimer',
+      empty: 'Aucun client a afficher',
     },
   },
 };
@@ -403,7 +463,14 @@ function formatCurrency(amount: number, userCurrency: Currency, locale: Locale) 
 }
 
 function formatDate(date: Date, locale: Locale) {
-  return date.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US');
+  const intlLocale =
+    locale === 'he' ? 'he-IL' :
+    locale === 'es' ? 'es-ES' :
+    locale === 'de' ? 'de-DE' :
+    locale === 'pt' ? 'pt-PT' :
+    locale === 'fr' ? 'fr-FR' :
+    'en-US';
+  return date.toLocaleDateString(intlLocale);
 }
 
 interface CustomersMetrics {
@@ -418,7 +485,7 @@ export default function Customers() {
   const locale: Locale = state.locale ?? 'en';
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const customerScoreSettings = useMemo(
     () => sanitizeCustomerScoreSettings(
       storage.get<CustomerScoreSettings>('customerScoreSettings'),
@@ -806,7 +873,7 @@ export default function Customers() {
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm ${alignStart}`}>
           <p className="text-sm text-gray-500 dark:text-gray-400">{t.metrics.monthlyRecurring}</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {formatCurrency(metrics.monthlyRecurring, currency, locale)}
+            {formatCurrency(Math.round(metrics.monthlyRecurring), currency, locale)}
           </p>
         </div>
       </div>
@@ -860,7 +927,7 @@ export default function Customers() {
             >
               {statusFilterOrder.map((option) => (
                 <option key={option} value={option}>
-                  {statusFilterLabels[locale][option]}
+                  {(statusFilterLabels[locale] ?? statusFilterLabels.en)[option]}
                 </option>
               ))}
             </select>
@@ -978,7 +1045,7 @@ export default function Customers() {
                 {filteredCustomers.map((customer) => {
                   const tenure = calculateTenureMonths(customer.joinDate);
                   const statusVariant = statusVariants[customer.status];
-                  const statusLabel = statusLabels[locale][customer.status];
+                  const statusLabel = (statusLabels[locale] ?? statusLabels.en)[customer.status];
                   const customerScore = calculateCustomerScore(customer);
 
                   return (
@@ -1008,13 +1075,13 @@ export default function Customers() {
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{customer.taxId}</td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{customer.country}</td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
-                        {paymentMethodLabels[locale][customer.paymentMethod]}
+                        {(paymentMethodLabels[locale] ?? paymentMethodLabels.en)[customer.paymentMethod]}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
-                        {billingModelLabels[locale][customer.billingModel]}
+                        {(billingModelLabels[locale] ?? billingModelLabels.en)[customer.billingModel]}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
-                        {billingCycleLabels[locale][customer.billingCycle]}
+                        {(billingCycleLabels[locale] ?? billingCycleLabels.en)[customer.billingCycle]}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
                         {formatCurrency(customer.annualFee, currency, locale)}
@@ -1077,7 +1144,7 @@ export default function Customers() {
           {filteredCustomers.map((customer) => {
             const tenure = calculateTenureMonths(customer.joinDate);
             const statusVariant = statusVariants[customer.status];
-            const statusLabel = statusLabels[locale][customer.status];
+            const statusLabel = (statusLabels[locale] ?? statusLabels.en)[customer.status];
             const projectCount = getCustomerProjectCount(customer.id);
             const todoTasksCount = getCustomerTodoTasksCount(customer.id);
             const customerScore = calculateCustomerScore(customer);
@@ -1092,17 +1159,17 @@ export default function Customers() {
 
               if (customer.billingModel === 'hourly') {
                 rate = customer.monthlyRetainer || 0;
-                typeText = billingModelLabels[locale].hourly;
+                typeText = (billingModelLabels[locale] ?? billingModelLabels.en).hourly;
                 color = pinkColor;
               } else if (customer.billingModel === 'retainer') {
-                typeText = billingModelLabels[locale].retainer;
+                typeText = (billingModelLabels[locale] ?? billingModelLabels.en).retainer;
                 color = pinkColor;
                 if (customer.hoursPerMonth && customer.hoursPerMonth > 0) {
                   rate = Math.round(customer.monthlyRetainer / customer.hoursPerMonth);
                   isCalculated = true;
                 }
               } else if (customer.billingModel === 'project') {
-                typeText = billingModelLabels[locale].project;
+                typeText = (billingModelLabels[locale] ?? billingModelLabels.en).project;
                 color = pinkColor;
                 if (customer.hoursPerMonth && customer.hoursPerMonth > 0) {
                   rate = Math.round(customer.annualFee / customer.hoursPerMonth);

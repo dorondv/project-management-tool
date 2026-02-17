@@ -20,6 +20,8 @@ import {
   Shield,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { t } from '../../i18n';
+import type { Locale } from '../../types';
 import { Avatar } from '../common/Avatar';
 import { AccessibilityModal } from '../common/AccessibilityModal';
 import { SupportModal } from '../common/SupportModal';
@@ -38,49 +40,6 @@ const menuItems = [
   { icon: Settings, key: 'settings', path: '/settings' },
 ];
 
-const menuLabels = {
-  en: {
-    dashboard: 'Dashboard',
-    timer: 'Timer',
-    tasks: 'Tasks',
-    projects: 'Projects',
-    customers: 'Customers',
-    calendar: 'Calendar',
-    notifications: 'Notifications',
-    incomes: 'Income Management',
-    // team: 'Team', // Hidden for current version - keep for future use
-    settings: 'Settings',
-    admin: 'Admin Panel',
-    accessibility: 'Accessibility',
-    support: 'Support',
-    logout: 'Logout',
-    // Role translations
-    adminRole: 'Admin',
-    manager: 'Manager',
-    contributor: 'Contributor',
-  },
-  he: {
-    dashboard: 'לוח בקרה',
-    timer: 'מעקב זמן',
-    tasks: 'משימות',
-    projects: 'פרויקטים',
-    customers: 'לקוחות',
-    calendar: 'לוח שנה',
-    notifications: 'התראות',
-    incomes: 'ניהול הכנסות',
-    // team: 'צוות', // מוסתר בגרסה הנוכחית - שמור לשימוש עתידי
-    settings: 'הגדרות',
-    admin: 'פאנל ניהול',
-    accessibility: 'נגישות',
-    support: 'תמיכה',
-    logout: 'התנתק',
-    // Role translations
-    adminRole: 'מנהל',
-    manager: 'מנהל פרויקט',
-    contributor: 'חבר צוות',
-  },
-} as const;
-
 interface SidebarProps {
   isMobileDrawerOpen?: boolean;
   onMobileDrawerClose?: () => void;
@@ -92,9 +51,8 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const location = useLocation();
   const { state, dispatch } = useApp();
-  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
+  const locale = (state.locale ?? 'en') as Locale;
   const isRTL = locale === 'he';
-  const labels = menuLabels[locale];
 
   // Close mobile drawer when navigating
   const handleLinkClick = () => {
@@ -115,19 +73,6 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return labels.adminRole;
-      case 'manager':
-        return labels.manager;
-      case 'contributor':
-        return labels.contributor;
-      default:
-        return role;
-    }
-  };
 
   const handleLogout = () => {
     dispatch({ type: 'LOGOUT' });
@@ -265,7 +210,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                           isRTL ? 'text-right' : 'text-left'
                         }`}
                       >
-                        {labels[item.key as keyof typeof labels]}
+                        {t(`sidebar.${item.key}` as 'sidebar.dashboard', locale)}
                       </span>
                     )}
                   </Link>
@@ -295,7 +240,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                         isRTL ? 'text-right' : 'text-left'
                       }`}
                     >
-                      {labels.admin}
+                      {t('sidebar.admin', locale)}
                     </span>
                   )}
                 </Link>
@@ -323,7 +268,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                       isRTL ? 'text-right' : 'text-left'
                     }`}
                   >
-                    {labels.accessibility}
+                    {t('sidebar.accessibility', locale)}
                   </span>
                 )}
               </button>
@@ -345,7 +290,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                       isRTL ? 'text-right' : 'text-left'
                     }`}
                   >
-                    {labels.support}
+                    {t('sidebar.support', locale)}
                   </span>
                 )}
               </button>
@@ -362,9 +307,6 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                   <div className="flex-1 min-w-0 text-right">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {state.user.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {getRoleLabel(state.user.role)}
                     </p>
                   </div>
                   <Avatar
@@ -389,9 +331,6 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                         {state.user.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {getRoleLabel(state.user.role)}
-                      </p>
                     </div>
                   )}
                 </>
@@ -409,7 +348,7 @@ export function Sidebar({ isMobileDrawerOpen = false, onMobileDrawerClose }: Sid
                   isRTL ? 'text-right' : 'text-left'
                 }`}
               >
-                {labels.logout}
+                {t('sidebar.logout', locale)}
               </span>
             </button>
           )}

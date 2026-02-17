@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Calendar, Users, FileText, Target, Building2 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -100,7 +100,7 @@ const translations = {
     createProject: 'Create Project',
     activityCreated: 'created project "{title}"',
   },
-  'pt-BR': {
+  pt: {
     title: 'Create New Project',
     projectTitle: 'Project Title',
     client: 'Client',
@@ -136,7 +136,7 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -154,6 +154,7 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
     members: [] as string[]
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
 
   // Set pre-selected customer when modal opens and reset form
   useEffect(() => {
@@ -169,7 +170,9 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isSubmitting) return; // Prevent double submission
+    // Guard against rapid repeated submissions before React state updates.
+    if (submitLockRef.current || isSubmitting) return;
+    submitLockRef.current = true;
     
     setIsSubmitting(true);
     
@@ -250,6 +253,7 @@ export function CreateProjectModal({ isOpen, onClose, preSelectedCustomerId, onP
       console.error('Failed to create project:', error);
       toast.error(error.message || 'Failed to create project. Please try again.');
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };

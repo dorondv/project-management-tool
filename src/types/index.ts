@@ -82,8 +82,23 @@ export interface Activity {
   createdAt: Date;
 }
 
-export type Locale = 'en' | 'he';
+export type Locale = 'en' | 'he' | 'es' | 'de' | 'pt' | 'fr';
 export type Currency = 'ILS' | 'USD' | 'EUR';
+
+export const SUPPORTED_LOCALES: readonly Locale[] = ['en', 'he', 'es', 'de', 'pt', 'fr'] as const;
+export const RTL_LOCALES: readonly Locale[] = ['he'] as const;
+export const LOCALE_LABELS: Record<Locale, string> = {
+  en: 'English',
+  he: 'עברית',
+  es: 'Español',
+  de: 'Deutsch',
+  pt: 'Português',
+  fr: 'Français',
+};
+
+export function isSupportedLocale(value: string): value is Locale {
+  return SUPPORTED_LOCALES.includes(value as Locale);
+}
 
 export type CustomerStatus = 'active' | 'trial' | 'paused' | 'churned';
 

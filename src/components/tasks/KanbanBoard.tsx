@@ -39,33 +39,43 @@ const translations: Record<Locale, {
   },
   es: {
     columns: {
-      todo: 'To Do',
-      inProgress: 'In Progress',
-      completed: 'Completed',
+      todo: 'Por hacer',
+      inProgress: 'En progreso',
+      completed: 'Completadas',
     },
-    addTask: 'Add Task',
-    toastMoved: 'Task moved to {status}',
-    activityDescription: 'moved task "{title}" to {status}',
+    addTask: 'Agregar tarea',
+    toastMoved: 'Tarea movida a {status}',
+    activityDescription: 'movio la tarea "{title}" a {status}',
   },
   de: {
     columns: {
-      todo: 'To Do',
-      inProgress: 'In Progress',
-      completed: 'Completed',
+      todo: 'Zu erledigen',
+      inProgress: 'In Bearbeitung',
+      completed: 'Abgeschlossen',
     },
-    addTask: 'Add Task',
-    toastMoved: 'Task moved to {status}',
-    activityDescription: 'moved task "{title}" to {status}',
+    addTask: 'Aufgabe hinzufuegen',
+    toastMoved: 'Aufgabe nach {status} verschoben',
+    activityDescription: 'verschob Aufgabe "{title}" nach {status}',
   },
-  'pt-BR': {
+  pt: {
     columns: {
-      todo: 'To Do',
-      inProgress: 'In Progress',
-      completed: 'Completed',
+      todo: 'A fazer',
+      inProgress: 'Em andamento',
+      completed: 'Concluidas',
     },
-    addTask: 'Add Task',
-    toastMoved: 'Task moved to {status}',
-    activityDescription: 'moved task "{title}" to {status}',
+    addTask: 'Adicionar tarefa',
+    toastMoved: 'Tarefa movida para {status}',
+    activityDescription: 'moveu a tarefa "{title}" para {status}',
+  },
+  fr: {
+    columns: {
+      todo: 'A faire',
+      inProgress: 'En cours',
+      completed: 'Terminees',
+    },
+    addTask: 'Ajouter une tache',
+    toastMoved: 'Tache deplacee vers {status}',
+    activityDescription: 'a deplace la tache "{title}" vers {status}',
   },
 };
 
@@ -79,7 +89,7 @@ export function KanbanBoard({ tasks, onEdit, onDelete }: KanbanBoardProps = { ta
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const countMarginClass = isRTL ? 'mr-2' : 'ml-2';
   const baseColumns = [
     { 

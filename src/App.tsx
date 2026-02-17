@@ -50,8 +50,12 @@ function AppContent() {
         message: 'אנא המתן בזמן שאנחנו מכינים את המערכת שלך',
         tip: 'טוען פרויקטים, משימות ונתונים...',
       },
+      es: { title: 'Loading Data...', message: 'Please wait while we prepare your workspace', tip: 'Loading projects, tasks, and data...' },
+      de: { title: 'Loading Data...', message: 'Please wait while we prepare your workspace', tip: 'Loading projects, tasks, and data...' },
+      pt: { title: 'Loading Data...', message: 'Please wait while we prepare your workspace', tip: 'Loading projects, tasks, and data...' },
+      fr: { title: 'Loading Data...', message: 'Please wait while we prepare your workspace', tip: 'Loading projects, tasks, and data...' },
     };
-    const t = loadingTranslations[state.locale] || loadingTranslations.en;
+    const t = loadingTranslations[state.locale ?? 'en'] || loadingTranslations.en;
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4">

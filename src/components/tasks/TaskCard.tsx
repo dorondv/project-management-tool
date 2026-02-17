@@ -20,19 +20,24 @@ const translations: Record<Locale, {
     deleteConfirm: 'האם אתה בטוח שברצונך למחוק משימה זו?',
   },
   es: {
-    edit: 'Edit',
-    delete: 'Delete',
-    deleteConfirm: 'Are you sure you want to delete this task?',
+    edit: 'Editar',
+    delete: 'Eliminar',
+    deleteConfirm: 'Seguro que quieres eliminar esta tarea?',
   },
   de: {
-    edit: 'Edit',
-    delete: 'Delete',
-    deleteConfirm: 'Are you sure you want to delete this task?',
+    edit: 'Bearbeiten',
+    delete: 'Loeschen',
+    deleteConfirm: 'Moechtest du diese Aufgabe wirklich loeschen?',
   },
-  'pt-BR': {
-    edit: 'Edit',
-    delete: 'Delete',
-    deleteConfirm: 'Are you sure you want to delete this task?',
+  pt: {
+    edit: 'Editar',
+    delete: 'Excluir',
+    deleteConfirm: 'Tem certeza de que deseja excluir esta tarefa?',
+  },
+  fr: {
+    edit: 'Modifier',
+    delete: 'Supprimer',
+    deleteConfirm: 'Voulez-vous vraiment supprimer cette tache ?',
   },
 };
 
@@ -48,7 +53,7 @@ export function TaskCard({ task, onClick, isDragging = false, onEdit, onDelete }
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   
@@ -189,7 +194,7 @@ export function TaskCard({ task, onClick, isDragging = false, onEdit, onDelete }
       <div className={`flex flex-col gap-2 text-xs text-gray-500 dark:text-gray-400 ${isRTL ? 'items-end' : 'items-start'}`}>
         <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Calendar className="w-3 h-3" />
-          <span>{task.dueDate ? formatDate(task.dueDate) : (locale === 'he' ? 'ללא תאריך' : 'No date')}</span>
+          <span>{task.dueDate ? formatDate(task.dueDate) : (locale === 'he' ? 'ללא תאריך' : locale === 'es' ? 'Sin fecha' : locale === 'de' ? 'Kein Datum' : locale === 'pt' ? 'Sem data' : locale === 'fr' ? 'Sans date' : 'No date')}</span>
         </div>
         
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>

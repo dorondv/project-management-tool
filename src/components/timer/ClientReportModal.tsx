@@ -83,7 +83,7 @@ const translations = {
     clientRequired: 'Please select a client',
     noEntries: 'No entries found for the selected period',
   },
-  'pt-BR': {
+  pt: {
     title: 'Generate Client Hours Report',
     selectClient: 'Select Client',
     selectClientRequired: 'Select Client *',
@@ -108,7 +108,7 @@ export function ClientReportModal({ isOpen, onClose }: ClientReportModalProps) {
   const currency: Currency = state.currency ?? 'ILS';
   const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');

@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useApp } from '../../context/AppContext';
 import { Footer } from './Footer';
+import { ChatwootControls } from '../common/ChatwootControls';
 
 interface LayoutProps {
   children: ReactNode;
@@ -33,7 +34,7 @@ export function Layout({ children }: LayoutProps) {
       <div className={`${sidebarOffsetClass} px-4 lg:px-6`}>
         <Footer />
       </div>
-      
+      {state.user && <ChatwootControls />}
     </div>
   );
 }

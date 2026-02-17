@@ -203,3 +203,30 @@ body {
     font-size: 100%;
   }
 }
+
+/* Chatwoot widget controls (left/right + hide/show) */
+html[data-chatwoot-position='left'] #cw-widget-holder,
+html[data-chatwoot-position='left'] .woot-widget-holder,
+html[data-chatwoot-position='left'] .woot--widget-holder,
+html[data-chatwoot-position='left'] .woot-widget-bubble,
+html[data-chatwoot-position='left'] .woot--bubble-holder {
+  left: 20px !important;
+  right: auto !important;
+}
+
+html[data-chatwoot-position='right'] #cw-widget-holder,
+html[data-chatwoot-position='right'] .woot-widget-holder,
+html[data-chatwoot-position='right'] .woot--widget-holder,
+html[data-chatwoot-position='right'] .woot-widget-bubble,
+html[data-chatwoot-position='right'] .woot--bubble-holder {
+  right: 20px !important;
+  left: auto !important;
+}
+
+html[data-chatwoot-hidden='true'] #cw-widget-holder,
+html[data-chatwoot-hidden='true'] .woot-widget-holder,
+html[data-chatwoot-hidden='true'] .woot--widget-holder,
+html[data-chatwoot-hidden='true'] .woot-widget-bubble,
+html[data-chatwoot-hidden='true'] .woot--bubble-holder {
+  display: none !important;
+}

@@ -35,12 +35,19 @@ const translations = {
     hours: 'hours',
     ongoing: 'Ongoing',
   },
-  'pt-BR': {
+  pt: {
     editProject: 'Edit Project',
     deleteProject: 'Delete Project',
     estimatedHours: 'Estimated Hours',
     hours: 'hours',
     ongoing: 'Ongoing',
+  },
+  fr: {
+    editProject: 'Modifier le projet',
+    deleteProject: 'Supprimer le projet',
+    estimatedHours: 'Heures estimees',
+    hours: 'heures',
+    ongoing: 'En cours',
   },
 } as const;
 
@@ -69,11 +76,17 @@ const statusLabels: Record<Locale, Record<string, string>> = {
     'completed': 'Completed',
     'on-hold': 'On Hold',
   },
-  'pt-BR': {
+  pt: {
     'planning': 'Planning',
     'in-progress': 'In Progress',
     'completed': 'Completed',
     'on-hold': 'On Hold',
+  },
+  fr: {
+    'planning': 'Planification',
+    'in-progress': 'En cours',
+    'completed': 'Termine',
+    'on-hold': 'En pause',
   },
 };
 
@@ -88,7 +101,7 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -129,7 +142,7 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
     : null;
 
   const getStatusText = (status: string) => {
-    return statusLabels[locale][status] || status;
+    return (statusLabels[locale] ?? statusLabels.en)[status] || status;
   };
 
   const getStatusBadgeColor = (status: string) => {
@@ -219,7 +232,7 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
               <Calendar className="w-4 h-4" />
               <span className="text-sm">
-                {format(new Date(project.endDate), 'dd MMM yyyy', { locale: locale === 'he' ? he : locale === 'es' ? es : locale === 'de' ? de : locale === 'pt-BR' ? ptBR : undefined })}
+                {format(new Date(project.endDate), 'dd MMM yyyy', { locale: locale === 'he' ? he : locale === 'es' ? es : locale === 'de' ? de : locale === 'pt' ? ptBR : undefined })}
               </span>
             </div>
           ) : (

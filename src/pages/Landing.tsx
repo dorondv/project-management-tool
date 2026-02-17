@@ -7,7 +7,7 @@ import { Button } from '../components/common/Button';
 import { Footer } from '../components/layout/Footer';
 // import { ContactUsModal } from '../components/common/ContactUsModal'; // Optional feature - ready for future use
 import { api } from '../utils/api';
-import { Locale } from '../types';
+import { Locale, SUPPORTED_LOCALES, LOCALE_LABELS } from '../types';
 import toast from 'react-hot-toast';
 import '../utils/tracking'; // Load tracking module (auto-init runs on import for / and /landing)
 
@@ -106,7 +106,30 @@ const translations = {
     videoNote: 'You can replace the video with your own marketing video from YouTube or Vimeo.',
     logout: 'Logout',
   },
-  'pt-BR': {
+  pt: {
+    welcome: 'Welcome to SOLLO',
+    subtitle: 'The smart way to manage your time, clients, tasks, and even accounting in one place. Start working smarter, not harder.',
+    startTrial: 'Start 5-Day Free Trial',
+    existingCustomer: 'Login for existing customers',
+    seeHowItWorks: 'See how it works',
+    allInOne: 'Everything you need in one place',
+    smartTimeTracking: 'Smart Time Tracking',
+    smartTimeTrackingDesc: 'Track every minute, for every client, in every project. Accurate and simple tracking that saves you time and helps you manage it smarter',
+    clientManagement: 'Client Management',
+    clientManagementDesc: 'Discover your most profitable clients using a smart rating system and grow your business intelligently',
+    taskManagement: 'Task Management',
+    taskManagementDesc: 'Manage your tasks simply and efficiently while accurately and effectively measuring your work time on each task',
+    whySollo: 'Why SOLLO?',
+    convenience: 'Convenience - Everything in one place',
+    convenienceDesc: 'Manage all your business tasks in one place instead of multiple separate tools',
+    saveCosts: 'Save on costs',
+    saveCostsDesc: 'Instead of paying for multiple tools, pay for one. Get more, pay less',
+    efficiency: 'Efficiency - Work smarter and more efficiently',
+    efficiencyDesc: 'Manage your time better, invest in the right places and grow correctly',
+    videoNote: 'You can replace the video with your own marketing video from YouTube or Vimeo.',
+    logout: 'Logout',
+  },
+  fr: {
     welcome: 'Welcome to SOLLO',
     subtitle: 'The smart way to manage your time, clients, tasks, and even accounting in one place. Start working smarter, not harder.',
     startTrial: 'Start 5-Day Free Trial',
@@ -134,9 +157,9 @@ const translations = {
 export default function Landing() {
   const navigate = useNavigate();
   const { state, dispatch } = useApp();
-  const locale = state.locale || 'en';
+  const locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale as 'en' | 'he'];
+  const t = translations[locale] ?? translations.en;
   // const [isContactModalOpen, setIsContactModalOpen] = useState(false); // Optional feature - ready for future use
 
   // Note: Pageview tracking is handled by tracking.ts auto-init on module load
@@ -229,11 +252,6 @@ export default function Landing() {
     };
   }, [showLanguageMenu]);
 
-  const languageNames: Record<Locale, string> = {
-    en: 'English',
-    he: 'Hebrew (עברית)',
-  };
-
   return (
     <div 
       className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-900 dark:text-white relative"
@@ -265,7 +283,7 @@ export default function Landing() {
             animate={{ opacity: 1, y: 0 }}
             className={`absolute ${isRTL ? 'right-0' : 'left-0'} mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2`}
           >
-            {(['en', 'he'] as Locale[]).map((lang) => (
+            {SUPPORTED_LOCALES.map((lang) => (
               <button
                 key={lang}
                 onClick={() => handleLocaleSelect(lang)}
@@ -275,7 +293,7 @@ export default function Landing() {
                   locale === lang ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
                 }`}
               >
-                {languageNames[lang]}
+                {LOCALE_LABELS[lang]}
               </button>
             ))}
           </motion.div>

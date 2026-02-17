@@ -86,7 +86,7 @@ export function SupportModal({ isOpen, onClose }: SupportModalProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [formData, setFormData] = useState({
     category: '',

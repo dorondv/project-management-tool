@@ -52,7 +52,7 @@ export function ContactUsModal({ isOpen, onClose }: ContactUsModalProps) {
   const { state } = useApp();
   const locale = state.locale || 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [formData, setFormData] = useState({
     name: '',

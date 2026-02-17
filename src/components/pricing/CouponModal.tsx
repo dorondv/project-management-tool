@@ -88,7 +88,7 @@ const translations: Record<Locale, {
     maxUsesReached: 'Coupon usage limit reached',
     alreadyHasSubscription: 'You already have an active subscription',
   },
-  'pt-BR': {
+  pt: {
     title: 'Activate Trial Coupon',
     subtitle: 'Enter your coupon code to activate a free trial period',
     enterCode: 'Coupon Code',
@@ -110,7 +110,7 @@ export function CouponModal({ isOpen, onClose, onSuccess }: CouponModalProps) {
   const navigate = useNavigate();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);

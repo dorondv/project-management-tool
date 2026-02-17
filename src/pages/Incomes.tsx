@@ -123,10 +123,110 @@ const translations: Record<
       delete: 'מחיקה',
     },
   },
+  es: {
+    pageTitle: 'Gestion de ingresos',
+    pageSubtitle: 'Haz seguimiento de todos tus ingresos',
+    newIncome: 'Nuevo ingreso',
+    searchPlaceholder: 'Buscar ingresos...',
+    customerFilter: { label: 'Cliente', all: 'Todos los clientes' },
+    periodSelector: {
+      currentMonth: 'Este mes',
+      lastMonth: 'Mes pasado',
+      currentYear: 'Este anio',
+      lastYear: 'Anio pasado',
+      custom: 'Rango personalizado',
+      startDate: 'Fecha de inicio',
+      endDate: 'Fecha de fin',
+    },
+    metrics: {
+      activeCustomers: 'Total de clientes activos',
+      totalIncomes: 'Ingresos totales',
+      beforeVat: 'Antes de IVA',
+      totalVat: 'IVA total',
+      averagePerClient: 'Ingreso promedio por cliente',
+    },
+    empty: { title: 'Sin ingresos', subtitle: 'Agrega tu primer ingreso' },
+    incomeList: { beforeVat: 'Antes de IVA', client: 'Cliente', date: 'Fecha', edit: 'Editar', delete: 'Eliminar' },
+  },
+  de: {
+    pageTitle: 'Einnahmenverwaltung',
+    pageSubtitle: 'Verfolge alle deine Einnahmen',
+    newIncome: 'Neue Einnahme',
+    searchPlaceholder: 'Einnahmen suchen...',
+    customerFilter: { label: 'Kunde', all: 'Alle Kunden' },
+    periodSelector: {
+      currentMonth: 'Dieser Monat',
+      lastMonth: 'Letzter Monat',
+      currentYear: 'Dieses Jahr',
+      lastYear: 'Letztes Jahr',
+      custom: 'Benutzerdefinierter Zeitraum',
+      startDate: 'Startdatum',
+      endDate: 'Enddatum',
+    },
+    metrics: {
+      activeCustomers: 'Aktive Kunden gesamt',
+      totalIncomes: 'Gesamteinnahmen',
+      beforeVat: 'Vor MwSt.',
+      totalVat: 'MwSt. gesamt',
+      averagePerClient: 'Durchschnitt pro Kunde',
+    },
+    empty: { title: 'Keine Einnahmen', subtitle: 'Fuege deine erste Einnahme hinzu' },
+    incomeList: { beforeVat: 'Vor MwSt.', client: 'Kunde', date: 'Datum', edit: 'Bearbeiten', delete: 'Loeschen' },
+  },
+  pt: {
+    pageTitle: 'Gestao de receitas',
+    pageSubtitle: 'Acompanhe todas as suas receitas',
+    newIncome: 'Nova receita',
+    searchPlaceholder: 'Buscar receitas...',
+    customerFilter: { label: 'Cliente', all: 'Todos os clientes' },
+    periodSelector: {
+      currentMonth: 'Este mes',
+      lastMonth: 'Mes passado',
+      currentYear: 'Este ano',
+      lastYear: 'Ano passado',
+      custom: 'Periodo personalizado',
+      startDate: 'Data de inicio',
+      endDate: 'Data de fim',
+    },
+    metrics: {
+      activeCustomers: 'Total de clientes ativos',
+      totalIncomes: 'Receitas totais',
+      beforeVat: 'Antes do IVA',
+      totalVat: 'IVA total',
+      averagePerClient: 'Receita media por cliente',
+    },
+    empty: { title: 'Sem receitas', subtitle: 'Adicione sua primeira receita' },
+    incomeList: { beforeVat: 'Antes do IVA', client: 'Cliente', date: 'Data', edit: 'Editar', delete: 'Excluir' },
+  },
+  fr: {
+    pageTitle: 'Gestion des revenus',
+    pageSubtitle: 'Suivez tous vos revenus',
+    newIncome: 'Nouveau revenu',
+    searchPlaceholder: 'Rechercher des revenus...',
+    customerFilter: { label: 'Client', all: 'Tous les clients' },
+    periodSelector: {
+      currentMonth: 'Ce mois-ci',
+      lastMonth: 'Mois precedent',
+      currentYear: 'Cette annee',
+      lastYear: 'Annee precedente',
+      custom: 'Plage personnalisee',
+      startDate: 'Date de debut',
+      endDate: 'Date de fin',
+    },
+    metrics: {
+      activeCustomers: 'Total des clients actifs',
+      totalIncomes: 'Revenus totaux',
+      beforeVat: 'Avant TVA',
+      totalVat: 'TVA totale',
+      averagePerClient: 'Revenu moyen par client',
+    },
+    empty: { title: 'Aucun revenu', subtitle: 'Ajoutez votre premier revenu' },
+    incomeList: { beforeVat: 'Avant TVA', client: 'Client', date: 'Date', edit: 'Modifier', delete: 'Supprimer' },
+  },
 };
 
 function formatDate(date: Date, locale: Locale): string {
-  const intlLocale = locale === 'he' ? 'he-IL' : locale === 'es' ? 'es-ES' : locale === 'de' ? 'de-DE' : locale === 'pt-BR' ? 'pt-BR' : 'en-US';
+  const intlLocale = locale === 'he' ? 'he-IL' : locale === 'es' ? 'es-ES' : locale === 'de' ? 'de-DE' : locale === 'pt' ? 'pt-PT' : locale === 'fr' ? 'fr-FR' : 'en-US';
   return new Intl.DateTimeFormat(intlLocale, {
     year: 'numeric',
     month: 'long',
@@ -139,7 +239,7 @@ export default function Incomes() {
   const locale: Locale = state.locale ?? 'en';
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
@@ -314,7 +414,7 @@ export default function Incomes() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <h1 className={`text-4xl font-bold text-gray-900 dark:text-white ${alignStart}`}>{t.pageTitle}</h1>
+          <h1 className={`text-2xl font-bold text-gray-900 dark:text-white ${alignStart}`}>{t.pageTitle}</h1>
           <p className={`text-gray-600 dark:text-gray-400 ${alignStart}`}>{t.pageSubtitle}</p>
         </div>
         <Button 

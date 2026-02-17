@@ -160,7 +160,7 @@ const translations = {
     errorMeetingLink: 'Please enter a valid URL',
     successCreated: 'Event created successfully!',
   },
-  'pt-BR': {
+  pt: {
     title: 'Create New Event',
     eventTitle: 'Event Title',
     eventTitlePlaceholder: 'Enter event title',
@@ -210,7 +210,7 @@ export function CreateEventModal({ isOpen, onClose, preselectedDate }: CreateEve
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   // Initialize form with preselected date if provided
   const getInitialStartDate = () => {

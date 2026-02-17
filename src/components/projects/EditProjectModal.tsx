@@ -96,7 +96,7 @@ const translations = {
     cancel: 'Cancel',
     updateProject: 'Update Project',
   },
-  'pt-BR': {
+  pt: {
     title: 'Edit Project',
     projectTitle: 'Project Title',
     client: 'Client',
@@ -130,7 +130,7 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
   const { state, dispatch } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const [formData, setFormData] = useState({
     title: '',
     description: '',

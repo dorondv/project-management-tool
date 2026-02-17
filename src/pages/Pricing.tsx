@@ -198,7 +198,7 @@ const translations: Record<Locale, {
     upgradeToAnnualMessageTrial: 'Upgrading to annual will cancel your monthly trial. The annual plan includes a trial period and better value!',
     trialCoupons: 'Trial Coupons',
   },
-  'pt-BR': {
+  pt: {
     pageTitle: 'Choose the perfect plan for you',
     pageSubtitle: 'Choose the path that suits you and join sollo.',
     annualPlan: 'Annual Plan',
@@ -252,7 +252,7 @@ export default function Pricing() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);

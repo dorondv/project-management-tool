@@ -203,6 +203,12 @@ router.get('/users', async (req, res) => {
           userStatus = 'Free trial';
         }
 
+        // Admin panel rule: newly registered users with no subscription/payment
+        // should appear as leads instead of churned.
+        if (!subscription && !firstPayment) {
+          userStatus = 'Lead';
+        }
+
         return {
           id: user.id,
           name: user.name,

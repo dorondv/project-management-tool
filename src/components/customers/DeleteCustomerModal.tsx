@@ -108,7 +108,7 @@ export function DeleteCustomerModal({
       deleteButton: 'Delete Customer',
       deleting: 'Deleting...',
     },
-    'pt-BR': {
+    pt: {
       title: 'Delete Customer',
       message: hasRelatedEntities
         ? `Are you sure you want to delete "${customer?.name}"? This customer has related data that will be affected.`
@@ -126,7 +126,7 @@ export function DeleteCustomerModal({
     },
   };
 
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const handleCancel = () => {
     if (!isDeleting) {

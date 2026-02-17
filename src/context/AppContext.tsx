@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { User, Project, Task, Notification, Activity, Customer, Locale, Currency, TimeEntry, Income, ActiveTimer, Event } from '../types';
+import { User, Project, Task, Notification, Activity, Customer, Locale, Currency, TimeEntry, Income, ActiveTimer, Event, isSupportedLocale, RTL_LOCALES } from '../types';
 import { mockUsers, mockProjects, mockTasks, mockNotifications, mockActivities, mockCustomers, mockTimeEntries, mockIncomes } from '../data/mockData';
 import { storage, initializeStorage } from '../utils/localStorage';
 import { timerService } from '../utils/timerService';
@@ -840,6 +840,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         // Check for existing Supabase session first
         let authenticatedUser: User | null = null;
+        let userProfile: { id: string; name: string; email: string; role: string; avatar?: string; preferredLanguage?: string } | null = null;
         console.log('🔵 AppContext: Checking for existing session...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -854,10 +855,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           // User is authenticated, fetch their profile from backend
           console.log('🔵 AppContext: Session found, fetching user profile from backend...');
           try {
-            let userProfile = null;
             try {
               // Try to get user by ID from backend
-              userProfile = await api.users.getById(session.user.id);
+              userProfile = await api.users.getById(session.user.id) as typeof userProfile;
             } catch (apiError: any) {
               // User doesn't exist in backend, create it
               if (apiError.status === 404) {
@@ -901,7 +901,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 };
                 
                 try {
-                  userProfile = await api.users.create(newUser);
+                  userProfile = await api.users.create(newUser) as typeof userProfile;
                   console.log('✅ AppContext: User created in backend');
                   
                   // Track signup_complete for OAuth users
@@ -914,7 +914,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 } catch (createError) {
                   console.warn('⚠️ AppContext: Failed to create user in backend:', createError);
                   // Use the newUser object anyway
-                  userProfile = newUser;
+                  userProfile = newUser as typeof userProfile;
                 }
               } else {
                 throw apiError;
@@ -932,13 +932,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
               };
               dispatch({ type: 'SET_USER', payload: authenticatedUser });
               dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-              
-              // Set user's preferred language if available (sanitize to only allow 'en' or 'he')
-              if (userProfile.preferredLanguage) {
-                const preferredLocale = userProfile.preferredLanguage as Locale;
-                const validPreferredLocale = (preferredLocale === 'en' || preferredLocale === 'he') ? preferredLocale : 'he';
-                dispatch({ type: 'SET_LOCALE', payload: validPreferredLocale });
-              }
             }
           } catch (error) {
             console.warn('Failed to fetch/create user profile:', error);
@@ -964,8 +957,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (storedTheme) {
           dispatch({ type: 'SET_THEME', payload: storedTheme });
         }
-        // Sanitize locale to only allow 'en' or 'he'
-        const validLocale = (storedLocale === 'en' || storedLocale === 'he') ? storedLocale : 'he';
+        // Prefer stored locale (user's last selection); fallback to profile preferredLanguage, then default
+        const validLocale = isSupportedLocale(storedLocale)
+          ? storedLocale
+          : (userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage as Locale)
+              ? (userProfile.preferredLanguage as Locale)
+              : 'he');
         dispatch({ type: 'SET_LOCALE', payload: validLocale });
         dispatch({ type: 'SET_CURRENCY', payload: storedCurrency || 'ILS' });
         
@@ -1092,12 +1089,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             dispatch({ type: 'SET_AUTHENTICATED', payload: true });
             console.log('🟣 AppContext: User set successfully');
             
-            // Set user's preferred language if available
-            if (userProfile.preferredLanguage) {
-              const preferredLocale = userProfile.preferredLanguage as Locale;
-            const validPreferredLocale = (preferredLocale === 'en' || preferredLocale === 'he') ? preferredLocale : 'he';
-            dispatch({ type: 'SET_LOCALE', payload: validPreferredLocale });
-            }
+            // Don't overwrite locale from profile - user's localStorage selection takes precedence
             
             // Initialize Chatwoot widget with user identity
             try {
@@ -1274,8 +1266,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Apply locale direction and lang
   useEffect(() => {
     const root = document.documentElement;
-    const lang = state.locale;
-    const dir = state.locale === 'he' ? 'rtl' : 'ltr';
+    const lang = state.locale ?? 'en';
+    const dir = RTL_LOCALES.includes(state.locale ?? 'en') ? 'rtl' : 'ltr';
     root.setAttribute('lang', lang);
     root.setAttribute('dir', dir);
   }, [state.locale]);
