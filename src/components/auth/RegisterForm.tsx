@@ -103,7 +103,7 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
     },
   };
 
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);

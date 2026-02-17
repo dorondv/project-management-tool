@@ -15,16 +15,20 @@ const translations = {
     noData: 'אין נתוני תעריפים להצגה',
   },
   es: {
-    title: 'Average Income Per Hour by Month',
-    noData: 'No rate data to display',
+    title: 'Ingreso promedio por hora por mes',
+    noData: 'No hay datos de tarifa para mostrar',
   },
   de: {
-    title: 'Average Income Per Hour by Month',
-    noData: 'No rate data to display',
+    title: 'Durchschnittlicher Stundenertrag pro Monat',
+    noData: 'Keine Tarifdaten zur Anzeige',
   },
-  'pt-BR': {
-    title: 'Average Income Per Hour by Month',
-    noData: 'No rate data to display',
+  pt: {
+    title: 'Receita media por hora por mes',
+    noData: 'Sem dados de tarifa para exibir',
+  },
+  fr: {
+    title: 'Revenu moyen par heure par mois',
+    noData: 'Aucune donnee de tarif a afficher',
   },
 } as const;
 
@@ -38,7 +42,7 @@ export function IncomePerHourChart({ dateRange }: IncomePerHourChartProps) {
   const currency: Currency = state.currency ?? 'ILS';
   const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const chartData = useMemo(() => {
     // Filter time entries by date range if provided
@@ -100,7 +104,7 @@ export function IncomePerHourChart({ dateRange }: IncomePerHourChartProps) {
               tickFormatter={(value) => `${currencySymbol}${value.toFixed(0)}`}
             />
             <Tooltip 
-              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, locale === 'he' ? 'הכנסה ממוצעת לשעה' : 'Avg Income/Hour']}
+              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, locale === 'he' ? 'הכנסה ממוצעת לשעה' : locale === 'es' ? 'Ingreso prom./hora' : locale === 'de' ? 'Durchschnitt/Std.' : locale === 'pt' ? 'Receita media/hora' : locale === 'fr' ? 'Revenu moyen/heure' : 'Avg Income/Hour']}
               labelStyle={{ color: 'inherit' }}
             />
             <Legend />
@@ -109,7 +113,7 @@ export function IncomePerHourChart({ dateRange }: IncomePerHourChartProps) {
               dataKey="averageIncomePerHour" 
               stroke="#FF0083" 
               strokeWidth={2}
-              name={locale === 'he' ? 'הכנסה ממוצעת לשעה' : 'Avg Income/Hour'}
+              name={locale === 'he' ? 'הכנסה ממוצעת לשעה' : locale === 'es' ? 'Ingreso prom./hora' : locale === 'de' ? 'Durchschnitt/Std.' : locale === 'pt' ? 'Receita media/hora' : locale === 'fr' ? 'Revenu moyen/heure' : 'Avg Income/Hour'}
             />
           </LineChart>
         </ResponsiveContainer>

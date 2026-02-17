@@ -30,27 +30,35 @@ const translations: Record<Locale, {
     },
   },
   es: {
-    title: 'Upcoming Deadlines',
+    title: 'Fechas limite proximas',
     statuses: {
-      overdue: 'overdue',
-      'due-soon': 'due soon',
-      upcoming: 'upcoming',
+      overdue: 'atrasado',
+      'due-soon': 'proximo',
+      upcoming: 'proximo',
     },
   },
   de: {
-    title: 'Upcoming Deadlines',
+    title: 'Bevorstehende Fristen',
     statuses: {
-      overdue: 'overdue',
-      'due-soon': 'due soon',
-      upcoming: 'upcoming',
+      overdue: 'ueberfaellig',
+      'due-soon': 'bald faellig',
+      upcoming: 'bevorstehend',
     },
   },
-  'pt-BR': {
-    title: 'Upcoming Deadlines',
+  pt: {
+    title: 'Prazos proximos',
     statuses: {
-      overdue: 'overdue',
-      'due-soon': 'due soon',
-      upcoming: 'upcoming',
+      overdue: 'atrasado',
+      'due-soon': 'vence em breve',
+      upcoming: 'proximo',
+    },
+  },
+  fr: {
+    title: 'Echeances a venir',
+    statuses: {
+      overdue: 'en retard',
+      'due-soon': 'bientot',
+      upcoming: 'a venir',
     },
   },
 };
@@ -59,7 +67,7 @@ export function UpcomingDeadlines() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const upcomingTasks = state.tasks
     .filter(task => task.status !== 'completed')
@@ -87,7 +95,7 @@ export function UpcomingDeadlines() {
         {upcomingTasks.length === 0 ? (
           <div className="text-center py-8">
             <p className={`text-sm text-gray-500 dark:text-gray-400 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {locale === 'he' ? 'אין מועדים קרובים' : 'No upcoming deadlines'}
+              {locale === 'he' ? 'אין מועדים קרובים' : locale === 'es' ? 'No hay fechas limite proximas' : locale === 'de' ? 'Keine bevorstehenden Fristen' : locale === 'pt' ? 'Sem prazos proximos' : locale === 'fr' ? 'Aucune echeance a venir' : 'No upcoming deadlines'}
             </p>
           </div>
         ) : (

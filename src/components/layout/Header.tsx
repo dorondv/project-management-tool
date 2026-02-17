@@ -3,55 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bell, Search, Sun, Moon, LogOut, User, Languages, Menu, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { api } from '../../utils/api';
 import { Badge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
-import { Locale } from '../../types';
+import { Locale, SUPPORTED_LOCALES, LOCALE_LABELS } from '../../types';
+import { t } from '../../i18n';
 import toast from 'react-hot-toast';
 
 interface HeaderProps {
   onMobileMenuClick?: () => void;
 }
-
-const headerTranslations: Record<string, {
-  searchPlaceholder: string;
-  profile: string;
-  logout: string;
-  switchToDark: string;
-  switchToLight: string;
-  localeToast: string;
-  notifications: string;
-  languages: {
-    en: string;
-    he: string;
-  };
-}> = {
-  en: {
-    searchPlaceholder: 'Search projects or tasks...',
-    profile: 'Profile',
-    logout: 'Logout',
-    switchToDark: 'Switched to dark mode',
-    switchToLight: 'Switched to light mode',
-    localeToast: 'Language changed',
-    notifications: 'Notifications',
-    languages: {
-      en: 'English',
-      he: 'Hebrew (עברית)',
-    },
-  },
-  he: {
-    searchPlaceholder: 'חיפוש פרויקטים או משימות...',
-    profile: 'פרופיל',
-    logout: 'התנתקות',
-    switchToDark: 'הופעלה תצוגה כהה',
-    switchToLight: 'הופעלה תצוגה בהירה',
-    localeToast: 'השפה שונתה',
-    notifications: 'התראות',
-    languages: {
-      en: 'אנגלית (English)',
-      he: 'עברית',
-    },
-  },
-};
 
 export function Header({ onMobileMenuClick }: HeaderProps = {}) {
   const navigate = useNavigate();
@@ -60,20 +21,26 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const { state, dispatch } = useApp();
   const isRTL = state.locale === 'he';
-  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
-  const t = headerTranslations[locale];
+  const locale = (state.locale ?? 'en') as Locale;
 
   const unreadNotifications = state.notifications.filter(n => !n.read).length;
 
   const handleThemeToggle = () => {
     dispatch({ type: 'TOGGLE_THEME' });
-    toast.success(state.theme === 'light' ? t.switchToDark : t.switchToLight);
+    toast.success(state.theme === 'light' ? t('header.switchToDark', locale) : t('header.switchToLight', locale));
   };
 
-  const handleLocaleSelect = (selectedLocale: Locale) => {
+  const handleLocaleSelect = async (selectedLocale: Locale) => {
     dispatch({ type: 'SET_LOCALE', payload: selectedLocale });
     setShowLanguageMenu(false);
-    toast.success(t.localeToast);
+    toast.success(t('header.localeToast', selectedLocale));
+    if (state.user?.id) {
+      try {
+        await api.users.update(state.user.id, { preferredLanguage: selectedLocale });
+      } catch (e) {
+        console.warn('Failed to persist preferred language:', e);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -152,17 +119,17 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                       animate={{ opacity: 1, y: 0 }}
                       className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50`}
                     >
-                      {(['en', 'he'] as Locale[]).map((locale) => (
+                      {SUPPORTED_LOCALES.map((loc) => (
                         <button
-                          key={locale}
-                          onClick={() => handleLocaleSelect(locale)}
+                          key={loc}
+                          onClick={() => handleLocaleSelect(loc)}
                           className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ${
                             isRTL ? 'flex-row-reverse text-right' : 'text-left'
                           } ${
-                            state.locale === locale ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
+                            state.locale === loc ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
                           }`}
                         >
-                          {t.languages[locale]}
+                          {LOCALE_LABELS[loc]}
                         </button>
                       ))}
                     </motion.div>
@@ -174,7 +141,7 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                   <button 
                     onClick={() => navigate('/notifications')}
                     className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" 
-                    aria-label={t.notifications}
+                    aria-label={t('header.notifications', locale)}
                   >
                     <Bell size={28} />
                   </button>
@@ -225,14 +192,14 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex-row-reverse text-right"
                       >
                         <User size={22} />
-                        {t.profile}
+                        {t('header.profile', locale)}
                       </button>
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex-row-reverse text-right"
                       >
                         <LogOut size={22} />
-                        {t.logout}
+                        {t('header.logout', locale)}
                       </button>
                     </motion.div>
                   )}
@@ -279,17 +246,17 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                       animate={{ opacity: 1, y: 0 }}
                       className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50`}
                     >
-                      {(['en', 'he'] as Locale[]).map((locale) => (
+                      {SUPPORTED_LOCALES.map((loc) => (
                         <button
-                          key={locale}
-                          onClick={() => handleLocaleSelect(locale)}
+                          key={loc}
+                          onClick={() => handleLocaleSelect(loc)}
                           className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ${
                             isRTL ? 'flex-row-reverse text-right' : 'text-left'
                           } ${
-                            state.locale === locale ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
+                            state.locale === loc ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : ''
                           }`}
                         >
-                          {t.languages[locale]}
+                          {LOCALE_LABELS[loc]}
                         </button>
                       ))}
                     </motion.div>
@@ -301,7 +268,7 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                   <button 
                     onClick={() => navigate('/notifications')}
                     className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" 
-                    aria-label={t.notifications}
+                    aria-label={t('header.notifications', locale)}
                   >
                     <Bell size={28} />
                   </button>
@@ -352,14 +319,14 @@ export function Header({ onMobileMenuClick }: HeaderProps = {}) {
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                       >
                         <User size={22} />
-                        {t.profile}
+                        {t('header.profile', locale)}
                       </button>
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                       >
                         <LogOut size={22} />
-                        {t.logout}
+                        {t('header.logout', locale)}
                       </button>
                     </motion.div>
                   )}

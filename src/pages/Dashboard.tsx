@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import { FolderOpen, CheckSquare, Contact, Clock, Target, TrendingUp, DollarSign, Users, Calculator, Calendar as CalendarIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Currency } from '../types';
+import { Currency, type Locale } from '../types';
+import { t } from '../i18n';
 import { formatCurrency } from '../utils/currencyUtils';
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfDay, endOfDay, format } from 'date-fns';
 import { he, es, de, ptBR } from 'date-fns/locale';
@@ -16,69 +17,11 @@ import { DetailedCustomerReport } from '../components/dashboard/DetailedCustomer
 import { HoursByCustomerChart } from '../components/dashboard/HoursByCustomerChart';
 import { IncomeByCustomerChart } from '../components/dashboard/IncomeByCustomerChart';
 
-const dashboardTranslations = {
-  en: {
-    title: 'Dashboard',
-    subtitle: (name?: string) => `Welcome back, ${name ?? 'there'}! Here's what's happening with your projects.`,
-    periodSelector: {
-      placeholder: 'Select period',
-      currentMonth: 'Current Month',
-      lastMonth: 'Last Month',
-      currentYear: 'Current Year',
-      allTime: 'All Time',
-      custom: 'Custom Range',
-      startDate: 'Start Date',
-      endDate: 'End Date',
-      dateRange: (start: string, end: string) => `Data summary for ${start} - ${end}`,
-    },
-    stats: {
-      totalProjects: 'Total Projects',
-      activeTasks: 'Active Tasks',
-      customers: 'Customers',
-      overdueTasks: 'Overdue Tasks',
-      averageHoursPerDay: 'Average Hours Per Day',
-      averageIncomePerCustomer: 'Average Income Per Customer',
-      averageIncomePerHour: 'Average Income Per Hour',
-      totalIncomeFromCustomers: 'Total Income From Customers',
-      totalWorkHours: 'Total Work Hours',
-      totalActiveCustomers: 'Total Active Customers',
-    },
-  },
-  he: {
-    title: 'לוח בקרה',
-    subtitle: (name?: string) => `${name ?? 'שם'} ברוך השב! כך נראים הפרויקטים שלך כרגע.`,
-    periodSelector: {
-      placeholder: 'בחר תקופה',
-      currentMonth: 'החודש הנוכחי',
-      lastMonth: 'החודש הקודם',
-      currentYear: 'השנה הנוכחית',
-      allTime: 'כל הזמנים',
-      custom: 'טווח מותאם אישית',
-      startDate: 'תאריך התחלה',
-      endDate: 'תאריך סיום',
-      dateRange: (start: string, end: string) => `סיכום נתונים עבור ${start} - ${end}`,
-    },
-    stats: {
-      totalProjects: 'סה"כ פרויקטים',
-      activeTasks: 'משימות פעילות',
-      customers: 'לקוחות',
-      overdueTasks: 'משימות באיחור',
-      averageHoursPerDay: 'ממוצע שעות ליום',
-      averageIncomePerCustomer: 'הכנסה ממוצעת ללקוח',
-      averageIncomePerHour: 'הכנסה ממוצעת לשעה',
-      totalIncomeFromCustomers: 'סה"כ הכנסות מלקוחות',
-      totalWorkHours: 'סה"כ שעות עבודה',
-      totalActiveCustomers: 'סה"כ לקוחות פעילים',
-    },
-  },
-} as const;
-
 export default function Dashboard() {
   const { state } = useApp();
-  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
+  const locale = (state.locale ?? 'en') as Locale;
   const currency: Currency = state.currency ?? 'ILS';
   const isRTL = locale === 'he';
-  const t = dashboardTranslations[locale];
 
   // Period selection state
   const [period, setPeriod] = useState<'currentMonth' | 'lastMonth' | 'currentYear' | 'allTime' | 'custom'>('currentMonth');
@@ -107,6 +50,10 @@ export default function Dashboard() {
   };
 
   const { start, end } = getDateRange();
+
+  const formatSummaryCurrency = (amount: number) => {
+    return formatCurrency(Math.round(amount), currency, locale);
+  };
 
   // Filter time entries and incomes based on date range
   const filteredTimeEntries = useMemo(() => {
@@ -171,82 +118,82 @@ export default function Dashboard() {
   const stats = useMemo(() => (
     [
       {
-        title: t.stats.customers,
+        title: t('dashboard.stats.customers', locale),
         value: state.customers.length,
         change: undefined,
         icon: <Contact size={20} className="text-primary-500 dark:text-primary-300" />,
         color: 'bg-primary-50 dark:bg-primary-900/20',
       },
       {
-        title: t.stats.totalProjects,
+        title: t('dashboard.stats.totalProjects', locale),
         value: state.projects.length,
         change: { value: 12, type: 'increase' as const },
         icon: <FolderOpen size={20} className="text-primary-500 dark:text-primary-300" />,
         color: 'bg-primary-50 dark:bg-primary-900/20',
       },
       {
-        title: t.stats.activeTasks,
+        title: t('dashboard.stats.activeTasks', locale),
         value: state.tasks.filter((task) => task.status !== 'completed').length,
         change: { value: 8, type: 'increase' as const },
         icon: <CheckSquare size={20} className="text-primary-500 dark:text-primary-300" />,
         color: 'bg-primary-50 dark:bg-primary-900/20',
       },
       {
-        title: t.stats.overdueTasks,
+        title: t('dashboard.stats.overdueTasks', locale),
         value: state.tasks.filter((task) => task.status !== 'completed' && new Date(task.dueDate) < new Date()).length,
         change: { value: 3, type: 'decrease' as const },
         icon: <Clock size={20} className="text-primary-500 dark:text-primary-300" />,
         color: 'bg-primary-50 dark:bg-primary-900/20',
       },
     ]
-  ), [state.projects.length, state.tasks, state.customers.length, t.stats.activeTasks, t.stats.overdueTasks, t.stats.customers, t.stats.totalProjects]);
+  ), [state.projects.length, state.tasks, state.customers.length, locale]);
 
   const incomeStatsCards = useMemo(() => (
     [
       {
-        title: t.stats.totalActiveCustomers,
+        title: t('dashboard.stats.totalActiveCustomers', locale),
         value: incomeStats.activeCustomers,
         change: undefined,
         icon: <Users size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
       {
-        title: t.stats.averageHoursPerDay,
+        title: t('dashboard.stats.averageHoursPerDay', locale),
         value: incomeStats.averageHoursPerDay.toFixed(1),
         change: undefined,
         icon: <Target size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
       {
-        title: t.stats.averageIncomePerCustomer,
-        value: formatCurrency(incomeStats.averageIncomePerCustomer, currency, locale),
+        title: t('dashboard.stats.averageIncomePerCustomer', locale),
+        value: formatSummaryCurrency(incomeStats.averageIncomePerCustomer),
         change: undefined,
         icon: <TrendingUp size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
       {
-        title: t.stats.averageIncomePerHour,
-        value: formatCurrency(incomeStats.averageIncomePerHour, currency, locale),
+        title: t('dashboard.stats.averageIncomePerHour', locale),
+        value: formatSummaryCurrency(incomeStats.averageIncomePerHour),
         change: undefined,
         icon: <Calculator size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
       {
-        title: t.stats.totalIncomeFromCustomers,
-        value: formatCurrency(incomeStats.totalIncome, currency, locale),
+        title: t('dashboard.stats.totalIncomeFromCustomers', locale),
+        value: formatSummaryCurrency(incomeStats.totalIncome),
         change: undefined,
         icon: <DollarSign size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
       {
-        title: t.stats.totalWorkHours,
+        title: t('dashboard.stats.totalWorkHours', locale),
         value: incomeStats.totalWorkHours.toFixed(1),
         change: undefined,
         icon: <Clock size={20} className="text-pink-500 dark:text-pink-300" />,
         color: 'bg-pink-50 dark:bg-pink-900/20',
       },
     ]
-  ), [incomeStats, t.stats, currency, locale]);
+  ), [incomeStats, locale, currency]);
 
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
@@ -255,7 +202,8 @@ export default function Dashboard() {
       case 'he': return he;
       case 'es': return es;
       case 'de': return de;
-      case 'pt-BR': return ptBR;
+      case 'pt': return ptBR;
+      case 'fr': return undefined; // date-fns fr can be added if needed
       default: return undefined;
     }
   };
@@ -269,10 +217,10 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div className={alignStart}>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t.title}
+            {t('dashboard.title', locale)}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            {t.periodSelector.dateRange(formattedStart, formattedEnd)}
+            {t('dashboard.periodSelector.dateRange', locale, { start: formattedStart, end: formattedEnd })}
           </p>
         </div>
       </div>
@@ -285,11 +233,11 @@ export default function Dashboard() {
             onChange={(e) => setPeriod(e.target.value as typeof period)}
             className={`w-[180px] h-12 px-3 py-2 ${isRTL ? 'pr-8 pl-8' : 'pr-8'} bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${isRTL ? 'text-right' : 'text-left'} appearance-none`}
           >
-            <option value="currentMonth">{t.periodSelector.currentMonth}</option>
-            <option value="lastMonth">{t.periodSelector.lastMonth}</option>
-            <option value="currentYear">{t.periodSelector.currentYear}</option>
-            <option value="allTime">{t.periodSelector.allTime}</option>
-            <option value="custom">{t.periodSelector.custom}</option>
+            <option value="currentMonth">{t('dashboard.periodSelector.currentMonth', locale)}</option>
+            <option value="lastMonth">{t('dashboard.periodSelector.lastMonth', locale)}</option>
+            <option value="currentYear">{t('dashboard.periodSelector.currentYear', locale)}</option>
+            <option value="allTime">{t('dashboard.periodSelector.allTime', locale)}</option>
+            <option value="custom">{t('dashboard.periodSelector.custom', locale)}</option>
           </select>
           <CalendarIcon className={`absolute ${isRTL ? 'left-2' : 'right-2'} top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none`} size={16} />
         </div>

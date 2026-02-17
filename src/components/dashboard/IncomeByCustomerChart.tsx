@@ -17,19 +17,24 @@ const translations = {
     income: 'הכנסה',
   },
   es: {
-    title: 'Income Distribution by Customer',
-    noData: 'No income data to display',
-    income: 'Income',
+    title: 'Distribucion de ingresos por cliente',
+    noData: 'No hay datos de ingresos para mostrar',
+    income: 'Ingresos',
   },
   de: {
-    title: 'Income Distribution by Customer',
-    noData: 'No income data to display',
-    income: 'Income',
+    title: 'Einnahmenverteilung nach Kunde',
+    noData: 'Keine Einnahmendaten zur Anzeige',
+    income: 'Einnahmen',
   },
-  'pt-BR': {
-    title: 'Income Distribution by Customer',
-    noData: 'No income data to display',
-    income: 'Income',
+  pt: {
+    title: 'Distribuicao de receitas por cliente',
+    noData: 'Sem dados de receita para exibir',
+    income: 'Receita',
+  },
+  fr: {
+    title: 'Repartition des revenus par client',
+    noData: 'Aucune donnee de revenu a afficher',
+    income: 'Revenus',
   },
 } as const;
 
@@ -43,7 +48,7 @@ export function IncomeByCustomerChart({ dateRange }: IncomeByCustomerChartProps)
   const currency: Currency = state.currency ?? 'ILS';
   const currencySymbol = getCurrencySymbol(currency);
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
 
   const chartData = useMemo(() => {
     // Filter time entries and incomes by date range if provided

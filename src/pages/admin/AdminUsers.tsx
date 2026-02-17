@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../utils/api';
-import { UserPlus, Download, Calendar, DollarSign, Gift, X, CheckCircle, Loader2 } from 'lucide-react';
+import { Download, X, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface AdminUser {
@@ -47,7 +47,7 @@ export default function AdminUsers() {
     try {
       setLoading(true);
       const data = await api.admin.getUsers(state.user!.id);
-      setUsers(data);
+      setUsers(data as AdminUser[]);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error('Failed to load users');
@@ -193,6 +193,10 @@ export default function AdminUsers() {
       'Free Access': {
         color: 'text-purple-700 dark:text-purple-400',
         bg: 'bg-purple-100 dark:bg-purple-900/30',
+      },
+      'Lead': {
+        color: 'text-amber-700 dark:text-amber-400',
+        bg: 'bg-amber-100 dark:bg-amber-900/30',
       },
     };
 
@@ -452,7 +456,7 @@ export default function AdminUsers() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       {/* Only show Grant Access for users without active subscriptions or trials */}
-                      {user.userStatus === 'Churned' && !user.isPayPalTrial && (
+                      {(user.userStatus === 'Churned' || user.userStatus === 'Lead') && !user.isPayPalTrial && (
                         <button
                           onClick={() => {
                             setSelectedUser(user);

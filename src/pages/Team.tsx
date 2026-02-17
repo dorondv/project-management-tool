@@ -42,7 +42,7 @@ const translations: Record<Locale, {
     projects: 'Projects',
     tasks: 'Tasks',
   },
-  'pt-BR': {
+  pt: {
     pageTitle: 'Team',
     pageSubtitle: 'Manage your team members and their roles',
     inviteMember: 'Invite Member',
@@ -55,7 +55,7 @@ export default function Team() {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
-  const t = translations[locale];
+  const t = translations[locale] ?? translations.en;
   const alignStart = isRTL ? 'text-right' : 'text-left';
 
   const allUsers = [

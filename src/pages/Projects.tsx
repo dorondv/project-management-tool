@@ -9,54 +9,9 @@ import { EditProjectModal } from '../components/projects/EditProjectModal';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Project } from '../types';
+import type { Locale } from '../types';
+import { t } from '../i18n';
 import toast from 'react-hot-toast';
-
-const projectTranslations = {
-  en: {
-    title: 'Projects',
-    subtitle: 'Manage and track all your projects in one place',
-    newProject: 'New Project',
-    searchPlaceholder: 'Search projects...',
-    filtersLabel: 'Filters:',
-    status: {
-      all: 'All Status',
-      planning: 'Planning',
-      inProgress: 'In Progress',
-      completed: 'Completed',
-      onHold: 'On Hold',
-    },
-    customer: {
-      all: 'All Customers',
-      label: 'Customer',
-    },
-    moreFilters: 'More Filters',
-    emptyTitle: 'No projects found',
-    emptySubtitle: 'Get started by creating your first project',
-    emptyCta: 'Create Project',
-  },
-  he: {
-    title: 'פרויקטים',
-    subtitle: 'נהלו ועקבו אחרי כל הפרויקטים במקום אחד',
-    newProject: 'פרויקט חדש',
-    searchPlaceholder: 'חיפוש פרויקטים...',
-    filtersLabel: 'פילטרים:',
-    status: {
-      all: 'כל הסטטוסים',
-      planning: 'בתכנון',
-      inProgress: 'בתהליך',
-      completed: 'הושלם',
-      onHold: 'בהמתנה',
-    },
-    customer: {
-      all: 'כל הלקוחות',
-      label: 'לקוח',
-    },
-    moreFilters: 'מסננים נוספים',
-    emptyTitle: 'לא נמצאו פרויקטים',
-    emptySubtitle: 'התחילו ביצירת הפרויקט הראשון שלכם',
-    emptyCta: 'יצירת פרויקט',
-  },
-} as const;
 
 export default function Projects() {
   const { state, dispatch } = useApp();
@@ -69,28 +24,20 @@ export default function Projects() {
   const [customerFilter, setCustomerFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
 
-  const locale = state.locale;
+  const locale = (state.locale ?? 'en') as Locale;
   const isRTL = locale === 'he';
-  const t = projectTranslations[locale];
 
   const handleDeleteProject = async (project: Project) => {
-    const confirmMessage = locale === 'he' 
-      ? `האם אתה בטוח שברצונך למחוק את הפרויקט "${project.title}"?`
-      : `Are you sure you want to delete the project "${project.title}"?`;
-    
+    const confirmMessage = t('projects.deleteConfirm', locale, { title: project.title });
     if (window.confirm(confirmMessage)) {
       try {
-        // Delete via API first
         const { api } = await import('../utils/api');
         await api.projects.delete(project.id);
-        
-        // Update local state
         dispatch({ type: 'DELETE_PROJECT', payload: project.id });
-        
-        toast.success(locale === 'he' ? 'הפרויקט נמחק בהצלחה' : 'Project deleted successfully');
+        toast.success(t('projects.deleteSuccess', locale));
       } catch (error: any) {
         console.error('Failed to delete project:', error);
-        toast.error(error.message || (locale === 'he' ? 'שגיאה במחיקת הפרויקט' : 'Failed to delete project. Please try again.'));
+        toast.error(error.message || t('projects.deleteError', locale));
       }
     }
   };
@@ -138,10 +85,10 @@ export default function Projects() {
           <>
             <div className={`${alignStart} flex-1`}>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t.title}
+                {t('projects.title', locale)}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                {t.subtitle}
+                {t('projects.subtitle', locale)}
               </p>
             </div>
             <Button
@@ -149,17 +96,17 @@ export default function Projects() {
               icon={<Plus size={16} />}
               className="flex-row-reverse w-full sm:w-auto"
             >
-              {t.newProject}
+              {t('projects.newProject', locale)}
             </Button>
           </>
         ) : (
           <>
             <div className={`${alignStart} flex-1`}>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t.title}
+                {t('projects.title', locale)}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                {t.subtitle}
+                {t('projects.subtitle', locale)}
               </p>
             </div>
             <Button
@@ -167,7 +114,7 @@ export default function Projects() {
               icon={<Plus size={16} />}
               className="w-full sm:w-auto"
             >
-              {t.newProject}
+              {t('projects.newProject', locale)}
             </Button>
           </>
         )}
@@ -181,7 +128,7 @@ export default function Projects() {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300">
             <Filter className="w-4 h-4" />
-            <span>{t.filtersLabel}</span>
+            <span>{t('projects.filtersLabel', locale)}</span>
           </div>
 
           {/* Search (keep on the right in RTL, like the mockup) */}
@@ -193,7 +140,7 @@ export default function Projects() {
               />
               <input
                 type="text"
-                placeholder={t.searchPlaceholder}
+                placeholder={t('projects.searchPlaceholder', locale)}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full ${searchPadding} py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent ${alignStart} text-sm`}
@@ -208,18 +155,18 @@ export default function Projects() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectAlign} text-sm`}
           >
-            <option value="all">{t.status.all}</option>
-            <option value="planning">{t.status.planning}</option>
-            <option value="in-progress">{t.status.inProgress}</option>
-            <option value="completed">{t.status.completed}</option>
-            <option value="on-hold">{t.status.onHold}</option>
+            <option value="all">{t('projects.status.all', locale)}</option>
+            <option value="planning">{t('projects.status.planning', locale)}</option>
+            <option value="in-progress">{t('projects.status.inProgress', locale)}</option>
+            <option value="completed">{t('projects.status.completed', locale)}</option>
+            <option value="on-hold">{t('projects.status.onHold', locale)}</option>
           </select>
           <select
             value={customerFilter}
             onChange={(e) => setCustomerFilter(e.target.value)}
             className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectAlign} text-sm`}
           >
-            <option value="all">{t.customer.all}</option>
+            <option value="all">{t('projects.customer.all', locale)}</option>
             {state.customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
                 {customer.name}
@@ -232,7 +179,7 @@ export default function Projects() {
             className={`${isRTL ? 'flex-row-reverse' : ''} text-sm`}
             size="sm"
           >
-            {t.moreFilters}
+            {t('projects.moreFilters', locale)}
           </Button>
         </div>
         </div>
@@ -244,7 +191,7 @@ export default function Projects() {
           <div className="text-center">
             <LoadingSpinner size="lg" />
             <p className="mt-4 text-gray-600 dark:text-gray-400">
-              {locale === 'he' ? 'טוען פרויקטים...' : 'Loading projects...'}
+              {t('projects.loading', locale)}
             </p>
           </div>
         </div>
@@ -284,16 +231,16 @@ export default function Projects() {
             <FolderOpen size={32} className="text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            {t.emptyTitle}
+            {t('projects.emptyTitle', locale)}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {t.emptySubtitle}
+            {t('projects.emptySubtitle', locale)}
           </p>
           <Button
             onClick={() => setIsCreateModalOpen(true)}
             icon={<Plus size={20} />}
           >
-            {t.emptyCta}
+            {t('projects.emptyCta', locale)}
           </Button>
         </div>
       )}
