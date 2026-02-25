@@ -12,11 +12,26 @@ export function AuthCallback() {
     const handleCallback = async () => {
       try {
         // When detectSessionInUrl is false (workaround for auth-js bug), we must manually
-        // parse OAuth callback URL hash and set the session
+        // parse OAuth callback URL and set the session. Support both flows:
+        // 1. PKCE flow: ?code=xxx (Supabase default in production)
+        // 2. Implicit flow: #access_token=...&refresh_token=...
+        const searchParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const code = searchParams.get('code');
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
-        if (accessToken && refreshToken) {
+
+        if (code) {
+          // PKCE flow - exchange code for session (code verifier is in storage from sign-in start)
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.error('AuthCallback: Failed to exchange code for session:', exchangeError);
+            setError(exchangeError.message || 'Failed to complete sign in');
+            setTimeout(() => navigate('/'), 3000);
+            return;
+          }
+          window.history.replaceState(null, '', window.location.pathname);
+        } else if (accessToken && refreshToken) {
           const { error: setSessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -24,7 +39,6 @@ export function AuthCallback() {
           if (setSessionError) {
             console.error('AuthCallback: Failed to set session from URL:', setSessionError);
           } else {
-            // Clear the hash from URL for security
             window.history.replaceState(null, '', window.location.pathname);
           }
         }
