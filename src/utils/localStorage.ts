@@ -14,6 +14,7 @@ export interface StorageData {
   customerScoreSettings?: CustomerScoreSettings;
   activeTimer?: any;
   timerLogs?: any[];
+  accessibilitySettings?: { textSize: number; highContrast: boolean; largeCursor: boolean };
 }
 
 const STORAGE_KEY = 'projectflow_data';
