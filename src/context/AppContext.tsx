@@ -6,6 +6,7 @@ import { timerService } from '../utils/timerService';
 import { api } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { chatwootService } from '../utils/chatwoot';
+import { validateAccessibilitySettings, resetAccessibilityToDefault } from '../utils/accessibilitySettings';
 import toast from 'react-hot-toast';
 
 interface AppState {
@@ -1272,35 +1273,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     root.setAttribute('dir', dir);
   }, [state.locale]);
 
-  // Load and apply accessibility settings on mount
+  // Load and apply accessibility settings on mount (with validation to prevent corrupt values)
   useEffect(() => {
-    const applyAccessibilitySettings = () => {
-      interface AccessibilitySettings {
-        textSize: number;
-        highContrast: boolean;
-        largeCursor: boolean;
-      }
+    const savedSettings = storage.get<{ textSize: number; highContrast: boolean; largeCursor: boolean }>('accessibilitySettings');
+    const validated = validateAccessibilitySettings(savedSettings);
+    if (savedSettings && JSON.stringify(validated) !== JSON.stringify(savedSettings)) {
+      storage.set('accessibilitySettings', validated);
+    }
 
-      const savedSettings = storage.get<AccessibilitySettings>('accessibilitySettings');
-      if (savedSettings) {
-        const root = document.documentElement;
-        
-        // Apply text size
-        root.style.fontSize = `${savedSettings.textSize}%`;
-        
-        // Apply high contrast
-        if (savedSettings.highContrast) {
-          root.classList.add('high-contrast');
-        }
-        
-        // Apply large cursor
-        if (savedSettings.largeCursor) {
-          root.classList.add('large-cursor');
-        }
+    const root = document.documentElement;
+    root.style.fontSize = `${validated.textSize}%`;
+    if (validated.highContrast) root.classList.add('high-contrast');
+    else root.classList.remove('high-contrast');
+    if (validated.largeCursor) root.classList.add('large-cursor');
+    else root.classList.remove('large-cursor');
+  }, []);
+
+  // Global keyboard shortcut: Ctrl+Shift+0 to reset accessibility (when UI is broken)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '0') {
+        e.preventDefault();
+        resetAccessibilityToDefault();
+        toast.success('Accessibility settings reset to default');
       }
     };
-
-    applyAccessibilitySettings();
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Subscribe to timer service updates
