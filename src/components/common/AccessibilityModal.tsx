@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { useApp } from '../../context/AppContext';
 import { Locale } from '../../types';
 import { storage } from '../../utils/localStorage';
+import { validateAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, MIN_TEXT_SIZE, MAX_TEXT_SIZE } from '../../utils/accessibilitySettings';
 
 interface AccessibilityModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ const enTranslations = {
   highContrast: 'High contrast',
   largeCursor: 'Large cursor',
   resetSettings: 'Reset settings',
+  resetHint: 'If the display becomes unusable, press Ctrl+Shift+0 (Cmd+Shift+0 on Mac) to reset.',
 };
 
 const translations: Record<Locale, typeof enTranslations> = {
@@ -35,15 +37,15 @@ const translations: Record<Locale, typeof enTranslations> = {
     highContrast: 'ניגודיות גבוהה',
     largeCursor: 'סמן גדול',
     resetSettings: 'אפס הגדרות',
+    resetHint: 'אם התצוגה אינה שמישה, לחץ Ctrl+Shift+0 (Mac: Cmd+Shift+0) לאיפוס.',
   },
   es: enTranslations,
   de: enTranslations,
   pt: enTranslations,
+  fr: enTranslations,
 };
 
 const TEXT_SIZE_STEP = 25;
-const MIN_TEXT_SIZE = 75;
-const MAX_TEXT_SIZE = 200;
 
 export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps) {
   const { state } = useApp();
@@ -57,12 +59,14 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
     largeCursor: false,
   });
 
-  // Load settings from localStorage on mount
+  // Load settings from localStorage on mount (validated to prevent corrupt values)
   useEffect(() => {
     const savedSettings = storage.get<AccessibilitySettings>('accessibilitySettings');
-    if (savedSettings) {
-      setSettings(savedSettings);
-      applySettings(savedSettings);
+    const validated = validateAccessibilitySettings(savedSettings);
+    setSettings(validated);
+    applySettings(validated);
+    if (savedSettings && JSON.stringify(validated) !== JSON.stringify(savedSettings)) {
+      storage.set('accessibilitySettings', validated);
     }
   }, []);
 
@@ -114,12 +118,7 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
   };
 
   const handleReset = () => {
-    const defaultSettings: AccessibilitySettings = {
-      textSize: 100,
-      highContrast: false,
-      largeCursor: false,
-    };
-    updateSettings(defaultSettings);
+    updateSettings(DEFAULT_ACCESSIBILITY_SETTINGS);
   };
 
   return (
@@ -206,6 +205,9 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
         >
           {t.resetSettings}
         </Button>
+        <p className="text-xs text-gray-500 dark:text-gray-400 pt-2">
+          {t.resetHint}
+        </p>
       </div>
     </Modal>
   );

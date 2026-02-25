@@ -172,23 +172,60 @@ body {
   }
 }
 
-/* Accessibility: High Contrast */
+/* Accessibility: High Contrast - applied selectively to avoid breaking layout/overlays */
 .high-contrast {
-  --text-color: #000000;
-  --bg-color: #ffffff;
-  --border-color: #000000;
+  --hc-text: #000000;
+  --hc-bg: #ffffff;
+  --hc-border: #000000;
+  --hc-muted: #333333;
 }
 
-.high-contrast * {
-  color: var(--text-color) !important;
-  background-color: var(--bg-color) !important;
-  border-color: var(--border-color) !important;
+/* Dark mode + high contrast (both classes on html) */
+html.dark.high-contrast,
+.high-contrast.dark {
+  --hc-text: #ffffff;
+  --hc-bg: #000000;
+  --hc-border: #ffffff;
+  --hc-muted: #cccccc;
 }
 
-.dark.high-contrast {
-  --text-color: #ffffff;
-  --bg-color: #000000;
-  --border-color: #ffffff;
+/* Target text and interactive elements, not layout containers - avoids overlay/transparency breakage */
+.high-contrast p,
+.high-contrast span,
+.high-contrast label,
+.high-contrast h1, .high-contrast h2, .high-contrast h3, .high-contrast h4,
+.high-contrast td, .high-contrast th,
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea,
+.high-contrast a,
+.high-contrast li {
+  color: var(--hc-text) !important;
+}
+
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea,
+.high-contrast [role="button"],
+.high-contrast .bg-white,
+.high-contrast .bg-gray-50,
+.high-contrast .bg-gray-100,
+.high-contrast .bg-gray-800,
+.high-contrast .bg-gray-900,
+.high-contrast .bg-primary-50,
+.high-contrast .bg-primary-100,
+.high-contrast .bg-pink-50,
+.high-contrast .bg-pink-100 {
+  background-color: var(--hc-bg) !important;
+  border-color: var(--hc-border) !important;
+}
+
+/* Exclude body/html and main layout - prevents full-screen collapse to black */
+.high-contrast body {
+  background-color: var(--hc-bg) !important;
+  color: var(--hc-text) !important;
 }
 
 /* Accessibility: Large Cursor */

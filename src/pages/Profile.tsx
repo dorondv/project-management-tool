@@ -68,14 +68,10 @@ const translations: Record<Locale, {
   changeAvatar: string;
   name: string;
   email: string;
-  role: string;
   save: string;
   cancel: string;
   saving: string;
   profileUpdated: string;
-  admin: string;
-  manager: string;
-  contributor: string;
 }> = {
   en: {
     pageTitle: 'Profile',
@@ -84,14 +80,10 @@ const translations: Record<Locale, {
     changeAvatar: 'Change Avatar',
     name: 'Name',
     email: 'Email',
-    role: 'Role',
     save: 'Save',
     cancel: 'Cancel',
     saving: 'Saving...',
     profileUpdated: 'Profile updated successfully',
-    admin: 'Admin',
-    manager: 'Manager',
-    contributor: 'Contributor',
   },
   he: {
     pageTitle: 'פרופיל',
@@ -100,14 +92,10 @@ const translations: Record<Locale, {
     changeAvatar: 'שנה תמונת פרופיל',
     name: 'שם',
     email: 'אימייל',
-    role: 'תפקיד',
     save: 'שמור',
     cancel: 'ביטול',
     saving: 'שומר...',
     profileUpdated: 'הפרופיל עודכן בהצלחה',
-    admin: 'מנהל',
-    manager: 'מנהל פרויקט',
-    contributor: 'חבר צוות',
   },
   es: {
     pageTitle: 'Profile',
@@ -116,14 +104,10 @@ const translations: Record<Locale, {
     changeAvatar: 'Change Avatar',
     name: 'Name',
     email: 'Email',
-    role: 'Role',
     save: 'Save',
     cancel: 'Cancel',
     saving: 'Saving...',
     profileUpdated: 'Profile updated successfully',
-    admin: 'Admin',
-    manager: 'Manager',
-    contributor: 'Contributor',
   },
   de: {
     pageTitle: 'Profile',
@@ -132,14 +116,10 @@ const translations: Record<Locale, {
     changeAvatar: 'Change Avatar',
     name: 'Name',
     email: 'Email',
-    role: 'Role',
     save: 'Save',
     cancel: 'Cancel',
     saving: 'Saving...',
     profileUpdated: 'Profile updated successfully',
-    admin: 'Admin',
-    manager: 'Manager',
-    contributor: 'Contributor',
   },
   pt: {
     pageTitle: 'Profile',
@@ -148,14 +128,22 @@ const translations: Record<Locale, {
     changeAvatar: 'Change Avatar',
     name: 'Name',
     email: 'Email',
-    role: 'Role',
     save: 'Save',
     cancel: 'Cancel',
     saving: 'Saving...',
     profileUpdated: 'Profile updated successfully',
-    admin: 'Admin',
-    manager: 'Manager',
-    contributor: 'Contributor',
+  },
+  fr: {
+    pageTitle: 'Profile',
+    pageSubtitle: 'Manage your profile information',
+    profileInformation: 'Profile Information',
+    changeAvatar: 'Change Avatar',
+    name: 'Name',
+    email: 'Email',
+    save: 'Save',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    profileUpdated: 'Profile updated successfully',
   },
 };
 
@@ -171,7 +159,6 @@ export default function Profile() {
   const [profileData, setProfileData] = useState({
     name: state.user?.name || '',
     email: state.user?.email || '',
-    role: state.user?.role || 'manager',
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -245,19 +232,6 @@ export default function Profile() {
   const handleCancel = () => {
     // Navigate back to previous page
     navigate(-1);
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return t.admin;
-      case 'manager':
-        return t.manager;
-      case 'contributor':
-        return t.contributor;
-      default:
-        return role;
-    }
   };
 
   if (!state.user) {
@@ -341,20 +315,6 @@ export default function Profile() {
               disabled={isSaving}
               className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed ${alignStart}`}
             />
-          </div>
-
-          <div>
-            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
-              {t.role}
-            </label>
-            {isAdmin ? (
-              <input
-                type="text"
-                value={t.admin}
-                disabled
-                className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white opacity-80 ${alignStart}`}
-              />
-            ) : null}
           </div>
 
           <div className={`flex gap-3 pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
