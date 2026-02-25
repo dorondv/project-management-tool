@@ -198,7 +198,7 @@ router.get('/users', async (req, res) => {
         }
 
         // Determine user status - override if in PayPal trial
-        let userStatus = getUserStatus(subscription);
+        let userStatus: 'Free trial' | 'Active user (Paid)' | 'Churned' | 'Free access' | 'Lead' = getUserStatus(subscription);
         if (isPayPalTrial) {
           userStatus = 'Free trial';
         }
