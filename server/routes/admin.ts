@@ -1005,6 +1005,60 @@ router.get('/payments/stats', async (req, res) => {
   }
 });
 
+// POST /api/admin/payments/backfill-amounts - Fix zero amounts from stored webhook payloads
+router.post('/payments/backfill-amounts', async (req, res) => {
+  try {
+    const zeroAmountPayments = await prisma.billingHistory.findMany({
+      where: { amount: 0, status: 'paid' },
+      select: { id: true, paypalTransactionId: true, paypalSaleId: true },
+    });
+
+    if (zeroAmountPayments.length === 0) {
+      return res.json({ message: 'No zero-amount payments found', updated: 0 });
+    }
+
+    const saleIds = new Set(
+      zeroAmountPayments.map(p => p.paypalSaleId || p.paypalTransactionId).filter(Boolean)
+    );
+
+    const webhooks = await prisma.paymentWebhook.findMany({
+      where: { eventType: 'PAYMENT.SALE.COMPLETED' },
+      select: { payload: true },
+    });
+
+    let updated = 0;
+    for (const webhook of webhooks) {
+      const payload = webhook.payload as any;
+      const resource = payload?.resource;
+      if (!resource) continue;
+
+      const saleId = resource.id;
+      if (!saleId || !saleIds.has(saleId)) continue;
+
+      const amount = parseFloat(resource.amount?.value || resource.amount?.total || '0');
+      const currency = resource.amount?.currency_code || resource.amount?.currency || 'USD';
+
+      if (amount <= 0) continue;
+
+      const payment = zeroAmountPayments.find(
+        p => p.paypalSaleId === saleId || p.paypalTransactionId === saleId
+      );
+      if (!payment) continue;
+
+      await prisma.billingHistory.update({
+        where: { id: payment.id },
+        data: { amount, currency },
+      });
+      updated++;
+    }
+
+    res.json({ message: `Backfilled ${updated} of ${zeroAmountPayments.length} zero-amount payments`, updated });
+  } catch (error: any) {
+    console.error('Error backfilling payment amounts:', error);
+    res.status(500).json({ error: 'Failed to backfill amounts', details: error.message });
+  }
+});
+
 // POST /api/admin/payments/:id/refund - Issue refund via PayPal API
 router.post('/payments/:id/refund', async (req, res) => {
   try {
