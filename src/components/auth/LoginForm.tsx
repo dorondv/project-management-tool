@@ -43,6 +43,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const translations = {
     en: {
@@ -59,6 +60,8 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       signUp: 'Sign up',
       continueWithGoogle: 'Continue with Google',
       or: 'or',
+      resetEmailSent: 'Password reset email sent! Check your inbox.',
+      enterEmailFirst: 'Please enter your email address first.',
     },
     he: {
       welcome: 'ברוך הבא',
@@ -74,10 +77,34 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
       signUp: 'הירשם',
       continueWithGoogle: 'המשך עם Google',
       or: 'או',
+      resetEmailSent: 'נשלח אימייל לאיפוס סיסמה! בדוק את תיבת הדואר שלך.',
+      enterEmailFirst: 'אנא הכנס את כתובת האימייל שלך קודם.',
     },
   };
 
   const t = translations[locale] ?? translations.en;
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      toast.error(t.enterEmailFirst);
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success(t.resetEmailSent, { duration: 6000 });
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reset email');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -310,9 +337,11 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
           </label>
           <button
             type="button"
-            className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            onClick={handleForgotPassword}
+            disabled={resetLoading}
+            className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 disabled:opacity-50"
           >
-            {t.forgotPassword}
+            {resetLoading ? '...' : t.forgotPassword}
           </button>
         </div>
 

@@ -6,6 +6,7 @@ import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { AuthPage } from './components/auth/AuthPage';
 import { AuthCallback } from './components/auth/AuthCallback';
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Tasks from './pages/Tasks';
@@ -124,8 +125,9 @@ function AppContent() {
     <Router>
       <GoogleAnalytics />
       <Routes>
-        {/* OAuth callback - accessible without authentication */}
+        {/* Auth routes - accessible without authentication */}
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         
         {/* Landing page - public, accessible without authentication */}
         <Route path="/landing" element={<Landing />} />
