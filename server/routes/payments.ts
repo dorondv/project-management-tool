@@ -326,8 +326,8 @@ async function handlePaymentCompleted(resource: any) {
   // Transaction ID for invoice links - could be in different fields
   // Try resource.id first (sale ID), then resource.transaction_id, then resource.parent_payment
   const transactionId = resource.transaction_id || resource.parent_payment || resource.id;
-  const amount = parseFloat(resource.amount?.value || '0');
-  const currency = resource.amount?.currency_code || 'USD';
+  const amount = parseFloat(resource.amount?.value || resource.amount?.total || '0');
+  const currency = resource.amount?.currency_code || resource.amount?.currency || 'USD';
   const subscriptionId = resource.billing_agreement_id;
 
   console.log('💰 Payment completed:', { transactionId, saleId, amount, subscriptionId });
