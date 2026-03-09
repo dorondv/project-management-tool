@@ -25,6 +25,7 @@ const translations: Record<
       incomeDate: string;
       invoiceNumber: string;
       invoiceNumberOptional: string;
+      noVat: string;
       vatRate: string;
       amountBeforeVat: string;
       vatAmount: string;
@@ -47,6 +48,7 @@ const translations: Record<
       incomeDate: 'Income Date',
       invoiceNumber: 'Invoice Number',
       invoiceNumberOptional: '(Optional)',
+      noVat: 'No VAT',
       vatRate: 'VAT Rate',
       amountBeforeVat: 'Amount before VAT',
       vatAmount: 'VAT',
@@ -68,6 +70,7 @@ const translations: Record<
       incomeDate: 'תאריך הכנסה',
       invoiceNumber: 'מספר חשבונית',
       invoiceNumberOptional: '(אופציונלי)',
+      noVat: 'ללא מע"מ',
       vatRate: 'שיעור מע"מ',
       amountBeforeVat: 'סכום לפני מע"מ',
       vatAmount: 'מע"מ',
@@ -96,21 +99,24 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
     vatRate: 0.18,
     amountBeforeVat: '',
   });
+  const [noVat, setNoVat] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form when income changes
   useEffect(() => {
     if (income) {
       const date = new Date(income.incomeDate);
       const formattedDate = date.toISOString().split('T')[0];
+      const isZeroVat = income.vatRate === 0;
+      setNoVat(isZeroVat);
       setFormData({
         customerId: income.customerId,
         incomeDate: formattedDate,
         invoiceNumber: income.invoiceNumber || '',
-        vatRate: income.vatRate,
+        vatRate: isZeroVat ? 0 : income.vatRate,
         amountBeforeVat: income.amountBeforeVat.toString(),
       });
     } else {
+      setNoVat(false);
       setFormData({
         customerId: '',
         incomeDate: new Date().toISOString().split('T')[0],
@@ -127,15 +133,15 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
 
   const calculations = useMemo(() => {
     const amountBeforeVat = parseFloat(formData.amountBeforeVat) || 0;
-    const vatRate = formData.vatRate || 0;
-    const vatAmount = amountBeforeVat * vatRate;
+    const effectiveRate = noVat ? 0 : (formData.vatRate || 0);
+    const vatAmount = amountBeforeVat * effectiveRate;
     const finalAmount = amountBeforeVat + vatAmount;
 
     return {
       vatAmount,
       finalAmount,
     };
-  }, [formData.amountBeforeVat, formData.vatRate]);
+  }, [formData.amountBeforeVat, formData.vatRate, noVat]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,20 +174,19 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
         customerName: customer.name,
         incomeDate: new Date(formData.incomeDate),
         invoiceNumber: formData.invoiceNumber || undefined,
-        vatRate: formData.vatRate,
+        vatRate: noVat ? 0 : formData.vatRate,
         amountBeforeVat,
         vatAmount,
         finalAmount,
       };
 
+      const { api } = await import('../../utils/api');
+
       if (isEditing && income) {
-        // Update existing income
-        const updatedIncome = { ...income, ...incomeData, updatedAt: new Date() };
+        const updatedIncome = await api.incomes.update(income.id, incomeData);
         dispatch({ type: 'UPDATE_INCOME', payload: updatedIncome });
         toast.success(locale === 'he' ? 'הכנסה עודכנה בהצלחה' : 'Income updated successfully');
       } else {
-        // Create new income - call API first, then update local state with response
-        const { api } = await import('../../utils/api');
         const createdIncome = await api.incomes.create(incomeData);
         dispatch({ type: 'ADD_INCOME', payload: createdIncome });
         toast.success(locale === 'he' ? 'הכנסה נוספה בהצלחה' : 'Income added successfully');
@@ -279,24 +284,43 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
 
           {/* VAT Rate */}
           <div>
-            <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
-              {t.fields.vatRate}
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="1"
-                value={formData.vatRate}
-                onChange={(e) => setFormData({ ...formData, vatRate: parseFloat(e.target.value) || 0 })}
-                className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${inputAlign}`}
-                required
-              />
-              <span className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-sm text-gray-500`}>
-                ({Math.round(formData.vatRate * 100)}%)
-              </span>
+            <div className={`flex items-center justify-between mb-2`}>
+              <label className={`text-sm font-medium text-gray-700 dark:text-gray-300 ${alignStart}`}>
+                {t.fields.vatRate}
+              </label>
+              <label className={`flex items-center gap-2 cursor-pointer ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={noVat}
+                  onChange={(e) => {
+                    setNoVat(e.target.checked);
+                    if (e.target.checked) {
+                      setFormData({ ...formData, vatRate: 0 });
+                    } else {
+                      setFormData({ ...formData, vatRate: 0.18 });
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t.fields.noVat}</span>
+              </label>
             </div>
+            {!noVat && (
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="1"
+                  value={formData.vatRate}
+                  onChange={(e) => setFormData({ ...formData, vatRate: parseFloat(e.target.value) || 0 })}
+                  className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-gray-700 dark:text-white ${inputAlign}`}
+                />
+                <span className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-sm text-gray-500`}>
+                  ({Math.round(formData.vatRate * 100)}%)
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Amount Before VAT */}
@@ -321,7 +345,7 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
           {/* VAT Amount (calculated, read-only) */}
           <div>
             <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
-              {t.fields.vatAmount} ({Math.round(formData.vatRate * 100)}%):
+              {t.fields.vatAmount} ({noVat ? '0' : Math.round(formData.vatRate * 100)}%):
             </label>
             <div className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg ${inputAlign}`}>
               <span className="text-gray-900 dark:text-white font-medium">

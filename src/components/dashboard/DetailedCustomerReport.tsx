@@ -1,14 +1,20 @@
 import { useState, useMemo } from 'react';
 import { Calculator, ArrowUpDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Locale, Customer, TimeEntry, Income, Currency } from '../../types';
+import { Locale, Customer, Currency } from '../../types';
 import { Badge } from '../common/Badge';
-import { format } from 'date-fns';
-import { he, es, de, ptBR } from 'date-fns/locale';
-import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, differenceInDays } from 'date-fns';
+import { startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 import { getCurrencySymbol } from '../../utils/currencyUtils';
 import { storage } from '../../utils/localStorage';
 import { CustomerScoreSettings, sanitizeCustomerScoreSettings } from '../../utils/customerScoreSettings';
+import {
+  calculateCustomerScore,
+  getScoreBadgeColor,
+  getCustomerMonthlyIncome,
+  getCustomerHourlyRate,
+  getCustomerSeniority,
+  getReferralsCount,
+} from '../../utils/customerScore';
 
 const translations: Record<Locale, {
   title: string;
@@ -259,141 +265,12 @@ interface ClientStat {
   avgHourlyRate: number;
 }
 
-// Helper functions
-const getClientMonthlyIncome = (customer: Customer): number => {
-  if (customer.billingModel === 'retainer') {
-    return customer.monthlyRetainer || 0;
-  } else if (customer.billingModel === 'hourly') {
-    // Estimate based on hours per month and hourly rate
-    const hourlyRate = customer.hoursPerMonth || 0;
-    const rate = 0; // We'll calculate from time entries
-    return hourlyRate * rate;
-  }
-  return 0;
-};
 
-const getClientSeniority = (customer: Customer): number => {
-  if (customer.status !== 'active') return 0;
-  const joinDate = customer.joinDate ? new Date(customer.joinDate) : new Date(customer.createdAt);
-  const now = new Date();
-  const years = now.getFullYear() - joinDate.getFullYear();
-  const months = now.getMonth() - joinDate.getMonth();
-  return Math.max(0, years * 12 + months);
-};
+interface DetailedCustomerReportProps {
+  dateRange?: { start: Date; end: Date };
+}
 
-const getReferralsCountForClient = (customerId: string, allCustomers: Customer[]): number => {
-  // Check if any customer has this customer's ID in their referralSource
-  // This assumes referralSource might contain customer IDs, otherwise returns 0
-  return allCustomers.filter(c => c.referralSource === customerId || c.referralSource?.includes(customerId)).length;
-};
-
-const getAllTimeRevenueForClient = (customerId: string, allTimeEntries: TimeEntry[], allIncomes: Income[]): number => {
-  const timeEntryRevenue = allTimeEntries
-    .filter(entry => entry.customerId === customerId)
-    .reduce((sum, entry) => sum + entry.income, 0);
-  
-  const incomeRevenue = allIncomes
-    .filter(income => income.customerId === customerId)
-    .reduce((sum, income) => sum + income.finalAmount, 0);
-  
-  return timeEntryRevenue + incomeRevenue;
-};
-
-const getIncomeFromReferrals = (customerId: string, allCustomers: Customer[], allTimeEntries: TimeEntry[], allIncomes: Income[]): number => {
-  const referredCustomers = allCustomers.filter(c => c.referralSource === customerId);
-  if (referredCustomers.length === 0) return 0;
-  
-  return referredCustomers.reduce((sum, referredCustomer) => {
-    return sum + getAllTimeRevenueForClient(referredCustomer.id, allTimeEntries, allIncomes);
-  }, 0);
-};
-
-const calculateClientScore = (
-  customer: Customer,
-  allCustomers: Customer[],
-  allTimeEntries: TimeEntry[],
-  allIncomes: Income[],
-  scoreSettings: CustomerScoreSettings,
-): string => {
-  const activeCustomers = allCustomers.filter(c => c.status === 'active');
-  if (activeCustomers.length === 0) return 'C';
-
-  const clientMetrics = {
-    monthlyIncome: getClientMonthlyIncome(customer),
-    hourlyRate: 0, // Will be calculated from time entries
-    seniority: getClientSeniority(customer),
-    referralsCount: getReferralsCountForClient(customer.id, allCustomers),
-    totalRevenue: getAllTimeRevenueForClient(customer.id, allTimeEntries, allIncomes),
-    referredRevenue: getIncomeFromReferrals(customer.id, allCustomers, allTimeEntries, allIncomes),
-  };
-
-  // Calculate average hourly rate from time entries
-  const customerTimeEntries = allTimeEntries.filter(entry => entry.customerId === customer.id);
-  if (customerTimeEntries.length > 0) {
-    const totalHours = customerTimeEntries.reduce((sum, entry) => sum + (entry.duration / 3600), 0);
-    const totalIncome = customerTimeEntries.reduce((sum, entry) => sum + entry.income, 0);
-    clientMetrics.hourlyRate = totalHours > 0 ? totalIncome / totalHours : 0;
-  }
-
-  // Calculate averages across all active customers
-  const averages = {
-    monthlyIncome: activeCustomers.reduce((sum, c) => sum + getClientMonthlyIncome(c), 0) / activeCustomers.length,
-    hourlyRate: activeCustomers.reduce((sum, c) => {
-      const cEntries = allTimeEntries.filter(entry => entry.customerId === c.id);
-      if (cEntries.length === 0) return sum;
-      const cHours = cEntries.reduce((s, e) => s + (e.duration / 3600), 0);
-      const cIncome = cEntries.reduce((s, e) => s + e.income, 0);
-      return sum + (cHours > 0 ? cIncome / cHours : 0);
-    }, 0) / activeCustomers.length,
-    seniority: activeCustomers.reduce((sum, c) => sum + getClientSeniority(c), 0) / activeCustomers.length,
-    referralsCount: activeCustomers.reduce((sum, c) => sum + getReferralsCountForClient(c.id, allCustomers), 0) / activeCustomers.length,
-    totalRevenue: activeCustomers.reduce((sum, c) => sum + getAllTimeRevenueForClient(c.id, allTimeEntries, allIncomes), 0) / activeCustomers.length,
-    referredRevenue: activeCustomers.reduce((sum, c) => sum + getIncomeFromReferrals(c.id, allCustomers, allTimeEntries, allIncomes), 0) / activeCustomers.length,
-  };
-
-  const metrics: Array<{
-    key: keyof typeof clientMetrics;
-    value: number;
-    average: number;
-  }> = [
-    { key: 'monthlyIncome', value: clientMetrics.monthlyIncome, average: averages.monthlyIncome },
-    { key: 'hourlyRate', value: clientMetrics.hourlyRate, average: averages.hourlyRate },
-    { key: 'seniority', value: clientMetrics.seniority, average: averages.seniority },
-    { key: 'referralsCount', value: clientMetrics.referralsCount, average: averages.referralsCount },
-    { key: 'totalRevenue', value: clientMetrics.totalRevenue, average: averages.totalRevenue },
-    { key: 'referredRevenue', value: clientMetrics.referredRevenue, average: averages.referredRevenue },
-  ];
-
-  let weightedScoreTotal = 0;
-  let totalWeight = 0;
-
-  metrics.forEach((metric) => {
-    const weight = scoreSettings.weights[metric.key];
-    const isEnabled = scoreSettings.include[metric.key];
-    if (!isEnabled || weight <= 0 || metric.average <= 0) return;
-    const normalizedScore = Math.min(metric.value / metric.average, 2);
-    weightedScoreTotal += normalizedScore * weight;
-    totalWeight += weight;
-  });
-
-  if (totalWeight === 0) return 'C';
-
-  const finalScore = weightedScoreTotal / totalWeight;
-  if (finalScore >= 1.2) return 'A';
-  if (finalScore >= 0.8) return 'B';
-  return 'C';
-};
-
-const getScoreBadgeColor = (score: string): string => {
-  switch(score) {
-    case 'A': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-    case 'B': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-    case 'C': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-  }
-};
-
-export function DetailedCustomerReport() {
+export function DetailedCustomerReport({ dateRange }: DetailedCustomerReportProps) {
   const { state } = useApp();
   const locale: Locale = state.locale ?? 'en';
   const currency: Currency = state.currency ?? 'ILS';
@@ -410,56 +287,64 @@ export function DetailedCustomerReport() {
   const [sortBy, setSortBy] = useState<string>('revenue');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Use current month as default period
-  const now = new Date();
-  const startDate = startOfMonth(now);
-  const endDate = endOfMonth(now);
-  const daysInPeriod = Math.max(1, differenceInDays(endDate, startDate) + 1);
+  const periodStart = useMemo(() => dateRange?.start ?? startOfMonth(new Date()), [dateRange]);
+  const periodEnd = useMemo(() => dateRange?.end ?? endOfMonth(new Date()), [dateRange]);
+  const daysInPeriod = useMemo(() => Math.max(1, differenceInDays(periodEnd, periodStart) + 1), [periodStart, periodEnd]);
 
   const clientStats = useMemo<ClientStat[]>(() => {
     const stats: ClientStat[] = [];
 
-    // Filter to only active customers
     const activeCustomers = state.customers.filter(customer => customer.status === 'active');
 
     activeCustomers.forEach(customer => {
-      const scoreMetrics = {
-        monthlyIncome: getClientMonthlyIncome(customer),
-        hourlyRate: 0,
-        seniority: getClientSeniority(customer),
-        referralsCount: getReferralsCountForClient(customer.id, state.customers),
-        totalRevenue: getAllTimeRevenueForClient(customer.id, state.timeEntries, state.incomes),
-        referredRevenue: getIncomeFromReferrals(customer.id, state.customers, state.timeEntries, state.incomes),
-      };
-
-      // Calculate average hourly rate
-      const customerTimeEntries = state.timeEntries.filter(entry => entry.customerId === customer.id);
-      if (customerTimeEntries.length > 0) {
-        const totalHours = customerTimeEntries.reduce((sum, entry) => sum + (entry.duration / 3600), 0);
-        const totalIncome = customerTimeEntries.reduce((sum, entry) => sum + entry.income, 0);
-        scoreMetrics.hourlyRate = totalHours > 0 ? totalIncome / totalHours : 0;
-      }
-
-      // Filter time entries for the period
       const periodTimeEntries = state.timeEntries.filter(entry => {
         const entryDate = new Date(entry.startTime);
-        return entryDate >= startDate && entryDate <= endDate && entry.customerId === customer.id;
+        return entryDate >= periodStart && entryDate <= periodEnd && entry.customerId === customer.id;
+      });
+
+      const periodIncomes = state.incomes.filter(income => {
+        const incomeDate = new Date(income.incomeDate);
+        return incomeDate >= periodStart && incomeDate <= periodEnd && income.customerId === customer.id;
       });
 
       const workedHours = periodTimeEntries.reduce((sum, entry) => sum + (entry.duration / 3600), 0);
-      const receivedPayments = periodTimeEntries.reduce((sum, entry) => sum + entry.income, 0) +
-        state.incomes
-          .filter(income => {
-            const incomeDate = new Date(income.incomeDate);
-            return incomeDate >= startDate && incomeDate <= endDate && income.customerId === customer.id;
+      const periodTimeEntryIncome = periodTimeEntries.reduce((sum, entry) => sum + entry.income, 0);
+      const periodIncomeAmount = periodIncomes.reduce((sum, income) => sum + income.finalAmount, 0);
+      const receivedPayments = periodTimeEntryIncome + periodIncomeAmount;
+
+      const referredCustomers = state.customers.filter(c =>
+        c.referralSource?.startsWith('client_referral:') && c.referralSource.split(':')[1] === customer.id
+      );
+      const periodReferredRevenue = referredCustomers.reduce((sum, rc) => {
+        const rcTimeRevenue = state.timeEntries
+          .filter(e => {
+            const d = new Date(e.startTime);
+            return d >= periodStart && d <= periodEnd && e.customerId === rc.id;
           })
-          .reduce((sum, income) => sum + income.finalAmount, 0);
+          .reduce((s, e) => s + e.income, 0);
+        const rcIncomeRevenue = state.incomes
+          .filter(inc => {
+            const d = new Date(inc.incomeDate);
+            return d >= periodStart && d <= periodEnd && inc.customerId === rc.id;
+          })
+          .reduce((s, inc) => s + inc.finalAmount, 0);
+        return sum + rcTimeRevenue + rcIncomeRevenue;
+      }, 0);
+
+      const scoreMetrics = {
+        monthlyIncome: getCustomerMonthlyIncome(customer),
+        hourlyRate: getCustomerHourlyRate(customer),
+        seniority: getCustomerSeniority(customer),
+        referralsCount: getReferralsCount(customer.id, state.customers),
+        totalRevenue: receivedPayments,
+        referredRevenue: periodReferredRevenue,
+      };
 
       const avgHourlyRate = workedHours > 0 ? receivedPayments / workedHours : 0;
 
       stats.push({
         customer,
-        score: calculateClientScore(
+        score: calculateCustomerScore(
           customer,
           state.customers,
           state.timeEntries,
@@ -474,7 +359,7 @@ export function DetailedCustomerReport() {
     });
 
     return stats;
-  }, [state.customers, state.timeEntries, state.incomes, startDate, endDate]);
+  }, [state.customers, state.timeEntries, state.incomes, periodStart, periodEnd, customerScoreSettings]);
 
   const sortedStats = useMemo(() => {
     const sorted = [...clientStats];
@@ -672,10 +557,14 @@ export function DetailedCustomerReport() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                      {currencySymbol}{stat.scoreMetrics.monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {stat.customer.billingModel === 'retainer'
+                        ? `${currencySymbol}${stat.scoreMetrics.monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        : '-'}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                      {currencySymbol}{stat.scoreMetrics.hourlyRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {stat.customer.billingModel === 'hourly'
+                        ? `${currencySymbol}${stat.scoreMetrics.hourlyRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        : '-'}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
                       {stat.scoreMetrics.seniority.toFixed(1)}

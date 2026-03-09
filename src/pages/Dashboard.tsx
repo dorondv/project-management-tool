@@ -30,13 +30,13 @@ export default function Dashboard() {
     to: endOfMonth(new Date()),
   });
 
-  // Get date range based on selected period
-  const getDateRange = () => {
+  const dateRange = useMemo(() => {
     const now = new Date();
     switch (period) {
-      case 'lastMonth':
+      case 'lastMonth': {
         const lastMonth = subMonths(now, 1);
         return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+      }
       case 'currentYear':
         return { start: startOfYear(now), end: endOfYear(now) };
       case 'allTime':
@@ -47,28 +47,27 @@ export default function Dashboard() {
       default:
         return { start: startOfMonth(now), end: endOfMonth(now) };
     }
-  };
+  }, [period, customRange.from, customRange.to]);
 
-  const { start, end } = getDateRange();
+  const { start, end } = dateRange;
 
   const formatSummaryCurrency = (amount: number) => {
     return formatCurrency(Math.round(amount), currency, locale);
   };
 
-  // Filter time entries and incomes based on date range
   const filteredTimeEntries = useMemo(() => {
     return state.timeEntries.filter(entry => {
       const entryDate = new Date(entry.startTime);
-      return entryDate >= start && entryDate <= end;
+      return entryDate >= dateRange.start && entryDate <= dateRange.end;
     });
-  }, [state.timeEntries, start, end]);
+  }, [state.timeEntries, dateRange]);
 
   const filteredIncomes = useMemo(() => {
     return state.incomes.filter(income => {
       const incomeDate = new Date(income.incomeDate);
-      return incomeDate >= start && incomeDate <= end;
+      return incomeDate >= dateRange.start && incomeDate <= dateRange.end;
     });
-  }, [state.incomes, start, end]);
+  }, [state.incomes, dateRange]);
 
   // Calculate income and work statistics using filtered data
   const incomeStats = useMemo(() => {
@@ -310,13 +309,13 @@ export default function Dashboard() {
 
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <IncomePerHourChart dateRange={{ start, end }} />
-        <MonthlyTrendsChart dateRange={{ start, end }} />
+        <IncomePerHourChart dateRange={dateRange} />
+        <MonthlyTrendsChart dateRange={dateRange} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HoursByCustomerChart dateRange={{ start, end }} />
-        <IncomeByCustomerChart dateRange={{ start, end }} />
+        <HoursByCustomerChart dateRange={dateRange} />
+        <IncomeByCustomerChart dateRange={dateRange} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -324,7 +323,7 @@ export default function Dashboard() {
         <UpcomingDeadlines />
       </div>
 
-      <DetailedCustomerReport />
+      <DetailedCustomerReport dateRange={dateRange} />
     </div>
   );
 }

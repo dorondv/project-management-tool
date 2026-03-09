@@ -89,9 +89,12 @@ export interface Customer {
   id: string;
   name: string;
   status: 'active' | 'trial' | 'paused' | 'churned';
+  email: string;
+  phone: string;
   contactName: string;
   contactEmail: string;
   contactPhone: string;
+  address: string;
   country: string;
   taxId: string;
   joinDate: Date;

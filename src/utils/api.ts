@@ -300,6 +300,12 @@ export const api = {
       fetch(`${API_URL}/api/events/${id}`, {
         method: 'DELETE',
       }).then(() => null),
+    excludeDate: (id: string, date: string) =>
+      fetch(`${API_URL}/api/events/${id}/exclude-date`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date }),
+      }).then(handleResponse),
   },
 
   // Dashboard - optimized single endpoint for initial data

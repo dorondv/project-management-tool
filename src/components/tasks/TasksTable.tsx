@@ -452,10 +452,10 @@ function TaskRow({ task, overdue, locale, isRTL, t, getProjectName, getCustomerF
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <span>{customer.contactName}</span>
-                {customer.contactEmail && (
+                {(customer.email || customer.contactEmail) && (
                   <>
                     <span>•</span>
-                    <span className="truncate max-w-[120px]">{customer.contactEmail}</span>
+                    <span className="truncate max-w-[120px]">{customer.email || customer.contactEmail}</span>
                   </>
                 )}
               </div>
