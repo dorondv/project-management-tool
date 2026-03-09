@@ -40,6 +40,9 @@ const translations = {
     updateEvent: 'Update Event',
     deleteEvent: 'Delete Event',
     confirmDelete: 'Are you sure you want to delete this event?',
+    confirmDeleteRecurring: 'This is a recurring event. What would you like to delete?',
+    deleteThisInstance: 'Only this instance',
+    deleteAllInstances: 'All events in this series',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
     errorEndDate: 'End date must be after start date',
@@ -81,6 +84,9 @@ const translations = {
     updateEvent: 'עדכן אירוע',
     deleteEvent: 'מחק אירוע',
     confirmDelete: 'האם אתה בטוח שברצונך למחוק את האירוע הזה?',
+    confirmDeleteRecurring: 'זהו אירוע חוזר. מה ברצונך למחוק?',
+    deleteThisInstance: 'רק מופע זה',
+    deleteAllInstances: 'כל האירועים בסדרה',
     errorTitle: 'אנא הזן כותרת אירוע',
     errorStartDate: 'אנא בחר תאריך התחלה',
     errorEndDate: 'תאריך סיום חייב להיות אחרי תאריך התחלה',
@@ -122,6 +128,9 @@ const translations = {
     updateEvent: 'Update Event',
     deleteEvent: 'Delete Event',
     confirmDelete: 'Are you sure you want to delete this event?',
+    confirmDeleteRecurring: 'This is a recurring event. What would you like to delete?',
+    deleteThisInstance: 'Only this instance',
+    deleteAllInstances: 'All events in this series',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
     errorEndDate: 'End date must be after start date',
@@ -163,6 +172,9 @@ const translations = {
     updateEvent: 'Update Event',
     deleteEvent: 'Delete Event',
     confirmDelete: 'Are you sure you want to delete this event?',
+    confirmDeleteRecurring: 'This is a recurring event. What would you like to delete?',
+    deleteThisInstance: 'Only this instance',
+    deleteAllInstances: 'All events in this series',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
     errorEndDate: 'End date must be after start date',
@@ -204,6 +216,9 @@ const translations = {
     updateEvent: 'Update Event',
     deleteEvent: 'Delete Event',
     confirmDelete: 'Are you sure you want to delete this event?',
+    confirmDeleteRecurring: 'This is a recurring event. What would you like to delete?',
+    deleteThisInstance: 'Only this instance',
+    deleteAllInstances: 'All events in this series',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
     errorEndDate: 'End date must be after start date',
@@ -283,11 +298,13 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
   const [formData, setFormData] = useState(initializeFormData(event));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteChoice, setShowDeleteChoice] = useState(false);
 
   // Update form when event changes
   useEffect(() => {
     if (event && isOpen) {
       setFormData(initializeFormData(event));
+      setShowDeleteChoice(false);
     }
   }, [event, isOpen]);
 
@@ -440,14 +457,22 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
     if (!event) return;
 
-    if (!confirm(t.confirmDelete)) {
-      return;
+    if (event.recurrenceType !== 'none') {
+      setShowDeleteChoice(true);
+    } else {
+      if (confirm(t.confirmDelete)) {
+        handleDeleteAll();
+      }
     }
+  };
 
+  const handleDeleteAll = async () => {
+    if (!event) return;
     setIsDeleting(true);
+    setShowDeleteChoice(false);
 
     try {
       const { api } = await import('../../utils/api');
@@ -458,6 +483,51 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
     } catch (error: any) {
       console.error('Failed to delete event:', error);
       toast.error(error.message || 'Failed to delete event. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteThisInstance = async () => {
+    if (!event) return;
+    setIsDeleting(true);
+    setShowDeleteChoice(false);
+
+    try {
+      const { api } = await import('../../utils/api');
+      const dateToExclude = new Date(event.startDate).toISOString().split('T')[0];
+      const updatedEvent = await api.events.excludeDate(event.id, dateToExclude);
+
+      const updated: Event = {
+        id: updatedEvent.id,
+        title: updatedEvent.title,
+        description: updatedEvent.description,
+        startDate: new Date(updatedEvent.startDate),
+        endDate: updatedEvent.endDate ? new Date(updatedEvent.endDate) : null,
+        allDay: updatedEvent.allDay,
+        recurrenceType: updatedEvent.recurrenceType,
+        recurrenceEndDate: updatedEvent.recurrenceEndDate ? new Date(updatedEvent.recurrenceEndDate) : null,
+        recurrenceCount: updatedEvent.recurrenceCount,
+        excludedDates: updatedEvent.excludedDates || [],
+        meetingLink: updatedEvent.meetingLink,
+        userId: updatedEvent.userId,
+        customerId: updatedEvent.customerId,
+        projectId: updatedEvent.projectId,
+        taskId: updatedEvent.taskId,
+        createdAt: new Date(updatedEvent.createdAt),
+        updatedAt: new Date(updatedEvent.updatedAt),
+        customer: updatedEvent.customer || null,
+        project: updatedEvent.project || null,
+        task: updatedEvent.task || null,
+        user: updatedEvent.user || null,
+      };
+
+      dispatch({ type: 'UPDATE_EVENT', payload: updated });
+      toast.success(t.successDeleted);
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to exclude date:', error);
+      toast.error(error.message || 'Failed to delete instance. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -725,7 +795,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={isSubmitting || isDeleting}
                 className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
@@ -750,7 +820,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={isSubmitting || isDeleting}
                 className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
@@ -783,6 +853,51 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
           )}
         </div>
       </form>
+
+      {/* Delete choice dialog for recurring events */}
+      {showDeleteChoice && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className={`flex items-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg">
+                <Trash2 size={20} className="text-pink-600 dark:text-pink-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {t.deleteEvent}
+              </h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {t.confirmDeleteRecurring}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleDeleteThisInstance}
+                disabled={isDeleting}
+                className="w-full px-4 py-2.5 text-sm font-medium rounded-lg border-2 border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-900/20 transition-colors"
+              >
+                {t.deleteThisInstance}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAll}
+                disabled={isDeleting}
+                className="w-full px-4 py-2.5 text-sm font-medium rounded-lg bg-pink-600 text-white hover:bg-pink-700 transition-colors"
+              >
+                {t.deleteAllInstances}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteChoice(false)}
+                disabled={isDeleting}
+                className="w-full px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                {t.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

@@ -112,9 +112,12 @@ export interface Customer {
   id: string;
   name: string;
   status: CustomerStatus;
+  email: string;
+  phone: string;
   contactName: string;
   contactEmail: string;
   contactPhone: string;
+  address: string;
   country: string;
   taxId: string;
   joinDate: Date;
@@ -237,6 +240,7 @@ export interface Event {
   recurrenceType: 'none' | 'daily' | 'weekly' | 'monthly' | 'quarterly';
   recurrenceEndDate?: Date | null;
   recurrenceCount?: number | null;
+  excludedDates?: string[];
   meetingLink?: string | null;
   userId: string;
   customerId?: string | null;

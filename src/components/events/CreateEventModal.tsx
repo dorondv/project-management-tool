@@ -40,6 +40,7 @@ const translations = {
     createEvent: 'Create Event',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
+    errorStartDatePast: 'Start date cannot be in the past',
     errorEndDate: 'End date must be after start date',
     errorRecurrenceEndDate: 'Recurrence end date must be after start date',
     errorRecurrenceCount: 'Recurrence count must be at least 1',
@@ -78,6 +79,7 @@ const translations = {
     createEvent: 'צור אירוע',
     errorTitle: 'אנא הזן כותרת אירוע',
     errorStartDate: 'אנא בחר תאריך התחלה',
+    errorStartDatePast: 'תאריך התחלה לא יכול להיות בעבר',
     errorEndDate: 'תאריך סיום חייב להיות אחרי תאריך התחלה',
     errorRecurrenceEndDate: 'תאריך סיום חזרה חייב להיות אחרי תאריך התחלה',
     errorRecurrenceCount: 'מספר חזרות חייב להיות לפחות 1',
@@ -116,6 +118,7 @@ const translations = {
     createEvent: 'Create Event',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
+    errorStartDatePast: 'Start date cannot be in the past',
     errorEndDate: 'End date must be after start date',
     errorRecurrenceEndDate: 'Recurrence end date must be after start date',
     errorRecurrenceCount: 'Recurrence count must be at least 1',
@@ -154,6 +157,7 @@ const translations = {
     createEvent: 'Create Event',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
+    errorStartDatePast: 'Start date cannot be in the past',
     errorEndDate: 'End date must be after start date',
     errorRecurrenceEndDate: 'Recurrence end date must be after start date',
     errorRecurrenceCount: 'Recurrence count must be at least 1',
@@ -192,6 +196,7 @@ const translations = {
     createEvent: 'Create Event',
     errorTitle: 'Please enter an event title',
     errorStartDate: 'Please select a start date',
+    errorStartDatePast: 'Start date cannot be in the past',
     errorEndDate: 'End date must be after start date',
     errorRecurrenceEndDate: 'Recurrence end date must be after start date',
     errorRecurrenceCount: 'Recurrence count must be at least 1',
@@ -211,13 +216,15 @@ export function CreateEventModal({ isOpen, onClose, preselectedDate }: CreateEve
   const locale: Locale = state.locale ?? 'en';
   const isRTL = locale === 'he';
   const t = translations[locale] ?? translations.en;
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  // Initialize form with preselected date if provided
+  // Initialize form with preselected date if provided (clamped to today at minimum)
   const getInitialStartDate = () => {
-    if (preselectedDate) {
+    const now = new Date();
+    if (preselectedDate && preselectedDate >= new Date(now.toISOString().split('T')[0])) {
       return preselectedDate.toISOString().split('T')[0];
     }
-    return new Date().toISOString().split('T')[0];
+    return now.toISOString().split('T')[0];
   };
 
   const getInitialStartTime = () => {
@@ -305,6 +312,16 @@ export function CreateEventModal({ isOpen, onClose, preselectedDate }: CreateEve
 
     if (!formData.startDate) {
       toast.error(t.errorStartDate);
+      return;
+    }
+
+    // Validate start date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDateObj = new Date(formData.startDate);
+    startDateObj.setHours(0, 0, 0, 0);
+    if (startDateObj < today) {
+      toast.error(t.errorStartDatePast);
       return;
     }
 
@@ -459,6 +476,7 @@ export function CreateEventModal({ isOpen, onClose, preselectedDate }: CreateEve
             <input
               type="date"
               value={formData.startDate}
+              min={todayStr}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               required

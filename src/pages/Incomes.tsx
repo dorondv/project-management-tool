@@ -306,7 +306,11 @@ export default function Incomes() {
     });
   }, [state.incomes, previousPeriod.start, previousPeriod.end, customerFilter]);
 
-  // Calculate active customers in the period
+  const totalActiveCustomers = useMemo(() => {
+    return state.customers.filter(c => c.status === 'active').length;
+  }, [state.customers]);
+
+  // Calculate active customers in the period (those with incomes)
   const activeCustomers = useMemo(() => {
     const customerIds = new Set(filteredIncomes.map(income => income.customerId));
     return state.customers.filter(c => c.status === 'active' && customerIds.has(c.id)).length;
@@ -321,15 +325,13 @@ export default function Incomes() {
     const totalIncomes = filteredIncomes.reduce((sum, income) => sum + income.finalAmount, 0);
     const beforeVat = filteredIncomes.reduce((sum, income) => sum + income.amountBeforeVat, 0);
     const totalVat = filteredIncomes.reduce((sum, income) => sum + income.vatAmount, 0);
-    const uniqueClients = new Set(filteredIncomes.map((income) => income.customerId)).size;
-    const averagePerClient = uniqueClients > 0 ? totalIncomes / uniqueClients : 0;
+    const averagePerClient = filteredIncomes.length > 0 ? totalIncomes / filteredIncomes.length : 0;
 
     // Previous period metrics
     const prevTotalIncomes = previousPeriodIncomes.reduce((sum, income) => sum + income.finalAmount, 0);
     const prevBeforeVat = previousPeriodIncomes.reduce((sum, income) => sum + income.amountBeforeVat, 0);
     const prevTotalVat = previousPeriodIncomes.reduce((sum, income) => sum + income.vatAmount, 0);
-    const prevUniqueClients = new Set(previousPeriodIncomes.map((income) => income.customerId)).size;
-    const prevAveragePerClient = prevUniqueClients > 0 ? prevTotalIncomes / prevUniqueClients : 0;
+    const prevAveragePerClient = previousPeriodIncomes.length > 0 ? prevTotalIncomes / previousPeriodIncomes.length : 0;
 
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? 100 : 0;
@@ -432,7 +434,7 @@ export default function Incomes() {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as typeof period)}
-            className={`w-[180px] h-12 px-3 py-2 ${isRTL ? 'pr-8 pl-8' : 'pr-8'} bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${isRTL ? 'text-right' : 'text-left'} appearance-none`}
+            className={`w-[210px] h-12 px-3 py-2 ${isRTL ? 'pr-8 pl-8' : 'pr-8'} bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${isRTL ? 'text-right' : 'text-left'} appearance-none`}
           >
             <option value="currentMonth">{t.periodSelector.currentMonth}</option>
             <option value="lastMonth">{t.periodSelector.lastMonth}</option>
@@ -461,7 +463,7 @@ export default function Incomes() {
         </div>
 
         {period === 'custom' && (
-          <div className="flex gap-2">
+          <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className="relative">
               <input
                 type="date"
@@ -566,7 +568,7 @@ export default function Incomes() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.averagePerClient}</p>
               <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-                {formatCurrency(metrics.averagePerClient.current, currency, locale)}
+                {formatCurrency(Math.round(metrics.averagePerClient.current), currency, locale)}
               </p>
               {metrics.averagePerClient.previous > 0 && (
                 <p className={`text-xs mt-1 ${metrics.averagePerClient.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>

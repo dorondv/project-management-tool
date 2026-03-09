@@ -146,8 +146,8 @@ export function MonthlyTrendsChart({ dateRange }: MonthlyTrendsChartProps) {
             />
             <Tooltip 
               formatter={(value: number, name: string) => {
-                if (name === 'income') {
-                  return [`${currencySymbol}${value.toFixed(2)}`, t.income];
+                if (name === t.income) {
+                  return [`${currencySymbol}${Math.round(value).toLocaleString()}`, t.income];
                 }
                 return [`${value.toFixed(2)}h`, t.hours];
               }}
