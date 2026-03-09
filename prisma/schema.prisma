@@ -204,9 +204,12 @@ model Customer {
   id              String   @id @default(uuid())
   name            String
   status          String   @default("trial") // active, trial, paused, churned
+  email           String   @default("")
+  phone           String   @default("")
   contactName     String
   contactEmail    String
   contactPhone    String
+  address         String   @default("")
   country         String
   taxId           String
   joinDate        DateTime
@@ -382,6 +385,7 @@ model Event {
   recurrenceType  String   @default("none") // none, daily, weekly, monthly, quarterly
   recurrenceEndDate DateTime?
   recurrenceCount Int?
+  excludedDates   Json     @default("[]")
   meetingLink     String?
   userId          String
   customerId      String?

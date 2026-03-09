@@ -87,9 +87,15 @@ export function calculateNextOccurrence(
       nextDate.setDate(nextDate.getDate() + 1);
       break;
     
-    case 'weekly':
+    case 'weekly': {
+      const targetDay = fromDate.getDay();
       nextDate.setDate(nextDate.getDate() + 7);
+      // Correct for DST shifts that could move the weekday
+      while (nextDate.getDay() !== targetDay) {
+        nextDate.setDate(nextDate.getDate() + (nextDate.getDay() < targetDay ? 1 : -1));
+      }
       break;
+    }
     
     case 'monthly':
       nextDate.setMonth(nextDate.getMonth() + 1);

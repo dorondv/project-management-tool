@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { useMemo } from 'react';
 import { DollarSign } from 'lucide-react';
@@ -38,6 +38,11 @@ const translations = {
   },
 } as const;
 
+const COLORS = [
+  '#FF0083', '#6366F1', '#F59E0B', '#10B981', '#3B82F6',
+  '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#06B6D4',
+];
+
 interface IncomeByCustomerChartProps {
   dateRange?: { start: Date; end: Date };
 }
@@ -51,7 +56,6 @@ export function IncomeByCustomerChart({ dateRange }: IncomeByCustomerChartProps)
   const t = translations[locale] ?? translations.en;
 
   const chartData = useMemo(() => {
-    // Filter time entries and incomes by date range if provided
     const entries = dateRange
       ? state.timeEntries.filter(entry => {
           const entryDate = new Date(entry.startTime);
@@ -66,53 +70,45 @@ export function IncomeByCustomerChart({ dateRange }: IncomeByCustomerChartProps)
         })
       : state.incomes;
 
-    // Group income by customer from both time entries and income records
     const customerIncomeMap: Record<string, { name: string; income: number }> = {};
 
-    // Process time entries
     entries.forEach((entry) => {
       const customer = state.customers.find(c => c.id === entry.customerId);
       if (!customer) return;
-
       if (!customerIncomeMap[entry.customerId]) {
-        customerIncomeMap[entry.customerId] = {
-          name: customer.name,
-          income: 0,
-        };
+        customerIncomeMap[entry.customerId] = { name: customer.name, income: 0 };
       }
-
       customerIncomeMap[entry.customerId].income += entry.income;
     });
 
-    // Process income records
     incomes.forEach((income) => {
       const customer = state.customers.find(c => c.id === income.customerId);
       if (!customer) return;
-
       if (!customerIncomeMap[income.customerId]) {
-        customerIncomeMap[income.customerId] = {
-          name: customer.name,
-          income: 0,
-        };
+        customerIncomeMap[income.customerId] = { name: customer.name, income: 0 };
       }
-
       customerIncomeMap[income.customerId].income += income.finalAmount;
     });
 
-    // Convert to array and filter out customers with 0 income
     return Object.values(customerIncomeMap)
       .filter(item => item.income > 0)
       .sort((a, b) => b.income - a.income)
-      .slice(0, 10); // Limit to top 10 customers
+      .slice(0, 10);
   }, [state.timeEntries, state.incomes, state.customers, dateRange]);
 
-  // Helper function to truncate long names
-  const truncateName = (name: string, maxLength: number = 12): string => {
-    if (name.length <= maxLength) return name;
-    return name.substring(0, maxLength) + '...';
-  };
+  const totalIncome = useMemo(() => chartData.reduce((sum, d) => sum + d.income, 0), [chartData]);
 
   const hasData = chartData.length > 0 && chartData.some(d => d.income > 0);
+
+  const renderLabel = ({ name, income, cx, x, y, midAngle }: any) => {
+    const percent = totalIncome > 0 ? ((income / totalIncome) * 100).toFixed(1) : '0';
+    const textAnchor = midAngle > 90 && midAngle < 270 ? 'end' : 'start';
+    return (
+      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={11} fill="currentColor">
+        {name} ({percent}%)
+      </text>
+    );
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -123,51 +119,41 @@ export function IncomeByCustomerChart({ dateRange }: IncomeByCustomerChartProps)
         </h3>
       </div>
       {hasData ? (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart 
-            data={chartData} 
-            margin={{ top: 5, right: 20, left: isRTL ? 60 : 20, bottom: 50 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
-            <XAxis 
-              type="category" 
-              dataKey="name" 
-              tick={{ fontSize: 11, fill: 'currentColor' }}
-              tickFormatter={(value) => truncateName(value, 12)}
-              interval={0}
-              height={60}
-            />
-            <YAxis 
-              type="number"
-              tick={{ fontSize: 12, fill: 'currentColor', textAnchor: isRTL ? 'start' : 'end', dx: isRTL ? 35 : 0 }}
-              tickFormatter={(value) => `${currencySymbol}${value.toFixed(0)}`}
-              orientation={isRTL ? 'right' : 'left'}
-            />
-            <Tooltip 
-              cursor={{ fill: 'rgba(236, 72, 153, 0.1)' }} 
-              contentStyle={{ 
-                backgroundColor: 'rgba(255,255,255,0.95)', 
-                borderRadius: '0.5rem', 
+        <ResponsiveContainer width="100%" height={350}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey="income"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={100}
+              label={renderLabel}
+              labelLine={true}
+            >
+              {chartData.map((_entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                borderRadius: '0.5rem',
                 border: '1px solid #ddd',
-                color: 'inherit'
+                color: 'inherit',
               }}
-              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, t.income]}
+              formatter={(value: number) => {
+                const percent = totalIncome > 0 ? ((value / totalIncome) * 100).toFixed(1) : '0';
+                return [`${currencySymbol}${Math.round(value).toLocaleString()} (${percent}%)`, t.income];
+              }}
             />
-            <Legend />
-            <Bar 
-              dataKey="income" 
-              name={t.income} 
-              fill="#FF0083" 
-              radius={[4, 4, 0, 0]} 
-            />
-          </BarChart>
+          </PieChart>
         </ResponsiveContainer>
       ) : (
-        <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-center h-[350px] text-gray-500 dark:text-gray-400">
           <p className={isRTL ? 'text-right' : 'text-left'}>{t.noData}</p>
         </div>
       )}
     </div>
   );
 }
-

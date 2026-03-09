@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { useMemo } from 'react';
 import { Clock } from 'lucide-react';
@@ -37,6 +37,11 @@ const translations = {
   },
 } as const;
 
+const COLORS = [
+  '#6366F1', '#FF0083', '#10B981', '#F59E0B', '#3B82F6',
+  '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#06B6D4',
+];
+
 interface HoursByCustomerChartProps {
   dateRange?: { start: Date; end: Date };
 }
@@ -48,7 +53,6 @@ export function HoursByCustomerChart({ dateRange }: HoursByCustomerChartProps) {
   const t = translations[locale] ?? translations.en;
 
   const chartData = useMemo(() => {
-    // Filter time entries by date range if provided
     const entries = dateRange
       ? state.timeEntries.filter(entry => {
           const entryDate = new Date(entry.startTime);
@@ -56,38 +60,37 @@ export function HoursByCustomerChart({ dateRange }: HoursByCustomerChartProps) {
         })
       : state.timeEntries;
 
-    // Group time entries by customer
     const customerHoursMap: Record<string, { name: string; hours: number }> = {};
 
     entries.forEach((entry) => {
       const customer = state.customers.find(c => c.id === entry.customerId);
       if (!customer) return;
-
       if (!customerHoursMap[entry.customerId]) {
-        customerHoursMap[entry.customerId] = {
-          name: customer.name,
-          hours: 0,
-        };
+        customerHoursMap[entry.customerId] = { name: customer.name, hours: 0 };
       }
-
-      const hours = entry.duration / 3600; // Convert seconds to hours
+      const hours = entry.duration / 3600;
       customerHoursMap[entry.customerId].hours += hours;
     });
 
-    // Convert to array and filter out customers with 0 hours
     return Object.values(customerHoursMap)
       .filter(item => item.hours > 0)
       .sort((a, b) => b.hours - a.hours)
-      .slice(0, 10); // Limit to top 10 customers
+      .slice(0, 10);
   }, [state.timeEntries, state.customers, dateRange]);
 
-  // Helper function to truncate long names
-  const truncateName = (name: string, maxLength: number = 12): string => {
-    if (name.length <= maxLength) return name;
-    return name.substring(0, maxLength) + '...';
-  };
+  const totalHours = useMemo(() => chartData.reduce((sum, d) => sum + d.hours, 0), [chartData]);
 
   const hasData = chartData.length > 0 && chartData.some(d => d.hours > 0);
+
+  const renderLabel = ({ name, hours, cx, x, y, midAngle }: any) => {
+    const percent = totalHours > 0 ? ((hours / totalHours) * 100).toFixed(1) : '0';
+    const textAnchor = midAngle > 90 && midAngle < 270 ? 'end' : 'start';
+    return (
+      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={11} fill="currentColor">
+        {name} ({percent}%)
+      </text>
+    );
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -98,51 +101,41 @@ export function HoursByCustomerChart({ dateRange }: HoursByCustomerChartProps) {
         </h3>
       </div>
       {hasData ? (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart 
-            data={chartData} 
-            margin={{ top: 5, right: 20, left: isRTL ? 60 : 20, bottom: 50 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
-            <XAxis 
-              type="category" 
-              dataKey="name" 
-              tick={{ fontSize: 11, fill: 'currentColor' }}
-              tickFormatter={(value) => truncateName(value, 12)}
-              interval={0}
-              height={60}
-            />
-            <YAxis 
-              type="number"
-              tick={{ fontSize: 12, fill: 'currentColor', textAnchor: isRTL ? 'start' : 'end', dx: isRTL ? 35 : 0 }}
-              tickFormatter={(value) => `${value.toFixed(1)}h`}
-              orientation={isRTL ? 'right' : 'left'}
-            />
-            <Tooltip 
-              cursor={{ fill: 'rgba(236, 72, 153, 0.1)' }} 
-              contentStyle={{ 
-                backgroundColor: 'rgba(255,255,255,0.95)', 
-                borderRadius: '0.5rem', 
+        <ResponsiveContainer width="100%" height={350}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey="hours"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={100}
+              label={renderLabel}
+              labelLine={true}
+            >
+              {chartData.map((_entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                borderRadius: '0.5rem',
                 border: '1px solid #ddd',
-                color: 'inherit'
+                color: 'inherit',
               }}
-              formatter={(value: number) => [`${value.toFixed(1)}h`, t.hours]}
+              formatter={(value: number) => {
+                const percent = totalHours > 0 ? ((value / totalHours) * 100).toFixed(1) : '0';
+                return [`${value.toFixed(1)}h (${percent}%)`, t.hours];
+              }}
             />
-            <Legend />
-            <Bar 
-              dataKey="hours" 
-              name={t.hours} 
-              fill="#FF0083" 
-              radius={[4, 4, 0, 0]} 
-            />
-          </BarChart>
+          </PieChart>
         </ResponsiveContainer>
       ) : (
-        <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-center h-[350px] text-gray-500 dark:text-gray-400">
           <p className={isRTL ? 'text-right' : 'text-left'}>{t.noData}</p>
         </div>
       )}
     </div>
   );
 }
-
