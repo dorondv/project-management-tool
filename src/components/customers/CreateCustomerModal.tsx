@@ -249,9 +249,12 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
   const [formData, setFormData] = useState({
     name: '',
     status: 'active' as 'active' | 'inactive',
+    email: '',
+    phone: '',
     contactName: '',
     contactEmail: '',
     contactPhone: '',
+    address: '',
     country: '',
     taxId: '',
     joinDate: new Date(),
@@ -260,15 +263,16 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
     billingCycle: 'monthly' as PaymentFrequency,
     billingModel: 'hourly' as BillingModel,
     currency: '₪',
-    hourlyRate: 0, // For hourly billing model
-    monthlyRetainer: 0, // For retainer billing model
-    annualFee: 0, // For project billing model (used as project budget)
+    hourlyRate: 0,
+    monthlyRetainer: 0,
+    annualFee: 0,
     hoursPerMonth: 0,
     customerScore: 0,
     notes: '',
     referralSource: '',
   });
 
+  const [referringCustomerId, setReferringCustomerId] = useState('');
   const [joinDate, setJoinDate] = useState<Date | null>(customer?.joinDate ? new Date(customer.joinDate) : new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -285,9 +289,12 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
       setFormData({
         name: customer.name,
         status: mappedStatus,
+        email: customer.email || '',
+        phone: customer.phone || '',
         contactName: customer.contactName,
         contactEmail: customer.contactEmail,
         contactPhone: customer.contactPhone,
+        address: customer.address || '',
         country: customer.country,
         taxId: customer.taxId,
         joinDate: customer.joinDate,
@@ -302,17 +309,27 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
         hoursPerMonth: customer.hoursPerMonth,
         customerScore: customer.customerScore,
         notes: customer.notes || '',
-        referralSource: customer.referralSource || '',
+        referralSource: customer.referralSource?.startsWith('client_referral:')
+          ? 'client_referral'
+          : (customer.referralSource || ''),
       });
+      setReferringCustomerId(
+        customer.referralSource?.startsWith('client_referral:')
+          ? customer.referralSource.split(':')[1]
+          : ''
+      );
       setJoinDate(customer.joinDate ? new Date(customer.joinDate) : new Date());
     } else {
       // Reset form for new customer
       setFormData({
         name: '',
         status: 'active',
+        email: '',
+        phone: '',
         contactName: '',
         contactEmail: '',
         contactPhone: '',
+        address: '',
         country: '',
         taxId: '',
         joinDate: new Date(),
@@ -329,6 +346,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
         notes: '',
         referralSource: '',
       });
+      setReferringCustomerId('');
       setJoinDate(new Date());
     }
   }, [customer, isOpen]);
@@ -389,9 +407,12 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
       const customerData: any = {
         name: formData.name,
         status: statusToSave,
+        email: formData.email || '',
+        phone: formData.phone || '',
         contactName: formData.contactName,
         contactEmail: formData.contactEmail,
         contactPhone: formData.contactPhone,
+        address: formData.address || '',
         country: formData.country || '',
         taxId: formData.taxId || '',
         joinDate: joinDate || new Date(),
@@ -405,7 +426,9 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
         hoursPerMonth: formData.hoursPerMonth,
         customerScore: formData.customerScore,
         notes: formData.notes || null,
-        referralSource: formData.referralSource || null,
+        referralSource: formData.referralSource === 'client_referral' && referringCustomerId
+          ? `client_referral:${referringCustomerId}`
+          : (formData.referralSource || null),
         userId: state.user.id, // Always include userId
       };
 
@@ -511,8 +534,8 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
               </label>
               <input
                 type="email"
-                value={formData.contactEmail}
-                onChange={(e) => handleChange('contactEmail', e.target.value)}
+                value={formData.email}
+                onChange={(e) => handleChange('email', e.target.value)}
                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${alignStart}`}
                 placeholder={t.emailPlaceholder}
               />
@@ -535,8 +558,8 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
               </label>
               <input
                 type="tel"
-                value={formData.contactPhone}
-                onChange={(e) => handleChange('contactPhone', e.target.value)}
+                value={formData.phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${alignStart}`}
                 placeholder={t.phonePlaceholder}
               />
@@ -547,8 +570,8 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
               </label>
               <input
                 type="text"
-                value={formData.country}
-                onChange={(e) => handleChange('country', e.target.value)}
+                value={formData.address}
+                onChange={(e) => handleChange('address', e.target.value)}
                 className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${alignStart}`}
                 placeholder={t.addressPlaceholder}
               />
@@ -752,7 +775,12 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
               </label>
               <select
                 value={formData.referralSource}
-                onChange={(e) => handleChange('referralSource', e.target.value)}
+                onChange={(e) => {
+                  handleChange('referralSource', e.target.value);
+                  if (e.target.value !== 'client_referral') {
+                    setReferringCustomerId('');
+                  }
+                }}
                 className={`w-52 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${alignStart}`}
               >
                 <option value="">{t.selectLeadSource}</option>
@@ -772,11 +800,11 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
                   {t.selectReferringClient}
                 </label>
                 <select
-                  value={formData.referralSource}
-                  onChange={(e) => handleChange('referralSource', e.target.value)}
+                  value={referringCustomerId}
+                  onChange={(e) => setReferringCustomerId(e.target.value)}
                   className={`w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${alignStart}`}
                 >
-                  <option value="client_referral">{t.noReferral}</option>
+                  <option value="">{t.noReferral}</option>
                   {state.customers
                     .filter(c => c.id !== customer?.id)
                     .map(referringCustomer => (

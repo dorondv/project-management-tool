@@ -104,7 +104,7 @@ export function IncomePerHourChart({ dateRange }: IncomePerHourChartProps) {
               tickFormatter={(value) => `${currencySymbol}${value.toFixed(0)}`}
             />
             <Tooltip 
-              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, locale === 'he' ? 'הכנסה ממוצעת לשעה' : locale === 'es' ? 'Ingreso prom./hora' : locale === 'de' ? 'Durchschnitt/Std.' : locale === 'pt' ? 'Receita media/hora' : locale === 'fr' ? 'Revenu moyen/heure' : 'Avg Income/Hour']}
+              formatter={(value: number) => [`${currencySymbol}${Math.round(value).toLocaleString()}`, locale === 'he' ? 'הכנסה ממוצעת לשעה' : locale === 'es' ? 'Ingreso prom./hora' : locale === 'de' ? 'Durchschnitt/Std.' : locale === 'pt' ? 'Receita media/hora' : locale === 'fr' ? 'Revenu moyen/heure' : 'Avg Income/Hour']}
               labelStyle={{ color: 'inherit' }}
             />
             <Legend />

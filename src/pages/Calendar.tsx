@@ -170,21 +170,49 @@ export default function Calendar() {
         }
       }
 
-      // Calculate if this date matches the recurrence pattern
-      const daysDiff = Math.floor((normalizedDate.getTime() - normalizedStartDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Check if date is excluded
+      const excludedDates = event.excludedDates || [];
+      const dateStr = normalizedDate.toISOString().split('T')[0];
+      if (excludedDates.includes(dateStr)) {
+        return false;
+      }
+
+      // Check recurrence count limit using DST-safe week calculation
+      const weeksBetween = (a: Date, b: Date) => Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24 * 7));
 
       switch (event.recurrenceType) {
-        case 'daily':
-          return true; // Every day
-        case 'weekly':
-          return daysDiff % 7 === 0; // Same day of week
+        case 'daily': {
+          if (event.recurrenceCount) {
+            const daysDiff = Math.round((normalizedDate.getTime() - normalizedStartDate.getTime()) / (1000 * 60 * 60 * 24));
+            return daysDiff < event.recurrenceCount;
+          }
+          return true;
+        }
+        case 'weekly': {
+          if (normalizedDate.getDay() !== normalizedStartDate.getDay()) return false;
+          if (event.recurrenceCount) {
+            const weeks = weeksBetween(normalizedStartDate, normalizedDate);
+            return weeks >= 0 && weeks < event.recurrenceCount;
+          }
+          return true;
+        }
         case 'monthly':
-          return normalizedDate.getDate() === normalizedStartDate.getDate(); // Same day of month
-        case 'quarterly':
-          // Same day, every 3 months
+          if (normalizedDate.getDate() !== normalizedStartDate.getDate()) return false;
+          if (event.recurrenceCount) {
+            const monthsDiff = (normalizedDate.getFullYear() - normalizedStartDate.getFullYear()) * 12 +
+              (normalizedDate.getMonth() - normalizedStartDate.getMonth());
+            return monthsDiff >= 0 && monthsDiff < event.recurrenceCount;
+          }
+          return true;
+        case 'quarterly': {
           const monthsDiff = (normalizedDate.getFullYear() - normalizedStartDate.getFullYear()) * 12 +
             (normalizedDate.getMonth() - normalizedStartDate.getMonth());
-          return monthsDiff >= 0 && monthsDiff % 3 === 0 && normalizedDate.getDate() === normalizedStartDate.getDate();
+          if (monthsDiff < 0 || monthsDiff % 3 !== 0 || normalizedDate.getDate() !== normalizedStartDate.getDate()) return false;
+          if (event.recurrenceCount) {
+            return (monthsDiff / 3) < event.recurrenceCount;
+          }
+          return true;
+        }
         default:
           return false;
       }

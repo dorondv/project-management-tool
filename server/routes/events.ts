@@ -28,13 +28,16 @@ function expandRecurringEvents(events: any[], rangeStart: Date, rangeEnd: Date):
       };
 
       const instances = generateRecurringInstances(config, rangeStart, rangeEnd);
+      const excludedDates = (event.excludedDates as string[]) || [];
       
       for (const instance of instances) {
+        const instanceDateStr = instance.startDate.toISOString().split('T')[0];
+        if (excludedDates.includes(instanceDateStr)) continue;
+
         expanded.push({
           ...event,
           startDate: instance.startDate,
           endDate: instance.endDate,
-          // Mark as instance of recurring event
           isRecurringInstance: true,
           originalEventId: event.id,
         });
@@ -459,6 +462,54 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     res.status(500).json({ error: 'Failed to update event', details: error.message });
+  }
+});
+
+// POST /api/events/:id/exclude-date - Exclude a specific date from a recurring event
+router.post('/:id/exclude-date', async (req, res) => {
+  try {
+    const { date } = req.body;
+
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required' });
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    if (event.recurrenceType === 'none') {
+      return res.status(400).json({ error: 'Cannot exclude dates from non-recurring events' });
+    }
+
+    const existingExcluded = (event.excludedDates as string[]) || [];
+    const normalizedDate = new Date(date).toISOString().split('T')[0];
+
+    if (existingExcluded.includes(normalizedDate)) {
+      return res.status(409).json({ error: 'Date is already excluded' });
+    }
+
+    const updatedEvent = await prisma.event.update({
+      where: { id: req.params.id },
+      data: {
+        excludedDates: [...existingExcluded, normalizedDate],
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        customer: { select: { id: true, name: true } },
+        project: { select: { id: true, title: true } },
+        task: { select: { id: true, title: true } },
+      },
+    });
+
+    res.json(updatedEvent);
+  } catch (error: any) {
+    console.error('Failed to exclude date:', error);
+    res.status(500).json({ error: 'Failed to exclude date', details: error.message });
   }
 });
 

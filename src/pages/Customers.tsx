@@ -12,6 +12,7 @@ import { DeleteCustomerModal } from '../components/customers/DeleteCustomerModal
 import { api } from '../utils/api';
 import { storage } from '../utils/localStorage';
 import { CustomerScoreSettings, sanitizeCustomerScoreSettings } from '../utils/customerScoreSettings';
+import { calculateCustomerScore, getScoreBadgeColor, getCustomerSeniority } from '../utils/customerScore';
 import toast from 'react-hot-toast';
 
 type ViewMode = 'list' | 'grid';
@@ -174,7 +175,7 @@ const translations: Record<
       customerName: 'Customer Name',
       status: 'Status',
       joinDate: 'Join Date',
-      tenure: 'Tenure (months)',
+      tenure: 'Seniority (Months)',
       customerScore: 'Customer Score',
       taxId: 'Tax ID / VAT',
       country: 'Country',
@@ -193,7 +194,7 @@ const translations: Record<
     },
     grid: {
       industryFallback: 'Industry not specified',
-      tenureLabel: 'Tenure',
+      tenureLabel: 'Seniority',
       tenureUnit: 'months',
       monthlyRetainerLabel: 'Monthly Retainer',
       hourlyRateLabel: 'Hourly Rate',
@@ -222,7 +223,7 @@ const translations: Record<
       customerName: 'שם הלקוח',
       status: 'סטטוס',
       joinDate: 'תאריך הצטרפות',
-      tenure: 'וותק בחודשים',
+      tenure: 'ותק חודשים',
       customerScore: 'Score לקוח',
       taxId: 'ח"פ / ע.מ.',
       country: 'מדינה',
@@ -241,7 +242,7 @@ const translations: Record<
     },
     grid: {
       industryFallback: 'לא צוין תחום',
-      tenureLabel: 'וותק',
+      tenureLabel: 'ותק',
       tenureUnit: 'חודשים',
       monthlyRetainerLabel: 'ריטיינר חודשי',
       hourlyRateLabel: 'תעריף שעתי',
@@ -448,11 +449,8 @@ const translations: Record<
   },
 };
 
-function calculateTenureMonths(joinDate: Date): number {
-  const now = new Date();
-  const diffMs = now.getTime() - joinDate.getTime();
-  const months = diffMs / (1000 * 60 * 60 * 24 * 30.4375);
-  return Math.max(0, parseFloat(months.toFixed(1)));
+function calculateTenureMonths(customer: Customer): number {
+  return getCustomerSeniority(customer);
 }
 
 function formatCurrency(amount: number, userCurrency: Currency, locale: Locale) {
@@ -560,141 +558,48 @@ export default function Customers() {
     return state.tasks.filter(t => projectIds.includes(t.projectId) && t.status === 'todo').length;
   };
 
-  // Helper functions for customer score calculation (based on mockup)
-  const getTotalRevenueForCustomer = (customerId: string) => {
-    const customerTimeEntries = state.timeEntries?.filter(entry => entry.customerId === customerId) || [];
-    return customerTimeEntries.reduce((sum, entry) => sum + (entry.income || 0), 0);
-  };
-
-  const getCustomerSeniority = (customer: Customer) => {
-    if (!customer.joinDate) return 0;
-    const joinDate = new Date(customer.joinDate);
-    const now = new Date();
-    const years = now.getFullYear() - joinDate.getFullYear();
-    const months = now.getMonth() - joinDate.getMonth();
-    const days = now.getDate() - joinDate.getDate();
-    let totalMonths = years * 12 + months;
-    if (days >= 0) {
-      const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      totalMonths += days / daysInCurrentMonth;
-    } else {
-      totalMonths -= 1;
-      const daysInPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
-      totalMonths += (daysInPreviousMonth + days) / daysInPreviousMonth;
+  const getReferringCustomerId = (referralSource?: string): string | null => {
+    if (referralSource?.startsWith('client_referral:')) {
+      return referralSource.split(':')[1];
     }
-    return Math.max(0, totalMonths);
+    return null;
   };
 
-  const getReferralsCountForCustomer = (customerId: string) => {
-    // Check if customer has referralSource that matches another customer's name or ID
-    // For now, return 0 as we don't have a direct referred_by field
-    // This can be enhanced if referral tracking is added
-    return state.customers?.filter(c => c.referralSource === customerId || c.referralSource === state.customers.find(c2 => c2.id === customerId)?.name).length || 0;
+  const referralSourceLabels: Record<string, Record<string, string>> = {
+    en: {
+      google: 'Google',
+      facebook_instagram: 'Facebook / Instagram',
+      tiktok: 'TikTok',
+      linkedin: 'LinkedIn',
+      word_of_mouth: 'Word of Mouth',
+      client_referral: 'Client Referral',
+      other: 'Other',
+    },
+    he: {
+      google: 'גוגל',
+      facebook_instagram: 'פייסבוק / אינסטגרם',
+      tiktok: 'טיקטוק',
+      linkedin: 'לינקדאין',
+      word_of_mouth: 'המלצת פה לאוזן',
+      client_referral: 'הפנייה מלקוח קיים',
+      other: 'אחר',
+    },
   };
 
-  const getIncomeFromReferrals = (customerId: string) => {
-    const referredCustomers = state.customers?.filter(c => c.referralSource === customerId || c.referralSource === state.customers.find(c2 => c2.id === customerId)?.name) || [];
-    if (referredCustomers.length === 0) return 0;
-    return referredCustomers.reduce((sum, referredCustomer) => {
-      return sum + getTotalRevenueForCustomer(referredCustomer.id);
-    }, 0);
-  };
-
-  const getCustomerMonthlyIncome = (customer: Customer) => {
-    switch(customer.billingModel) {
-      case 'retainer':
-        return customer.monthlyRetainer || 0;
-      case 'hourly':
-        const assumedMonthlyHours = 160;
-        // Calculate hourly rate from monthlyRetainer if available, or use a default
-        const hourlyRate = customer.monthlyRetainer > 0 ? customer.monthlyRetainer : (customer.hoursPerMonth > 0 ? customer.monthlyRetainer / customer.hoursPerMonth : 0);
-        return hourlyRate * assumedMonthlyHours;
-      case 'project':
-        if (customer.hoursPerMonth && customer.annualFee) {
-          const monthlyHours = 160;
-          const hourlyFromProject = customer.annualFee / customer.hoursPerMonth;
-          return hourlyFromProject * monthlyHours;
-        }
-        return 0;
-      default:
-        return 0;
+  const formatReferralSource = (referralSource?: string): string => {
+    if (!referralSource) return t.table.referralFallback;
+    const referringId = getReferringCustomerId(referralSource);
+    if (referringId) {
+      const referringCustomer = state.customers?.find(c => c.id === referringId);
+      const label = (referralSourceLabels[locale] ?? referralSourceLabels.en)['client_referral'];
+      return referringCustomer
+        ? `${label} (${referringCustomer.name})`
+        : label;
     }
-  };
-
-  const getCustomerHourlyRate = (customer: Customer) => {
-    if (customer.billingModel === 'hourly') {
-      return customer.monthlyRetainer || 0; // In hourly model, monthlyRetainer stores the hourly rate
-    } else if (customer.billingModel === 'retainer' && customer.hoursPerMonth > 0) {
-      return customer.monthlyRetainer / customer.hoursPerMonth;
-    } else if (customer.billingModel === 'project' && customer.hoursPerMonth > 0) {
-      return customer.annualFee / customer.hoursPerMonth;
+    if (referralSource === 'client_referral') {
+      return (referralSourceLabels[locale] ?? referralSourceLabels.en)['client_referral'];
     }
-    return 0;
-  };
-
-  const calculateCustomerScore = (customer: Customer): string => {
-    const activeCustomers = state.customers?.filter(c => c.joinDate) || [];
-    if (activeCustomers.length === 0) return 'C';
-
-    const customerMetrics = {
-      monthlyIncome: getCustomerMonthlyIncome(customer),
-      hourlyRate: getCustomerHourlyRate(customer),
-      seniority: getCustomerSeniority(customer),
-      referralsCount: getReferralsCountForCustomer(customer.id),
-      totalRevenue: getTotalRevenueForCustomer(customer.id),
-      referredRevenue: getIncomeFromReferrals(customer.id)
-    };
-
-    const averages = {
-      monthlyIncome: activeCustomers.reduce((sum, c) => sum + getCustomerMonthlyIncome(c), 0) / activeCustomers.length,
-      hourlyRate: activeCustomers.reduce((sum, c) => sum + getCustomerHourlyRate(c), 0) / activeCustomers.length,
-      seniority: activeCustomers.reduce((sum, c) => sum + getCustomerSeniority(c), 0) / activeCustomers.length,
-      referralsCount: activeCustomers.reduce((sum, c) => sum + getReferralsCountForCustomer(c.id), 0) / activeCustomers.length,
-      totalRevenue: activeCustomers.reduce((sum, c) => sum + getTotalRevenueForCustomer(c.id), 0) / activeCustomers.length,
-      referredRevenue: activeCustomers.reduce((sum, c) => sum + getIncomeFromReferrals(c.id), 0) / activeCustomers.length
-    };
-
-    const metrics: Array<{
-      key: keyof typeof customerMetrics;
-      value: number;
-      average: number;
-    }> = [
-      { key: 'monthlyIncome', value: customerMetrics.monthlyIncome, average: averages.monthlyIncome },
-      { key: 'hourlyRate', value: customerMetrics.hourlyRate, average: averages.hourlyRate },
-      { key: 'seniority', value: customerMetrics.seniority, average: averages.seniority },
-      { key: 'referralsCount', value: customerMetrics.referralsCount, average: averages.referralsCount },
-      { key: 'totalRevenue', value: customerMetrics.totalRevenue, average: averages.totalRevenue },
-      { key: 'referredRevenue', value: customerMetrics.referredRevenue, average: averages.referredRevenue },
-    ];
-
-    let weightedScoreTotal = 0;
-    let totalWeight = 0;
-
-    metrics.forEach((metric) => {
-      const weight = customerScoreSettings.weights[metric.key];
-      const isEnabled = customerScoreSettings.include[metric.key];
-      if (!isEnabled || weight <= 0 || metric.average <= 0) return;
-      const normalizedScore = Math.min(metric.value / metric.average, 2);
-      weightedScoreTotal += normalizedScore * weight;
-      totalWeight += weight;
-    });
-
-    if (totalWeight === 0) return 'C';
-
-    const totalScore = weightedScoreTotal / totalWeight;
-
-    if (totalScore >= 1.2) return 'A';
-    if (totalScore >= 0.8) return 'B';
-    return 'C';
-  };
-
-  const getScoreBadgeColor = (score: string): string => {
-    switch(score) {
-      case 'A': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'B': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'C': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
+    return (referralSourceLabels[locale] ?? referralSourceLabels.en)[referralSource] ?? referralSource;
   };
 
   const handleViewProjects = (customerId: string) => {
@@ -785,28 +690,12 @@ export default function Customers() {
     const total = state.customers.length;
     const active = state.customers.filter((customer) => customer.status === 'active').length;
     
-    // Calculate actual income earned so far
-    const monthlyRecurring = state.customers.reduce((sum, customer) => {
-      let customerIncome = 0;
-      
-      if (customer.billingModel === 'hourly') {
-        // For hourly billing: sum all actual hours worked * rate (from time entries)
-        const customerTimeEntries = state.timeEntries.filter(te => te.customerId === customer.id);
-        customerIncome = customerTimeEntries.reduce((entrySum, entry) => entrySum + (entry.income || 0), 0);
-      } else {
-        // For retainer billing: use monthly retainer amount
-        customerIncome = customer.monthlyRetainer || 0;
-      }
-      
-      // Add income from Income records (applies to both billing models)
-      const customerIncomes = state.incomes.filter(inc => inc.customerId === customer.id);
-      const incomeFromRecords = customerIncomes.reduce((incSum, inc) => incSum + (inc.finalAmount || 0), 0);
-      
-      return sum + customerIncome + incomeFromRecords;
-    }, 0);
+    const monthlyRecurring = state.customers
+      .filter(c => c.status === 'active' && c.billingModel === 'retainer')
+      .reduce((sum, customer) => sum + (customer.monthlyRetainer || 0), 0);
 
     return { total, active, monthlyRecurring };
-  }, [state.customers, state.timeEntries, state.incomes]);
+  }, [state.customers]);
 
   const filteredCustomers = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -823,12 +712,14 @@ export default function Customers() {
       
       const searchableFields = [
         customer.name,
+        customer.email,
+        customer.phone,
         customer.contactName,
         customer.contactEmail,
         customer.contactPhone,
         customer.country,
         customer.taxId,
-        customer.referralSource || '',
+        formatReferralSource(customer.referralSource),
       ]
         .join(' ')
         .toLowerCase();
@@ -1043,10 +934,10 @@ export default function Customers() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                 {filteredCustomers.map((customer) => {
-                  const tenure = calculateTenureMonths(customer.joinDate);
+                  const tenure = calculateTenureMonths(customer);
                   const statusVariant = statusVariants[customer.status];
                   const statusLabel = (statusLabels[locale] ?? statusLabels.en)[customer.status];
-                  const customerScore = calculateCustomerScore(customer);
+                  const customerScore = calculateCustomerScore(customer, state.customers, state.timeEntries, state.incomes, customerScoreSettings);
 
                   return (
                     <tr
@@ -1056,8 +947,8 @@ export default function Customers() {
                       <td className={`px-4 py-4 ${alignStart}`}>
                         <div className="font-semibold text-gray-900 dark:text-white">{customer.name}</div>
                         <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5 ${alignStart}`}>
-                          <span>{customer.contactEmail}</span>
-                          <span>{customer.contactPhone}</span>
+                          <span>{customer.email || customer.contactEmail}</span>
+                          <span>{customer.phone || customer.contactPhone}</span>
                         </div>
                       </td>
                       <td className={`px-4 py-4 ${alignStart}`}>
@@ -1066,7 +957,7 @@ export default function Customers() {
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
                         {formatDate(customer.joinDate, locale)}
                       </td>
-                      <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{tenure}</td>
+                      <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>{tenure.toFixed(1)}</td>
                       <td className={`px-4 py-4 ${alignStart}`}>
                         <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getScoreBadgeColor(customerScore)}`}>
                           {customerScore}
@@ -1093,7 +984,7 @@ export default function Customers() {
                         {customer.hoursPerMonth}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
-                        {customer.referralSource || t.table.referralFallback}
+                        {formatReferralSource(customer.referralSource)}
                       </td>
                       <td className={`px-4 py-4 text-gray-700 dark:text-gray-200 ${alignStart}`}>
                         {getCustomerProjectCount(customer.id)}
@@ -1142,13 +1033,13 @@ export default function Customers() {
       ) : !isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredCustomers.map((customer) => {
-            const tenure = calculateTenureMonths(customer.joinDate);
+            const tenure = calculateTenureMonths(customer);
             const statusVariant = statusVariants[customer.status];
             const statusLabel = (statusLabels[locale] ?? statusLabels.en)[customer.status];
             const projectCount = getCustomerProjectCount(customer.id);
             const todoTasksCount = getCustomerTodoTasksCount(customer.id);
-            const customerScore = calculateCustomerScore(customer);
-            
+            const customerScore = calculateCustomerScore(customer, state.customers, state.timeEntries, state.incomes, customerScoreSettings);
+
             // Calculate hourly rate based on billing model
             const getPaymentInfo = () => {
               let rate = 0;

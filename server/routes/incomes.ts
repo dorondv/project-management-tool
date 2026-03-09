@@ -74,7 +74,8 @@ router.post('/', async (req, res) => {
       }
     }
     
-    const vatAmount = amountBeforeVat * (vatRate || 0.18);
+    const effectiveVatRate = vatRate !== undefined && vatRate !== null ? vatRate : 0.18;
+    const vatAmount = amountBeforeVat * effectiveVatRate;
     const finalAmount = amountBeforeVat + vatAmount;
     
     const income = await prisma.income.create({
@@ -83,7 +84,7 @@ router.post('/', async (req, res) => {
         customerName,
         incomeDate: new Date(incomeDate),
         invoiceNumber,
-        vatRate: vatRate || 0.18,
+        vatRate: effectiveVatRate,
         amountBeforeVat,
         vatAmount,
         finalAmount,
