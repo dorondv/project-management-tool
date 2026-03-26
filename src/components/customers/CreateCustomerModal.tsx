@@ -486,6 +486,7 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
       title={customer ? t.editTitle : t.title}
       titleIcon={<Plus className="w-5 h-5 text-primary-500" />}
       size="xl"
+      dir={isRTL ? 'rtl' : 'ltr'}
     >
       <form onSubmit={handleSubmit} className={`space-y-6 ${alignStart}`} dir={isRTL ? 'rtl' : 'ltr'} noValidate>
         {/* Basic Information */}
@@ -832,8 +833,8 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
           />
         </div>
 
-        <div className={`flex justify-between items-center pt-6 border-t border-gray-200 dark:border-gray-700 ${flexDirection}`}>
-          <div className={`flex gap-3 ${flexDirection}`}>
+        <div className={`flex items-center pt-6 border-t border-gray-200 dark:border-gray-700 ${customer && onDelete ? 'justify-between' : (isRTL ? 'justify-start' : 'justify-end')} ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {isRTL ? (
               <>
                 <Button 
@@ -842,9 +843,9 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <span className={`flex items-center gap-2 ${flexDirection}`}>
+                    <span className="flex items-center gap-2 flex-row-reverse">
                       <LoadingSpinner size="sm" />
-                      {isRTL ? 'שומר...' : 'Saving...'}
+                      שומר...
                     </span>
                   ) : (
                     customer ? t.updateCustomer : t.addCustomer
@@ -875,9 +876,9 @@ export function CreateCustomerModal({ isOpen, onClose, customer, onCustomerCreat
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <span className={`flex items-center gap-2 ${flexDirection}`}>
+                    <span className="flex items-center gap-2">
                       <LoadingSpinner size="sm" />
-                      {isRTL ? 'שומר...' : 'Saving...'}
+                      Saving...
                     </span>
                   ) : (
                     customer ? t.updateCustomer : t.addCustomer

@@ -14,17 +14,24 @@ interface StatsCardProps {
 }
 
 export function StatsCard({ title, value, change, icon, color }: StatsCardProps) {
+  const valueStr = String(value);
+  const valueSizeClass = valueStr.length > 15
+    ? 'text-base'
+    : valueStr.length > 9
+      ? 'text-lg'
+      : 'text-xl';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col"
+      className="bg-white dark:bg-gray-800 rounded-lg p-4 xl:p-6 shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col"
     >
-      <div className="flex items-center justify-between flex-1 gap-3">
+      <div className="flex items-start justify-between flex-1 gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 min-h-[2.5rem] line-clamp-2">{title}</p>
+          <p className={`${valueSizeClass} font-bold text-gray-900 dark:text-white break-words`}>{value}</p>
           <div className="flex items-center mt-2 h-5">
             {change ? (
               <>

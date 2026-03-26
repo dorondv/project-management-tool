@@ -74,7 +74,16 @@ export default function Dashboard() {
     // Calculate total income from time entries and income records (filtered)
     const totalIncomeFromTimeEntries = filteredTimeEntries.reduce((sum, entry) => sum + entry.income, 0);
     const totalIncomeFromIncomes = filteredIncomes.reduce((sum, income) => sum + income.finalAmount, 0);
-    const totalIncome = totalIncomeFromTimeEntries + totalIncomeFromIncomes;
+
+    // Include monthly retainers for active retainer customers
+    const startMonth = start.getFullYear() * 12 + start.getMonth();
+    const endMonth = end.getFullYear() * 12 + end.getMonth();
+    const monthsInRange = Math.max(1, endMonth - startMonth + 1);
+    const totalRetainerIncome = state.customers
+      .filter(c => c.status === 'active' && c.billingModel === 'retainer' && c.monthlyRetainer > 0)
+      .reduce((sum, c) => sum + c.monthlyRetainer * monthsInRange, 0);
+
+    const totalIncome = totalIncomeFromTimeEntries + totalIncomeFromIncomes + totalRetainerIncome;
 
     // Calculate total work hours (convert seconds to hours) - filtered
     const totalWorkHours = filteredTimeEntries.reduce((sum, entry) => sum + (entry.duration / 3600), 0);
@@ -112,7 +121,7 @@ export default function Dashboard() {
       averageIncomePerCustomer,
       averageIncomePerHour,
     };
-  }, [filteredTimeEntries, filteredIncomes, state.customers]);
+  }, [filteredTimeEntries, filteredIncomes, state.customers, start, end]);
 
   const stats = useMemo(() => (
     [
@@ -293,7 +302,7 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-6"
       >
         {incomeStatsCards.map((stat, index) => (
           <motion.div

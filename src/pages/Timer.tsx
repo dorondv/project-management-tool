@@ -307,13 +307,13 @@ function formatShortDate(date: Date, locale: Locale): string {
 }
 
 function getHourlyRate(customer: Customer): number {
-  if (customer.billingModel === 'hourly' && customer.hoursPerMonth > 0) {
-    return customer.monthlyRetainer / customer.hoursPerMonth;
+  if (customer.billingModel === 'hourly') {
+    return customer.monthlyRetainer || 300;
   }
   if (customer.hoursPerMonth > 0) {
     return customer.monthlyRetainer / customer.hoursPerMonth;
   }
-  return 300; // Default rate
+  return 300;
 }
 
 export default function Timer() {

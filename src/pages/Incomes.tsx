@@ -496,10 +496,10 @@ export default function Incomes() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {/* Active Customers */}
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm ${alignStart}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.activeCustomers}</p>
-              <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+              <p className="text-sm text-gray-500 dark:text-gray-400 min-h-[2.5rem] line-clamp-2">{t.metrics.activeCustomers}</p>
+              <p className="text-xl font-bold text-pink-600 dark:text-pink-400">
                 {metrics.activeCustomers.current}
               </p>
               {metrics.activeCustomers.previous > 0 && (
@@ -508,15 +508,15 @@ export default function Incomes() {
                 </p>
               )}
             </div>
-            <Users size={48} className="text-pink-600 dark:text-pink-400 opacity-20" />
+            <Users size={48} className="text-pink-600 dark:text-pink-400 opacity-20 flex-shrink-0" />
           </div>
         </div>
         {/* Total Incomes */}
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm ${alignStart}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.totalIncomes}</p>
-              <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+              <p className="text-sm text-gray-500 dark:text-gray-400 min-h-[2.5rem] line-clamp-2">{t.metrics.totalIncomes}</p>
+              <p className="text-xl font-bold text-pink-600 dark:text-pink-400">
                 {formatCurrency(metrics.totalIncomes.current, currency, locale)}
               </p>
               {metrics.totalIncomes.previous > 0 && (
@@ -525,15 +525,15 @@ export default function Incomes() {
                 </p>
               )}
             </div>
-            <TrendingUp size={48} className="text-pink-600 dark:text-pink-400 opacity-20" />
+            <TrendingUp size={48} className="text-pink-600 dark:text-pink-400 opacity-20 flex-shrink-0" />
           </div>
         </div>
         {/* Before VAT */}
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm ${alignStart}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.beforeVat}</p>
-              <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+              <p className="text-sm text-gray-500 dark:text-gray-400 min-h-[2.5rem] line-clamp-2">{t.metrics.beforeVat}</p>
+              <p className="text-xl font-bold text-pink-600 dark:text-pink-400">
                 {formatCurrency(metrics.beforeVat.current, currency, locale)}
               </p>
               {metrics.beforeVat.previous > 0 && (
@@ -542,15 +542,15 @@ export default function Incomes() {
                 </p>
               )}
             </div>
-            <DollarSign size={48} className="text-pink-600 dark:text-pink-400 opacity-20" />
+            <DollarSign size={48} className="text-pink-600 dark:text-pink-400 opacity-20 flex-shrink-0" />
           </div>
         </div>
         {/* Total VAT */}
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm ${alignStart}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.totalVat}</p>
-              <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+              <p className="text-sm text-gray-500 dark:text-gray-400 min-h-[2.5rem] line-clamp-2">{t.metrics.totalVat}</p>
+              <p className="text-xl font-bold text-pink-600 dark:text-pink-400">
                 {formatCurrency(metrics.totalVat.current, currency, locale)}
               </p>
               {metrics.totalVat.previous > 0 && (
@@ -559,15 +559,15 @@ export default function Incomes() {
                 </p>
               )}
             </div>
-            <DollarSign size={48} className="text-pink-600 dark:text-pink-400 opacity-20" />
+            <DollarSign size={48} className="text-pink-600 dark:text-pink-400 opacity-20 flex-shrink-0" />
           </div>
         </div>
         {/* Average Per Client */}
         <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm ${alignStart}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t.metrics.averagePerClient}</p>
-              <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+              <p className="text-sm text-gray-500 dark:text-gray-400 min-h-[2.5rem] line-clamp-2">{t.metrics.averagePerClient}</p>
+              <p className="text-xl font-bold text-pink-600 dark:text-pink-400">
                 {formatCurrency(Math.round(metrics.averagePerClient.current), currency, locale)}
               </p>
               {metrics.averagePerClient.previous > 0 && (
@@ -576,7 +576,7 @@ export default function Incomes() {
                 </p>
               )}
             </div>
-            <TrendingUp size={48} className="text-pink-600 dark:text-pink-400 opacity-20" />
+            <TrendingUp size={48} className="text-pink-600 dark:text-pink-400 opacity-20 flex-shrink-0" />
           </div>
         </div>
       </div>

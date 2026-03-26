@@ -262,6 +262,7 @@ interface ClientStat {
   };
   workedHours: number;
   receivedPayments: number;
+  timeEntryIncome: number;
   avgHourlyRate: number;
 }
 
@@ -309,7 +310,7 @@ export function DetailedCustomerReport({ dateRange }: DetailedCustomerReportProp
 
       const workedHours = periodTimeEntries.reduce((sum, entry) => sum + (entry.duration / 3600), 0);
       const periodTimeEntryIncome = periodTimeEntries.reduce((sum, entry) => sum + entry.income, 0);
-      const periodIncomeAmount = periodIncomes.reduce((sum, income) => sum + income.finalAmount, 0);
+      const periodIncomeAmount = periodIncomes.reduce((sum, income) => sum + income.amountBeforeVat, 0);
       const receivedPayments = periodTimeEntryIncome + periodIncomeAmount;
 
       const referredCustomers = state.customers.filter(c =>
@@ -327,7 +328,7 @@ export function DetailedCustomerReport({ dateRange }: DetailedCustomerReportProp
             const d = new Date(inc.incomeDate);
             return d >= periodStart && d <= periodEnd && inc.customerId === rc.id;
           })
-          .reduce((s, inc) => s + inc.finalAmount, 0);
+          .reduce((s, inc) => s + inc.amountBeforeVat, 0);
         return sum + rcTimeRevenue + rcIncomeRevenue;
       }, 0);
 
@@ -340,7 +341,7 @@ export function DetailedCustomerReport({ dateRange }: DetailedCustomerReportProp
         referredRevenue: periodReferredRevenue,
       };
 
-      const avgHourlyRate = workedHours > 0 ? receivedPayments / workedHours : 0;
+      const avgHourlyRate = workedHours > 0 ? periodTimeEntryIncome / workedHours : 0;
 
       stats.push({
         customer,
@@ -354,6 +355,7 @@ export function DetailedCustomerReport({ dateRange }: DetailedCustomerReportProp
         scoreMetrics,
         workedHours,
         receivedPayments,
+        timeEntryIncome: periodTimeEntryIncome,
         avgHourlyRate,
       });
     });
@@ -441,6 +443,7 @@ export function DetailedCustomerReport({ dateRange }: DetailedCustomerReportProp
       referredRevenue: clientStats.reduce((sum, stat) => sum + stat.scoreMetrics.referredRevenue, 0),
       hours: clientStats.reduce((sum, stat) => sum + stat.workedHours, 0),
       revenue: clientStats.reduce((sum, stat) => sum + stat.receivedPayments, 0),
+      timeEntryIncome: clientStats.reduce((sum, stat) => sum + stat.timeEntryIncome, 0),
     };
   }, [clientStats]);
 
@@ -625,7 +628,7 @@ export function DetailedCustomerReport({ dateRange }: DetailedCustomerReportProp
                   {currencySymbol}{totals.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
-                  {currencySymbol}{totals.hours > 0 ? (totals.revenue / totals.hours).toFixed(0) : 0}
+                  {currencySymbol}{totals.hours > 0 ? (totals.timeEntryIncome / totals.hours).toFixed(0) : 0}
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-gray-700 dark:text-gray-300">
                   {(daysInPeriod > 0 ? totals.hours / daysInPeriod : 0).toFixed(1)}h

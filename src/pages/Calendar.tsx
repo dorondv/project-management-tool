@@ -230,13 +230,8 @@ export default function Calendar() {
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
-      const newDate = new Date(prev);
-      if (direction === 'prev') {
-        newDate.setMonth(prev.getMonth() - 1);
-      } else {
-        newDate.setMonth(prev.getMonth() + 1);
-      }
-      return newDate;
+      const offset = direction === 'next' ? 1 : -1;
+      return new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
     });
   };
 
