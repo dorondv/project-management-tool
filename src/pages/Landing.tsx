@@ -204,13 +204,10 @@ export default function Landing() {
   };
 
   const handleLogin = () => {
-    // If user is already logged in, go to dashboard
-    // Otherwise, navigate to auth page (App.tsx will handle showing AuthPage)
     if (state.user) {
       navigate('/');
     } else {
-      // Navigate to root, which will show AuthPage for unauthenticated users
-      navigate('/');
+      navigate('/login');
     }
   };
 

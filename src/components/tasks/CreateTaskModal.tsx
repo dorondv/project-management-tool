@@ -289,7 +289,7 @@ export function CreateTaskModal({ isOpen, onClose, projectId, onTaskCreated }: C
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t.title} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={t.title} size="lg" dir={isRTL ? 'rtl' : 'ltr'}>
       <form onSubmit={handleSubmit} className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">

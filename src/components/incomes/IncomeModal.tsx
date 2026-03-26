@@ -228,6 +228,7 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
         </div>
       }
       size="lg"
+      dir={isRTL ? 'rtl' : 'ltr'}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -368,34 +369,32 @@ export function IncomeModal({ isOpen, onClose, income }: IncomeModalProps) {
         </div>
 
         {/* Buttons */}
-        <div className={`flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700 ${flexDirection}`}>
-          <div className={`flex gap-3 ${flexDirection}`}>
-            {isRTL ? (
-              <>
-                <Button type="submit" variant="primary" disabled={isSubmitting}>
-                  {isSubmitting 
-                    ? (locale === 'he' ? 'שומר...' : 'Saving...') 
-                    : (isEditing ? t.buttons.update : t.buttons.add)
-                  }
-                </Button>
-                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                  {t.buttons.cancel}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                  {t.buttons.cancel}
-                </Button>
-                <Button type="submit" variant="primary" disabled={isSubmitting}>
-                  {isSubmitting 
-                    ? (locale === 'he' ? 'שומר...' : 'Saving...') 
-                    : (isEditing ? t.buttons.update : t.buttons.add)
-                  }
-                </Button>
-              </>
-            )}
-          </div>
+        <div className={`flex ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} gap-3 pt-4 border-t border-gray-200 dark:border-gray-700`}>
+          {isRTL ? (
+            <>
+              <Button type="submit" variant="primary" disabled={isSubmitting}>
+                {isSubmitting
+                  ? 'שומר...'
+                  : (isEditing ? t.buttons.update : t.buttons.add)
+                }
+              </Button>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                {t.buttons.cancel}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                {t.buttons.cancel}
+              </Button>
+              <Button type="submit" variant="primary" disabled={isSubmitting}>
+                {isSubmitting
+                  ? 'Saving...'
+                  : (isEditing ? t.buttons.update : t.buttons.add)
+                }
+              </Button>
+            </>
+          )}
         </div>
       </form>
     </Modal>

@@ -42,7 +42,7 @@
   "dashboard.stats.averageHoursPerDay": "Durchschn. Stunden/Tag",
   "dashboard.stats.averageIncomePerCustomer": "Durchschn. Einnahmen pro Kunde",
   "dashboard.stats.averageIncomePerHour": "Durchschn. Einnahmen pro Stunde",
-  "dashboard.stats.totalIncomeFromCustomers": "Gesamteinnahmen von Kunden",
+  "dashboard.stats.totalIncomeFromCustomers": "Erwartete Gesamteinnahmen",
   "dashboard.stats.totalWorkHours": "Arbeitsstunden gesamt",
   "dashboard.stats.totalActiveCustomers": "Aktive Kunden gesamt",
   "settings.pageTitle": "Einstellungen",

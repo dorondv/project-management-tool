@@ -42,7 +42,7 @@
   "dashboard.stats.averageHoursPerDay": "Average Hours Per Day",
   "dashboard.stats.averageIncomePerCustomer": "Average Income Per Customer",
   "dashboard.stats.averageIncomePerHour": "Average Income Per Hour",
-  "dashboard.stats.totalIncomeFromCustomers": "Total Income From Customers",
+  "dashboard.stats.totalIncomeFromCustomers": "Total Expected Income",
   "dashboard.stats.totalWorkHours": "Total Work Hours",
   "dashboard.stats.totalActiveCustomers": "Total Active Customers",
   "settings.pageTitle": "Settings",

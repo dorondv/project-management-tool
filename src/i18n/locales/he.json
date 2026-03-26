@@ -42,7 +42,7 @@
   "dashboard.stats.averageHoursPerDay": "ממוצע שעות ליום",
   "dashboard.stats.averageIncomePerCustomer": "הכנסה ממוצעת ללקוח",
   "dashboard.stats.averageIncomePerHour": "הכנסה ממוצעת לשעה",
-  "dashboard.stats.totalIncomeFromCustomers": "סה\"כ הכנסות מלקוחות",
+  "dashboard.stats.totalIncomeFromCustomers": "סה\"כ הכנסות צפויות מלקוחות",
   "dashboard.stats.totalWorkHours": "סה\"כ שעות עבודה",
   "dashboard.stats.totalActiveCustomers": "סה\"כ לקוחות פעילים",
   "settings.pageTitle": "הגדרות",

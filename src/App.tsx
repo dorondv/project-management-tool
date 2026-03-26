@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AppProvider, useApp } from './context/AppContext';
 import { Layout } from './components/layout/Layout';
@@ -13,7 +13,8 @@ import Tasks from './pages/Tasks';
 // Team feature hidden for current version - keep for future use
 // import Team from './pages/Team';
 import Settings from './pages/Settings';
-import Calendar from './pages/Calendar';
+// Calendar/Events feature hidden for current version - keep for future use
+// import Calendar from './pages/Calendar';
 import Notifications from './pages/Notifications';
 import Customers from './pages/Customers';
 import Timer from './pages/Timer';
@@ -135,9 +136,15 @@ function AppContent() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         
         {!state.user ? (
-          <Route path="*" element={<AuthPage />} />
+          <>
+            <Route path="/" element={<Landing />} />
+            <Route path="*" element={<AuthPage />} />
+          </>
         ) : (
           <>
+          {/* Redirect auth/landing paths to dashboard for logged-in users */}
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/landing" element={<Navigate to="/" replace />} />
           {/* All other routes with layout */}
           <Route path="*" element={
             <Layout>
@@ -155,7 +162,8 @@ function AppContent() {
                 <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
                 {/* Team feature hidden for current version - keep for future use */}
                 {/* <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} /> */}
-                <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+                {/* Calendar/Events feature hidden for current version - keep for future use */}
+                {/* <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} /> */}
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

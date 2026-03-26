@@ -42,7 +42,7 @@
   "dashboard.stats.averageHoursPerDay": "Média de horas/dia",
   "dashboard.stats.averageIncomePerCustomer": "Receita média por cliente",
   "dashboard.stats.averageIncomePerHour": "Receita média por hora",
-  "dashboard.stats.totalIncomeFromCustomers": "Receita total de clientes",
+  "dashboard.stats.totalIncomeFromCustomers": "Receita total esperada",
   "dashboard.stats.totalWorkHours": "Total de horas trabalhadas",
   "dashboard.stats.totalActiveCustomers": "Total de clientes ativos",
   "settings.pageTitle": "Configuracoes",

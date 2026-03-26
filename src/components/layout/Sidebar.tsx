@@ -6,7 +6,7 @@ import {
   FolderOpen,
   CheckSquare,
   Users,
-  Calendar,
+  // Calendar, // Hidden for current version
   Settings,
   Bell,
   Menu,
@@ -32,7 +32,8 @@ const menuItems = [
   { icon: CheckSquare, key: 'tasks', path: '/tasks' },
   { icon: FolderOpen, key: 'projects', path: '/projects' },
   { icon: Contact, key: 'customers', path: '/customers' },
-  { icon: Calendar, key: 'calendar', path: '/calendar' },
+  // Calendar/Events feature hidden for current version - keep for future use
+  // { icon: Calendar, key: 'calendar', path: '/calendar' },
   { icon: Bell, key: 'notifications', path: '/notifications' },
   { icon: DollarSign, key: 'incomes', path: '/incomes' },
   // Team feature hidden for current version - keep for future use

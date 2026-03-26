@@ -125,13 +125,13 @@ const translations = {
 } as const;
 
 function getHourlyRate(customer: Customer): number {
-  if (customer.billingModel === 'hourly' && customer.hoursPerMonth > 0) {
-    return customer.monthlyRetainer / customer.hoursPerMonth;
+  if (customer.billingModel === 'hourly') {
+    return customer.monthlyRetainer || 300;
   }
   if (customer.hoursPerMonth > 0) {
     return customer.monthlyRetainer / customer.hoursPerMonth;
   }
-  return 300; // Default rate
+  return 300;
 }
 
 export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps) {
@@ -172,26 +172,17 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
     }
   }, [entry]);
 
-  // Auto-select customer when project is selected
+  // Auto-select customer and hourly rate when project is selected
   useEffect(() => {
     if (formData.projectId) {
       const project = state.projects.find(p => p.id === formData.projectId);
       if (project && project.customerId) {
-        setFormData(prev => ({ ...prev, customerId: project.customerId || '' }));
+        const customer = state.customers.find(c => c.id === project.customerId);
+        const hourlyRate = customer ? getHourlyRate(customer) : formData.hourlyRate;
+        setFormData(prev => ({ ...prev, customerId: project.customerId || '', hourlyRate }));
       }
     }
-  }, [formData.projectId, state.projects]);
-
-  // Auto-fill hourly rate based on customer
-  useEffect(() => {
-    if (formData.customerId) {
-      const customer = state.customers.find(c => c.id === formData.customerId);
-      if (customer) {
-        const hourlyRate = getHourlyRate(customer);
-        setFormData(prev => ({ ...prev, hourlyRate }));
-      }
-    }
-  }, [formData.customerId, state.customers]);
+  }, [formData.projectId, state.projects, state.customers]);
 
   // Get filtered projects based on selected customer
   const availableProjects = formData.customerId
@@ -271,6 +262,30 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
+            {t.client}
+          </label>
+          <select
+            value={formData.customerId}
+            onChange={(e) => {
+              const newCustomerId = e.target.value;
+              const customer = state.customers.find(c => c.id === newCustomerId);
+              const hourlyRate = customer ? getHourlyRate(customer) : 0;
+              setFormData(prev => ({ ...prev, customerId: newCustomerId, projectId: '', taskId: '', hourlyRate }));
+            }}
+            className={`w-full h-12 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart}`}
+            required
+          >
+            <option value="">{t.selectClient}</option>
+            {state.customers.map(customer => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
             {t.project}
           </label>
           <select
@@ -283,27 +298,6 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
             {availableProjects.map(project => (
               <option key={project.id} value={project.id}>
                 {project.title}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${alignStart}`}>
-            {t.client}
-          </label>
-          <select
-            value={formData.customerId}
-            onChange={(e) => {
-              setFormData(prev => ({ ...prev, customerId: e.target.value, projectId: '', taskId: '' }));
-            }}
-            className={`w-full h-12 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 ${alignStart}`}
-            required
-          >
-            <option value="">{t.selectClient}</option>
-            {state.customers.map(customer => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}
               </option>
             ))}
           </select>
@@ -417,20 +411,40 @@ export function TimeEntryForm({ entry, onSubmit, onCancel }: TimeEntryFormProps)
         </div>
       </div>
 
-      <div className={`flex justify-end gap-3 pt-4 ${flexDirection}`}>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-        >
-          {t.cancel}
-        </Button>
-        <Button
-          type="submit"
-          className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700"
-        >
-          {entry ? t.update : t.add}
-        </Button>
+      <div className={`flex ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} gap-3 pt-4`}>
+        {isRTL ? (
+          <>
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700"
+            >
+              {entry ? t.update : t.add}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+            >
+              {t.cancel}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700"
+            >
+              {entry ? t.update : t.add}
+            </Button>
+          </>
+        )}
       </div>
     </form>
   );
