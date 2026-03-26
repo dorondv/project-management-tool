@@ -166,7 +166,7 @@ export function MonthlyTrendsChart({ dateRange }: MonthlyTrendsChartProps) {
               yAxisId="right"
               type="monotone" 
               dataKey="hours" 
-              stroke="#6B7280" 
+              stroke="#60A5FA" 
               strokeWidth={2}
               name={t.hours}
             />

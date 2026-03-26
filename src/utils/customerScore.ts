@@ -47,7 +47,7 @@ export const getTotalRevenue = (customerId: string, allTimeEntries: TimeEntry[],
 
   const incomeRevenue = allIncomes
     .filter(income => income.customerId === customerId)
-    .reduce((sum, income) => sum + income.finalAmount, 0);
+    .reduce((sum, income) => sum + income.amountBeforeVat, 0);
 
   return timeEntryRevenue + incomeRevenue;
 };

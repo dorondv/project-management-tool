@@ -82,16 +82,6 @@ export function HoursByCustomerChart({ dateRange }: HoursByCustomerChartProps) {
 
   const hasData = chartData.length > 0 && chartData.some(d => d.hours > 0);
 
-  const renderLabel = ({ name, hours, cx, x, y, midAngle }: any) => {
-    const percent = totalHours > 0 ? ((hours / totalHours) * 100).toFixed(1) : '0';
-    const textAnchor = midAngle > 90 && midAngle < 270 ? 'end' : 'start';
-    return (
-      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={11} fill="currentColor">
-        {name} ({percent}%)
-      </text>
-    );
-  };
-
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className={`flex items-center gap-2 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -101,36 +91,52 @@ export function HoursByCustomerChart({ dateRange }: HoursByCustomerChartProps) {
         </h3>
       </div>
       {hasData ? (
-        <ResponsiveContainer width="100%" height={350}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              dataKey="hours"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={100}
-              label={renderLabel}
-              labelLine={true}
-            >
-              {chartData.map((_entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                borderRadius: '0.5rem',
-                border: '1px solid #ddd',
-                color: 'inherit',
-              }}
-              formatter={(value: number) => {
-                const percent = totalHours > 0 ? ((value / totalHours) * 100).toFixed(1) : '0';
-                return [`${value.toFixed(1)}h (${percent}%)`, t.hours];
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+        <div>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="hours"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={false}
+                labelLine={false}
+              >
+                {chartData.map((_entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #ddd',
+                  color: 'inherit',
+                }}
+                formatter={(value: number) => {
+                  const percent = totalHours > 0 ? ((value / totalHours) * 100).toFixed(1) : '0';
+                  return [`${value.toFixed(1)}h (${percent}%)`, t.hours];
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 justify-center">
+            {chartData.map((entry, index) => {
+              const percent = totalHours > 0 ? ((entry.hours / totalHours) * 100).toFixed(1) : '0';
+              return (
+                <div key={entry.name} className={`flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span
+                    className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span>{entry.name} ({percent}%)</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : (
         <div className="flex items-center justify-center h-[350px] text-gray-500 dark:text-gray-400">
           <p className={isRTL ? 'text-right' : 'text-left'}>{t.noData}</p>

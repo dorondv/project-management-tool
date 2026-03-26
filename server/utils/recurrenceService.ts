@@ -42,12 +42,12 @@ export function generateRecurringInstances(
   }
 
   let currentDate = new Date(config.startDate);
-  let instanceCount = 0;
+  const originalDay = config.startDate.getDate();
+  let totalCount = 0;
   const maxDate = config.recurrenceEndDate || rangeEnd;
   const maxCount = config.recurrenceCount || Infinity;
 
-  while (currentDate <= maxDate && currentDate <= rangeEnd && instanceCount < maxCount) {
-    // Only include instances that fall within the requested range
+  while (currentDate <= maxDate && currentDate <= rangeEnd && totalCount < maxCount) {
     if (currentDate >= rangeStart) {
       const instanceEndDate = config.endDate
         ? new Date(currentDate.getTime() + (config.endDate.getTime() - config.startDate.getTime()))
@@ -56,15 +56,13 @@ export function generateRecurringInstances(
       instances.push({
         startDate: new Date(currentDate),
         endDate: instanceEndDate,
-        allDay: false, // Will be set from event
+        allDay: false,
       });
-      instanceCount++;
     }
 
-    // Calculate next occurrence
-    currentDate = calculateNextOccurrence(config.recurrenceType, currentDate);
+    totalCount++;
+    currentDate = calculateNextOccurrence(config.recurrenceType, currentDate, originalDay);
     
-    // Safety check to prevent infinite loops
     if (currentDate.getTime() === config.startDate.getTime()) {
       break;
     }
@@ -74,11 +72,14 @@ export function generateRecurringInstances(
 }
 
 /**
- * Calculate the next occurrence date based on recurrence type
+ * Calculate the next occurrence date based on recurrence type.
+ * For monthly/quarterly, pass originalDayOfMonth to prevent day drift
+ * after short months (e.g., Jan 31 → Feb 28 → Mar 31, not Mar 28).
  */
 export function calculateNextOccurrence(
   recurrenceType: RecurrenceType,
-  fromDate: Date
+  fromDate: Date,
+  originalDayOfMonth?: number
 ): Date {
   const nextDate = new Date(fromDate);
 
@@ -90,32 +91,30 @@ export function calculateNextOccurrence(
     case 'weekly': {
       const targetDay = fromDate.getDay();
       nextDate.setDate(nextDate.getDate() + 7);
-      // Correct for DST shifts that could move the weekday
       while (nextDate.getDay() !== targetDay) {
         nextDate.setDate(nextDate.getDate() + (nextDate.getDay() < targetDay ? 1 : -1));
       }
       break;
     }
     
-    case 'monthly':
-      nextDate.setMonth(nextDate.getMonth() + 1);
-      // Handle edge case where target day doesn't exist in next month
-      if (nextDate.getDate() !== fromDate.getDate()) {
-        nextDate.setDate(0); // Go to last day of previous month
-      }
+    case 'monthly': {
+      const targetDay = originalDayOfMonth ?? fromDate.getDate();
+      nextDate.setMonth(nextDate.getMonth() + 1, 1);
+      const maxDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(targetDay, maxDay));
       break;
+    }
     
-    case 'quarterly':
-      nextDate.setMonth(nextDate.getMonth() + 3);
-      // Handle edge case where target day doesn't exist in next quarter
-      if (nextDate.getDate() !== fromDate.getDate()) {
-        nextDate.setDate(0); // Go to last day of previous month
-      }
+    case 'quarterly': {
+      const targetDay = originalDayOfMonth ?? fromDate.getDate();
+      nextDate.setMonth(nextDate.getMonth() + 3, 1);
+      const maxDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(targetDay, maxDay));
       break;
+    }
     
     case 'none':
     default:
-      // No recurrence, return same date
       break;
   }
 
@@ -158,8 +157,9 @@ export function isEventOccurringOnDate(
 
   // Calculate if this date matches the recurrence pattern
   let currentDate = new Date(config.startDate);
+  const originalDay = config.startDate.getDate();
   let iterationCount = 0;
-  const maxIterations = 10000; // Safety limit
+  const maxIterations = 10000;
 
   while (currentDate <= checkDate && iterationCount < maxIterations) {
     const normalizedCurrent = normalizeDate(currentDate);
@@ -168,15 +168,13 @@ export function isEventOccurringOnDate(
       return true;
     }
 
-    // Check recurrence count limit
     if (config.recurrenceCount && iterationCount >= config.recurrenceCount - 1) {
       break;
     }
 
-    currentDate = calculateNextOccurrence(config.recurrenceType, currentDate);
+    currentDate = calculateNextOccurrence(config.recurrenceType, currentDate, originalDay);
     iterationCount++;
 
-    // Prevent infinite loops
     if (currentDate.getTime() <= config.startDate.getTime()) {
       break;
     }

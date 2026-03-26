@@ -451,7 +451,7 @@ export default function Settings() {
                 {t('settings.customerScoreExplanationTitle', locale)}
               </h4>
               <ul className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3].map((i) => (
                   <li
                     key={i}
                     className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse text-right justify-end' : 'text-left'}`}
