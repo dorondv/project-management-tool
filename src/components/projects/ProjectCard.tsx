@@ -10,44 +10,38 @@ const translations = {
   en: {
     editProject: 'Edit Project',
     deleteProject: 'Delete Project',
-    estimatedHours: 'Estimated Hours',
-    hours: 'hours',
     ongoing: 'Ongoing',
+    noDescription: 'No description',
   },
   he: {
     editProject: 'ערוך פרויקט',
     deleteProject: 'מחק פרויקט',
-    estimatedHours: 'שעות מוערכות',
-    hours: 'שעות',
     ongoing: 'שוטף',
+    noDescription: 'אין תיאור',
   },
   es: {
     editProject: 'Edit Project',
     deleteProject: 'Delete Project',
-    estimatedHours: 'Estimated Hours',
-    hours: 'hours',
     ongoing: 'Ongoing',
+    noDescription: 'Sin descripción',
   },
   de: {
     editProject: 'Edit Project',
     deleteProject: 'Delete Project',
-    estimatedHours: 'Estimated Hours',
-    hours: 'hours',
     ongoing: 'Ongoing',
+    noDescription: 'Keine Beschreibung',
   },
   pt: {
     editProject: 'Edit Project',
     deleteProject: 'Delete Project',
-    estimatedHours: 'Estimated Hours',
-    hours: 'hours',
     ongoing: 'Ongoing',
+    noDescription: 'Sem descrição',
   },
   fr: {
     editProject: 'Modifier le projet',
     deleteProject: 'Supprimer le projet',
-    estimatedHours: 'Heures estimees',
-    hours: 'heures',
     ongoing: 'En cours',
+    noDescription: 'Pas de description',
   },
 } as const;
 
@@ -160,9 +154,6 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
     }
   };
 
-  // Calculate estimated hours from project data
-  // If customer exists and has hoursPerMonth, we can use that as estimated hours
-  const estimatedHours = customer?.hoursPerMonth || 0;
 
   return (
     <div
@@ -243,22 +234,16 @@ export function ProjectCard({ project, onClick, onEdit, onDelete }: ProjectCardP
           )}
 
           {/* Keep cards uniform height: always reserve space for description (even if empty) */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl min-h-[64px]">
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl min-h-[100px]">
             {project.description ? (
               <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                 {project.description}
               </p>
             ) : (
-              <span className="opacity-0 select-none text-sm">placeholder</span>
+              <span className="text-sm text-gray-400/60 dark:text-gray-500/60 italic">{t.noDescription}</span>
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-            <span className="text-sm text-gray-500 dark:text-gray-400">{t.estimatedHours}:</span>
-            <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {estimatedHours || 0} {t.hours}
-            </span>
-          </div>
         </div>
       </div>
     </div>
