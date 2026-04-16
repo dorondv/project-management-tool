@@ -200,6 +200,17 @@ async function warmupConnectionPool() {
 
 // Test database connection on startup
 async function startServer() {
+  httpServer.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\nPort ${PORT} is already in use — the API server did not start.`);
+      console.error(`The Vite app calls this API at http://localhost:${PORT} by default.`);
+      console.error(`Free the port:  lsof -nP -iTCP:${PORT} | grep LISTEN`);
+      console.error('Then stop that process (e.g. kill <PID>) and run dev:server again.\n');
+      process.exit(1);
+    }
+    throw err;
+  });
+
   // Start the HTTP server (which includes WebSocket support)
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
