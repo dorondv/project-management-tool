@@ -134,5 +134,16 @@
   "projects.loading": "טוען פרויקטים...",
   "projects.deleteConfirm": "האם אתה בטוח שברצונך למחוק את הפרויקט \"{{title}}\"?",
   "projects.deleteSuccess": "הפרויקט נמחק בהצלחה",
-  "projects.deleteError": "שגיאה במחיקת הפרויקט"
+  "projects.deleteError": "שגיאה במחיקת הפרויקט",
+  "consentBanner.ariaLabel": "הסכמה לעוגיות",
+  "consentBanner.title": "אנחנו משתמשים בעוגיות",
+  "consentBanner.description": "כדי לשפר את החוויה שלך, לנתח תעבורה ולהתאים תוכן אישית.",
+  "consentBanner.hidePreferences": "הסתר העדפות",
+  "consentBanner.customize": "התאמה אישית",
+  "consentBanner.analytics": "אנליטיקה (סטטיסטיקות שימוש)",
+  "consentBanner.advertising": "פרסום (מודעות מותאמות אישית)",
+  "consentBanner.acceptAll": "קבל הכל",
+  "consentBanner.rejectAll": "דחה הכל",
+  "consentBanner.savePreferences": "שמור העדפות",
+  "footer.cookiePreferences": "העדפות עוגיות"
 }

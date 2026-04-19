@@ -134,5 +134,16 @@
   "projects.loading": "Projekte werden geladen...",
   "projects.deleteConfirm": "Moechtest du das Projekt \"{{title}}\" wirklich loeschen?",
   "projects.deleteSuccess": "Projekt erfolgreich geloescht",
-  "projects.deleteError": "Projekt konnte nicht geloescht werden. Bitte erneut versuchen."
+  "projects.deleteError": "Projekt konnte nicht geloescht werden. Bitte erneut versuchen.",
+  "consentBanner.ariaLabel": "Cookie-Einwilligung",
+  "consentBanner.title": "Wir verwenden Cookies",
+  "consentBanner.description": "um Ihre Erfahrung zu verbessern, Traffic zu analysieren und Inhalte zu personalisieren.",
+  "consentBanner.hidePreferences": "Einstellungen ausblenden",
+  "consentBanner.customize": "Anpassen",
+  "consentBanner.analytics": "Analysen (Nutzungsstatistiken)",
+  "consentBanner.advertising": "Werbung (personalisierte Anzeigen)",
+  "consentBanner.acceptAll": "Alle akzeptieren",
+  "consentBanner.rejectAll": "Alle ablehnen",
+  "consentBanner.savePreferences": "Einstellungen speichern",
+  "footer.cookiePreferences": "Cookie-Einstellungen"
 }

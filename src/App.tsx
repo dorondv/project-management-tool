@@ -28,6 +28,7 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import { Loader2 } from 'lucide-react';
 import { GoogleAnalytics } from './components/analytics/GoogleAnalytics';
+import { ConsentBanner } from './components/consent/ConsentBanner';
 
 function AppContent() {
   const { state } = useApp();
@@ -125,6 +126,7 @@ function AppContent() {
   return (
     <Router>
       <GoogleAnalytics />
+      <ConsentBanner />
       <Routes>
         {/* Auth routes - accessible without authentication */}
         <Route path="/auth/callback" element={<AuthCallback />} />

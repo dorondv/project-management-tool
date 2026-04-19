@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { t as translate } from '../../i18n';
+import { openConsentBanner } from '../../lib/consent';
 
 const translations = {
   en: {
@@ -16,9 +18,10 @@ const translations = {
 
 export function Footer() {
   const { state } = useApp();
-  const locale = (state.locale === 'en' || state.locale === 'he') ? state.locale : 'en';
+  const locale = state.locale;
   const isRTL = locale === 'he';
-  const t = translations[locale] || translations.en;
+  const footerLocale = locale === 'he' ? 'he' : 'en';
+  const t = translations[footerLocale];
   const year = new Date().getFullYear();
 
   return (
@@ -27,14 +30,22 @@ export function Footer() {
         <div className={`${isRTL ? 'text-right' : 'text-left'}`}>
           © {year} MySollo. {t.rights}
         </div>
-        <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link to="/terms" className="hover:text-primary-600 dark:hover:text-primary-400">
             {t.terms}
           </Link>
-          <span className="text-gray-300 dark:text-gray-700">|</span>
+          <span className="text-gray-300 dark:text-gray-700" aria-hidden>|</span>
           <Link to="/privacy" className="hover:text-primary-600 dark:hover:text-primary-400">
             {t.privacy}
           </Link>
+          <span className="text-gray-300 dark:text-gray-700" aria-hidden>|</span>
+          <button
+            type="button"
+            onClick={() => openConsentBanner()}
+            className="hover:text-primary-600 dark:hover:text-primary-400 underline-offset-2 hover:underline"
+          >
+            {translate('footer.cookiePreferences', locale)}
+          </button>
         </div>
       </div>
     </footer>
