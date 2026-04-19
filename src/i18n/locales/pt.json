@@ -134,5 +134,16 @@
   "projects.loading": "Carregando projetos...",
   "projects.deleteConfirm": "Tem certeza de que deseja excluir o projeto \"{{title}}\"?",
   "projects.deleteSuccess": "Projeto excluido com sucesso",
-  "projects.deleteError": "Falha ao excluir projeto. Tente novamente."
+  "projects.deleteError": "Falha ao excluir projeto. Tente novamente.",
+  "consentBanner.ariaLabel": "Consentimento de cookies",
+  "consentBanner.title": "Usamos cookies",
+  "consentBanner.description": "para melhorar sua experiencia, analisar trafego e personalizar conteudo.",
+  "consentBanner.hidePreferences": "Ocultar preferencias",
+  "consentBanner.customize": "Personalizar",
+  "consentBanner.analytics": "Analises (estatisticas de uso)",
+  "consentBanner.advertising": "Publicidade (anuncios personalizados)",
+  "consentBanner.acceptAll": "Aceitar tudo",
+  "consentBanner.rejectAll": "Rejeitar tudo",
+  "consentBanner.savePreferences": "Salvar preferencias",
+  "footer.cookiePreferences": "Preferencias de cookies"
 }

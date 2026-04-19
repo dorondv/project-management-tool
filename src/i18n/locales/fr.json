@@ -134,5 +134,16 @@
   "projects.loading": "Chargement des projets...",
   "projects.deleteConfirm": "Voulez-vous vraiment supprimer le projet \"{{title}}\" ?",
   "projects.deleteSuccess": "Projet supprime avec succes",
-  "projects.deleteError": "Echec de la suppression du projet. Veuillez reessayer."
+  "projects.deleteError": "Echec de la suppression du projet. Veuillez reessayer.",
+  "consentBanner.ariaLabel": "Consentement aux cookies",
+  "consentBanner.title": "Nous utilisons des cookies",
+  "consentBanner.description": "pour ameliorer votre experience, analyser le trafic et personnaliser le contenu.",
+  "consentBanner.hidePreferences": "Masquer les preferences",
+  "consentBanner.customize": "Personnaliser",
+  "consentBanner.analytics": "Analytiques (statistiques d'utilisation)",
+  "consentBanner.advertising": "Publicite (annonces personnalisees)",
+  "consentBanner.acceptAll": "Tout accepter",
+  "consentBanner.rejectAll": "Tout rejeter",
+  "consentBanner.savePreferences": "Enregistrer les preferences",
+  "footer.cookiePreferences": "Preferences cookies"
 }

@@ -134,5 +134,16 @@
   "projects.loading": "Loading projects...",
   "projects.deleteConfirm": "Are you sure you want to delete the project \"{{title}}\"?",
   "projects.deleteSuccess": "Project deleted successfully",
-  "projects.deleteError": "Failed to delete project. Please try again."
+  "projects.deleteError": "Failed to delete project. Please try again.",
+  "consentBanner.ariaLabel": "Cookie consent",
+  "consentBanner.title": "We use cookies",
+  "consentBanner.description": "to improve your experience, analyze traffic, and personalize content.",
+  "consentBanner.hidePreferences": "Hide preferences",
+  "consentBanner.customize": "Customize",
+  "consentBanner.analytics": "Analytics (usage statistics)",
+  "consentBanner.advertising": "Advertising (personalized ads)",
+  "consentBanner.acceptAll": "Accept all",
+  "consentBanner.rejectAll": "Reject all",
+  "consentBanner.savePreferences": "Save preferences",
+  "footer.cookiePreferences": "Cookie preferences"
 }

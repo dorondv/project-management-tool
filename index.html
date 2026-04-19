@@ -2,6 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Consent Mode default + restore saved choice before GTM (key + v must match src/lib/consent.ts) -->
+    <script>
+      window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});try{var c=localStorage.getItem('sollo_consent');if(c){var p=JSON.parse(c);if(p.v===1)gtag('consent','update',{ad_storage:p.ad_storage,ad_user_data:p.ad_user_data,ad_personalization:p.ad_personalization,analytics_storage:p.analytics_storage});}}catch(e){}
+    </script>
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
