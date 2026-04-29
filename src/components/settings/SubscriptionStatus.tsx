@@ -18,6 +18,8 @@ import {
 const translations: Record<Locale, {
   subscriptionStatus: string;
   trialPeriod: string;
+  couponPeriod: string;
+  trialDays: string;
   activeSubscription: string;
   monthlySubscription: string;
   annualSubscription: string;
@@ -25,7 +27,11 @@ const translations: Record<Locale, {
   suspendedSubscription: string;
   expiredSubscription: string;
   freeAccess: string;
+  noSubscription: string;
   trialDescription: string;
+  couponPeriodDescription: string;
+  trialActiveDescription: string;
+  noSubscriptionDescription: string;
   activeDescription: string;
   cancelledDescription: string;
   suspendedDescription: string;
@@ -38,9 +44,11 @@ const translations: Record<Locale, {
   seconds: string;
   manageSubscription: string;
   upgradePlan: string;
+  upgradeNow: string;
   loading: string;
   error: string;
   cancelSubscription: string;
+  cancelTrial: string;
   cancelConfirmTitle: string;
   cancelConfirmMessage: string;
   cancelConfirmMessageTrial: string;
@@ -65,6 +73,8 @@ const translations: Record<Locale, {
   en: {
     subscriptionStatus: 'Subscription Status',
     trialPeriod: 'Trial Period',
+    couponPeriod: 'Coupon period',
+    trialDays: 'Trial Days',
     activeSubscription: 'Active Subscription',
     monthlySubscription: 'Monthly Subscription',
     annualSubscription: 'Annual Subscription',
@@ -72,7 +82,11 @@ const translations: Record<Locale, {
     suspendedSubscription: 'Suspended Subscription',
     expiredSubscription: 'Expired Subscription',
     freeAccess: 'Free Access',
+    noSubscription: 'No Subscription',
     trialDescription: 'Enjoy all features. Upgrade to continue after the period ends.',
+    couponPeriodDescription: 'Enjoy full access with your coupon until it expires. Upgrade to a paid plan when you are ready.',
+    trialActiveDescription: 'You\'re in your trial period. Your subscription will activate automatically when the trial ends. You can cancel anytime before then.',
+    noSubscriptionDescription: 'You don\'t have an active subscription. Choose a plan to get started.',
     activeDescription: 'Thank you for being part of the sollo family. Your subscription is active.',
     cancelledDescription: 'Your subscription has been cancelled. You can resubscribe anytime.',
     suspendedDescription: 'Your subscription has been suspended. Please contact support for assistance.',
@@ -85,9 +99,11 @@ const translations: Record<Locale, {
     seconds: 'Seconds',
     manageSubscription: 'Pricing and Plans',
     upgradePlan: 'Upgrade Plan',
+    upgradeNow: 'Upgrade Now',
     loading: 'Loading subscription status...',
     error: 'Failed to load subscription status',
     cancelSubscription: 'Cancel Subscription',
+    cancelTrial: 'Cancel Trial',
     cancelConfirmTitle: 'Cancel Subscription',
     cancelConfirmMessage: 'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.',
     cancelConfirmMessageTrial: 'Are you sure you want to cancel your trial? Your access will end immediately and you will not be charged.',
@@ -112,19 +128,26 @@ const translations: Record<Locale, {
   he: {
     subscriptionStatus: 'סטטוס מנוי',
     trialPeriod: 'תקופת ניסיון',
+    couponPeriod: 'תקופת קופון',
+    trialDays: 'ימי ניסיון',
     activeSubscription: 'מנוי פעיל',
     monthlySubscription: 'מנוי חודשי מתחדש',
     annualSubscription: 'מנוי שנתי מתחדש',
     cancelledSubscription: 'מנוי בוטל',
     suspendedSubscription: 'מנוי מושעה',
     expiredSubscription: 'מנוי פג תוקף',
-    freeAccess: 'גישה חינמית',
+    freeAccess: 'גישה חינם',
+    noSubscription: 'אין מנוי',
     trialDescription: 'תהנה מכל התכונות. שדרג כדי להמשיך לאחר תום התקופה.',
+    couponPeriodDescription:
+      'תהנה מגישה מלאה עם הקופון שלך עד לתאריך התפוגה. שדרג לתוכנית בתשלום כשנוח לך.',
+    trialActiveDescription: 'אתה בתקופת ניסיון. המנוי יופעל אוטומטית בתום ימי הניסיון. ניתן לבטל בכל עת לפני כן.',
+    noSubscriptionDescription: 'אין לך מנוי פעיל. בחר תוכנית כדי להתחיל.',
     activeDescription: 'תודה שאתה חלק ממשפחת sollo. המנוי שלך פעיל.',
     cancelledDescription: 'המנוי שלך בוטל. תוכל להירשם מחדש בכל עת.',
     suspendedDescription: 'המנוי שלך הושעה. אנא פנה לתמיכה לקבלת עזרה.',
     expiredDescription: 'המנוי שלך פג תוקף. אנא שדרג כדי להמשיך.',
-    freeAccessDescription: 'יש לך גישה חינמית עד תאריך התפוגה.',
+    freeAccessDescription: 'יש לך גישה חינם עד תאריך התפוגה.',
     timeRemaining: 'זמן נותר עד לחידוש/סיום:',
     days: 'ימים',
     hours: 'שעות',
@@ -132,9 +155,11 @@ const translations: Record<Locale, {
     seconds: 'שניות',
     manageSubscription: 'תמחור ותוכניות',
     upgradePlan: 'שדרג תוכנית',
+    upgradeNow: 'שדרג עכשיו',
     loading: 'טוען סטטוס מנוי...',
     error: 'שגיאה בטעינת סטטוס מנוי',
     cancelSubscription: 'בטל מנוי',
+    cancelTrial: 'בטל תקופת ניסיון',
     cancelConfirmTitle: 'ביטול מנוי',
     cancelConfirmMessage: 'האם אתה בטוח שברצונך לבטל את המנוי? תוכל להמשיך להשתמש בשירות עד סוף תקופת החיוב הנוכחית.',
     cancelConfirmMessageTrial: 'האם אתה בטוח שברצונך לבטל את תקופת הניסיון? הגישה שלך תיפסק מיד ולא תחויב.',
@@ -159,6 +184,8 @@ const translations: Record<Locale, {
   es: {
     subscriptionStatus: 'Subscription Status',
     trialPeriod: 'Trial Period',
+    couponPeriod: 'Coupon period',
+    trialDays: 'Trial Days',
     activeSubscription: 'Active Subscription',
     monthlySubscription: 'Monthly Subscription',
     annualSubscription: 'Annual Subscription',
@@ -166,7 +193,11 @@ const translations: Record<Locale, {
     suspendedSubscription: 'Suspended Subscription',
     expiredSubscription: 'Expired Subscription',
     freeAccess: 'Free Access',
+    noSubscription: 'No Subscription',
     trialDescription: 'Enjoy all features. Upgrade to continue after the period ends.',
+    couponPeriodDescription: 'Enjoy full access with your coupon until it expires. Upgrade to a paid plan when you are ready.',
+    trialActiveDescription: 'You\'re in your trial period. Your subscription will activate automatically when the trial ends. You can cancel anytime before then.',
+    noSubscriptionDescription: 'You don\'t have an active subscription. Choose a plan to get started.',
     activeDescription: 'Thank you for being part of the sollo family. Your subscription is active.',
     cancelledDescription: 'Your subscription has been cancelled. You can resubscribe anytime.',
     suspendedDescription: 'Your subscription has been suspended. Please contact support for assistance.',
@@ -179,9 +210,11 @@ const translations: Record<Locale, {
     seconds: 'Seconds',
     manageSubscription: 'Pricing and Plans',
     upgradePlan: 'Upgrade Plan',
+    upgradeNow: 'Upgrade Now',
     loading: 'Loading subscription status...',
     error: 'Failed to load subscription status',
     cancelSubscription: 'Cancel Subscription',
+    cancelTrial: 'Cancel Trial',
     cancelConfirmTitle: 'Cancel Subscription',
     cancelConfirmMessage: 'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.',
     cancelConfirmMessageTrial: 'Are you sure you want to cancel your trial? Your access will end immediately and you will not be charged.',
@@ -206,6 +239,8 @@ const translations: Record<Locale, {
   de: {
     subscriptionStatus: 'Subscription Status',
     trialPeriod: 'Trial Period',
+    couponPeriod: 'Coupon period',
+    trialDays: 'Trial Days',
     activeSubscription: 'Active Subscription',
     monthlySubscription: 'Monthly Subscription',
     annualSubscription: 'Annual Subscription',
@@ -213,7 +248,11 @@ const translations: Record<Locale, {
     suspendedSubscription: 'Suspended Subscription',
     expiredSubscription: 'Expired Subscription',
     freeAccess: 'Free Access',
+    noSubscription: 'No Subscription',
     trialDescription: 'Enjoy all features. Upgrade to continue after the period ends.',
+    couponPeriodDescription: 'Enjoy full access with your coupon until it expires. Upgrade to a paid plan when you are ready.',
+    trialActiveDescription: 'You\'re in your trial period. Your subscription will activate automatically when the trial ends. You can cancel anytime before then.',
+    noSubscriptionDescription: 'You don\'t have an active subscription. Choose a plan to get started.',
     activeDescription: 'Thank you for being part of the sollo family. Your subscription is active.',
     cancelledDescription: 'Your subscription has been cancelled. You can resubscribe anytime.',
     suspendedDescription: 'Your subscription has been suspended. Please contact support for assistance.',
@@ -226,9 +265,11 @@ const translations: Record<Locale, {
     seconds: 'Seconds',
     manageSubscription: 'Pricing and Plans',
     upgradePlan: 'Upgrade Plan',
+    upgradeNow: 'Upgrade Now',
     loading: 'Loading subscription status...',
     error: 'Failed to load subscription status',
     cancelSubscription: 'Cancel Subscription',
+    cancelTrial: 'Cancel Trial',
     cancelConfirmTitle: 'Cancel Subscription',
     cancelConfirmMessage: 'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.',
     cancelConfirmMessageTrial: 'Are you sure you want to cancel your trial? Your access will end immediately and you will not be charged.',
@@ -253,6 +294,8 @@ const translations: Record<Locale, {
   pt: {
     subscriptionStatus: 'Subscription Status',
     trialPeriod: 'Trial Period',
+    couponPeriod: 'Coupon period',
+    trialDays: 'Trial Days',
     activeSubscription: 'Active Subscription',
     monthlySubscription: 'Monthly Subscription',
     annualSubscription: 'Annual Subscription',
@@ -260,7 +303,11 @@ const translations: Record<Locale, {
     suspendedSubscription: 'Suspended Subscription',
     expiredSubscription: 'Expired Subscription',
     freeAccess: 'Free Access',
+    noSubscription: 'No Subscription',
     trialDescription: 'Enjoy all features. Upgrade to continue after the period ends.',
+    couponPeriodDescription: 'Enjoy full access with your coupon until it expires. Upgrade to a paid plan when you are ready.',
+    trialActiveDescription: 'You\'re in your trial period. Your subscription will activate automatically when the trial ends. You can cancel anytime before then.',
+    noSubscriptionDescription: 'You don\'t have an active subscription. Choose a plan to get started.',
     activeDescription: 'Thank you for being part of the sollo family. Your subscription is active.',
     cancelledDescription: 'Your subscription has been cancelled. You can resubscribe anytime.',
     suspendedDescription: 'Your subscription has been suspended. Please contact support for assistance.',
@@ -273,9 +320,66 @@ const translations: Record<Locale, {
     seconds: 'Seconds',
     manageSubscription: 'Pricing and Plans',
     upgradePlan: 'Upgrade Plan',
+    upgradeNow: 'Upgrade Now',
     loading: 'Loading subscription status...',
     error: 'Failed to load subscription status',
     cancelSubscription: 'Cancel Subscription',
+    cancelTrial: 'Cancel Trial',
+    cancelConfirmTitle: 'Cancel Subscription',
+    cancelConfirmMessage: 'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.',
+    cancelConfirmMessageTrial: 'Are you sure you want to cancel your trial? Your access will end immediately and you will not be charged.',
+    cancelConfirm: 'Yes, Cancel',
+    cancelCancel: 'No, Keep Subscription',
+    cancelling: 'Cancelling...',
+    cancelledSuccess: 'Subscription cancelled successfully',
+    cancelError: 'Failed to cancel subscription',
+    upgradeToMonthly: 'Upgrade to Monthly Plan',
+    upgradeToAnnual: 'Upgrade to Annual Plan',
+    upgradeFromMonthlyToAnnual: 'Upgrade to Annual Plan',
+    upgradeFromTrialToMonthly: 'Upgrade to Monthly Plan',
+    upgradeFromTrialToAnnual: 'Upgrade to Annual Plan',
+    upgradeConfirmTitle: 'Upgrade Subscription',
+    upgradeConfirmMessage: 'Upgrading to annual will cancel your monthly subscription. You\'ll get better value with 30% savings!',
+    upgradeConfirmMessageTrial: 'Upgrading will convert your trial to a paid subscription. The plan includes a trial period and better value!',
+    upgradeConfirm: 'Yes, Upgrade',
+    upgradeCancel: 'Cancel',
+    currentPlan: 'Current Plan',
+    planStatus: 'Status',
+  },
+  fr: {
+    subscriptionStatus: 'Subscription Status',
+    trialPeriod: 'Trial Period',
+    couponPeriod: 'Coupon period',
+    trialDays: 'Trial Days',
+    activeSubscription: 'Active Subscription',
+    monthlySubscription: 'Monthly Subscription',
+    annualSubscription: 'Annual Subscription',
+    cancelledSubscription: 'Cancelled Subscription',
+    suspendedSubscription: 'Suspended Subscription',
+    expiredSubscription: 'Expired Subscription',
+    freeAccess: 'Free Access',
+    noSubscription: 'No Subscription',
+    trialDescription: 'Enjoy all features. Upgrade to continue after the period ends.',
+    couponPeriodDescription: 'Enjoy full access with your coupon until it expires. Upgrade to a paid plan when you are ready.',
+    trialActiveDescription: 'You\'re in your trial period. Your subscription will activate automatically when the trial ends. You can cancel anytime before then.',
+    noSubscriptionDescription: 'You don\'t have an active subscription. Choose a plan to get started.',
+    activeDescription: 'Thank you for being part of the sollo family. Your subscription is active.',
+    cancelledDescription: 'Your subscription has been cancelled. You can resubscribe anytime.',
+    suspendedDescription: 'Your subscription has been suspended. Please contact support for assistance.',
+    expiredDescription: 'Your subscription has expired. Please upgrade to continue.',
+    freeAccessDescription: 'You have free access until the expiration date.',
+    timeRemaining: 'Time remaining until renewal/end:',
+    days: 'Days',
+    hours: 'Hours',
+    minutes: 'Minutes',
+    seconds: 'Seconds',
+    manageSubscription: 'Pricing and Plans',
+    upgradePlan: 'Upgrade Plan',
+    upgradeNow: 'Upgrade Now',
+    loading: 'Loading subscription status...',
+    error: 'Failed to load subscription status',
+    cancelSubscription: 'Cancel Subscription',
+    cancelTrial: 'Cancel Trial',
     cancelConfirmTitle: 'Cancel Subscription',
     cancelConfirmMessage: 'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.',
     cancelConfirmMessageTrial: 'Are you sure you want to cancel your trial? Your access will end immediately and you will not be charged.',
@@ -330,6 +434,15 @@ interface SubscriptionData {
     status: 'active' | 'trial' | 'expired' | 'none';
   };
   userStatus: string;
+}
+
+/** Trial plan from a coupon (flag and/or stored coupon code — some rows only have code) */
+function isCouponTrialAccess(sub: {
+  planType: string;
+  isTrialCoupon?: boolean;
+  couponCode?: string | null;
+}): boolean {
+  return sub.planType === 'trial' && !!(sub.isTrialCoupon || sub.couponCode);
 }
 
 export function SubscriptionStatus() {
@@ -564,7 +677,7 @@ export function SubscriptionStatus() {
 
   const getPlanDisplayName = () => {
     if (!subscriptionData?.subscription) {
-      return locale === 'he' ? 'אין מנוי' : 'No Subscription';
+      return t.noSubscription;
     }
     const subscription = subscriptionData.subscription;
     const planType = subscription.planType;
@@ -584,7 +697,9 @@ export function SubscriptionStatus() {
       return t.monthlySubscription;
     } else if (planType === 'annual') {
       return t.annualSubscription;
-    } else if (planType === 'trial' || subscription.isTrialCoupon) {
+    } else if (isCouponTrialAccess(subscription)) {
+      return t.couponPeriod;
+    } else if (planType === 'trial') {
       return t.trialPeriod;
     } else if (subscription.isFreeAccess) {
       return t.freeAccess;
@@ -594,21 +709,29 @@ export function SubscriptionStatus() {
 
   const getStatusDisplayName = () => {
     if (!subscriptionData?.subscription) {
-      return locale === 'he' ? 'ללא מנוי' : 'No Subscription';
+      return t.noSubscription;
     }
-    const status = subscriptionData.subscription.status;
-    
+    const subscription = subscriptionData.subscription;
+    const status = subscription.status;
+
+    // Coupon-based trial: avoid "trial days" wording in the Status row
+    if ((status === 'trialing' || status === 'trial') && isCouponTrialAccess(subscription)) {
+      return locale === 'he' ? 'פעיל' : 'Active';
+    }
+
     switch (status) {
       case 'active':
         return locale === 'he' ? 'פעיל' : 'Active';
       case 'trialing':
-        return locale === 'he' ? 'בתקופת ניסיון' : 'Trialing';
+        return t.trialDays;
       case 'cancelled':
         return t.cancelledSubscription;
       case 'suspended':
         return t.suspendedSubscription;
       case 'expired':
         return t.expiredSubscription;
+      case 'trial':
+        return t.trialDays;
       default:
         return status;
     }
@@ -617,10 +740,10 @@ export function SubscriptionStatus() {
   const getPlanDetails = () => {
     if (!subscriptionData?.subscription) {
       return {
-        title: t.trialPeriod,
-        icon: <Star size={20} className="text-yellow-500" />,
+        title: t.noSubscription,
+        icon: <Zap size={20} className="text-gray-500" />,
         badgeVariant: 'warning' as const,
-        description: t.trialDescription,
+        description: t.noSubscriptionDescription,
         showCountdown: false,
       };
     }
@@ -640,14 +763,31 @@ export function SubscriptionStatus() {
       };
     }
 
-    if (subscription.isTrialCoupon && planType === 'trial') {
+    if (isCouponTrialAccess(subscription)) {
       const isExpired = subscription.endDate ? new Date() > new Date(subscription.endDate) : false;
       return {
-        title: t.trialPeriod,
+        title: t.couponPeriod,
         icon: <Star size={20} className="text-yellow-500" />,
         badgeVariant: (isExpired ? 'error' : 'warning') as const,
-        description: t.trialDescription,
+        description: t.couponPeriodDescription,
         showCountdown: !isExpired && !!subscription.endDate,
+      };
+    }
+
+    // PayPal trial period (user purchased a plan but is still within the trial window)
+    // Subscription will auto-activate at trial end - no need to "upgrade to continue"
+    if (status === 'trialing' && subscription.paypalSubscriptionId) {
+      const trialEnd = subscription.trialEndDate || subscription.endDate;
+      const isExpired = trialEnd ? new Date() > new Date(trialEnd) : false;
+      const icon = planType === 'annual'
+        ? <Crown size={20} className="text-purple-500" />
+        : <Star size={20} className="text-yellow-500" />;
+      return {
+        title: t.trialPeriod,
+        icon,
+        badgeVariant: (isExpired ? 'error' : 'warning') as const,
+        description: t.trialActiveDescription,
+        showCountdown: !isExpired && !!trialEnd,
       };
     }
 
@@ -702,10 +842,10 @@ export function SubscriptionStatus() {
     }
 
     return {
-      title: t.trialPeriod,
-      icon: <Star size={20} className="text-yellow-500" />,
+      title: t.noSubscription,
+      icon: <Zap size={20} className="text-gray-500" />,
       badgeVariant: 'warning' as const,
-      description: t.trialDescription,
+      description: t.noSubscriptionDescription,
       showCountdown: false,
     };
   };
@@ -893,7 +1033,7 @@ export function SubscriptionStatus() {
             </Button>
           )}
 
-          {/* Cancel Button - Show for active paid plans */}
+          {/* Cancel Button - Show for active paid plans and trial periods */}
           {canCancel() && (
             <Button
               variant="outline"
@@ -902,7 +1042,7 @@ export function SubscriptionStatus() {
               className={`w-full sm:min-w-[240px] sm:w-[240px] ${isRTL ? 'flex-row-reverse' : ''}`}
             >
               <X size={16} />
-              {t.cancelSubscription}
+              {isTrialPeriod() ? t.cancelTrial : t.cancelSubscription}
             </Button>
           )}
           

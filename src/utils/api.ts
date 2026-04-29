@@ -422,6 +422,13 @@ export const api = {
         body: JSON.stringify({ role }),
       }).then(handleResponse);
     },
+    deleteUser: (id: string, userId: string) => {
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'x-user-id': userId };
+      return fetch(`${API_URL}/api/admin/users/${id}`, {
+        method: 'DELETE',
+        headers,
+      }).then(handleResponse);
+    },
     exportUsers: (userId: string) => {
       const headers: HeadersInit = { 'x-user-id': userId };
       return fetch(`${API_URL}/api/admin/export/users`, { headers }).then((res) => res.blob());

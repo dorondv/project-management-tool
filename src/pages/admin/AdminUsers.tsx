@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../utils/api';
-import { Download, X, CheckCircle, Loader2 } from 'lucide-react';
+import { Download, X, CheckCircle, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface AdminUser {
@@ -37,6 +37,8 @@ export default function AdminUsers() {
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<string>('');
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   useEffect(() => {
     if (!state.user) return;
@@ -142,6 +144,23 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete || isDeletingUser) return;
+
+    try {
+      setIsDeletingUser(true);
+      await api.admin.deleteUser(userToDelete.id, state.user!.id);
+      toast.success(`User ${userToDelete.email} deleted`);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast.error(error?.message || 'Failed to delete user');
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
   const getRoleBadge = (role: string) => {
     const badges: Record<string, { color: string; bg: string; label: string }> = {
       admin: {
@@ -181,6 +200,10 @@ export default function AdminUsers() {
       'Active User (Paid)': {
         color: 'text-green-700 dark:text-green-400',
         bg: 'bg-green-100 dark:bg-green-900/30',
+      },
+      'Coupon trial': {
+        color: 'text-indigo-700 dark:text-indigo-400',
+        bg: 'bg-indigo-100 dark:bg-indigo-900/30',
       },
       'Free Trial': {
         color: 'text-blue-700 dark:text-blue-400',
@@ -454,7 +477,7 @@ export default function AdminUsers() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 items-center">
                       {/* Only show Grant Access for users without active subscriptions or trials */}
                       {(user.userStatus === 'Churned' || user.userStatus === 'Lead') && !user.isPayPalTrial && (
                         <button
@@ -474,6 +497,17 @@ export default function AdminUsers() {
                           className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                         >
                           Revoke
+                        </button>
+                      )}
+                      {/* Delete is available for any user except the current admin */}
+                      {state.user?.id !== user.id && (
+                        <button
+                          onClick={() => setUserToDelete(user)}
+                          className="inline-flex items-center gap-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                          title="Delete user"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
                         </button>
                       )}
                     </div>
@@ -552,6 +586,79 @@ export default function AdminUsers() {
                   </>
                 ) : (
                   'Grant Access'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Delete User
+                </h2>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Are you sure you want to permanently delete this user?
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-4 space-y-1">
+              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                {userToDelete.name}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {userToDelete.email}
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {getRoleBadge(userToDelete.role)}
+                {getStatusBadge(userToDelete.userStatus)}
+              </div>
+            </div>
+
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-6">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                This will permanently remove the user along with all related
+                data (subscription, billing history, projects, tasks, customers,
+                comments, time entries, and events). This action cannot be
+                undone.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  if (isDeletingUser) return;
+                  setUserToDelete(null);
+                }}
+                disabled={isDeletingUser}
+                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={isDeletingUser}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isDeletingUser ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Delete User
+                  </>
                 )}
               </button>
             </div>

@@ -4,6 +4,7 @@ import {
   parseWebhookEvent,
   syncUserToChatwoot,
   getActiveConversationsCount,
+  isChatwootConfigured,
 } from '../utils/chatwootService.js';
 
 const router = Router();
@@ -191,6 +192,14 @@ router.post('/sync-user', authenticateUser, async (req, res) => {
       return res.status(401).json({ error: 'User authentication required' });
     }
 
+    if (!isChatwootConfigured()) {
+      return res.json({
+        success: false,
+        skipped: true,
+        message: 'Chatwoot integration is not configured',
+      });
+    }
+
     const contact = await syncUserToChatwoot(
       user.id,
       user.name,
@@ -255,6 +264,17 @@ async function requireAdmin(req: any, res: any, next: any) {
  */
 router.post('/sync-all-users', requireAdmin, async (req, res) => {
   try {
+    if (!isChatwootConfigured()) {
+      return res.json({
+        success: false,
+        skipped: true,
+        total: 0,
+        successful: 0,
+        failed: 0,
+        message: 'Chatwoot integration is not configured',
+      });
+    }
+
     // Get all users
     const users = await prisma.user.findMany({
       select: {
