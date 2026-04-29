@@ -198,7 +198,13 @@ router.get('/users', async (req, res) => {
         }
 
         // Determine user status - override if in PayPal trial
-        let userStatus: 'Free trial' | 'Active user (Paid)' | 'Churned' | 'Free access' | 'Lead' = getUserStatus(subscription);
+        let userStatus:
+          | 'Free trial'
+          | 'Coupon trial'
+          | 'Active user (Paid)'
+          | 'Churned'
+          | 'Free access'
+          | 'Lead' = getUserStatus(subscription);
         if (isPayPalTrial) {
           userStatus = 'Free trial';
         }
@@ -398,6 +404,47 @@ router.delete('/users/:id/free-access', async (req, res) => {
   } catch (error: any) {
     console.error('Error revoking free access:', error);
     res.status(500).json({ error: 'Failed to revoke free access' });
+  }
+});
+
+// DELETE /api/admin/users/:id - Delete a user and all related data
+router.delete('/users/:id', async (req: any, res) => {
+  try {
+    const targetUserId = req.params.id;
+
+    if (targetUserId === req.userId) {
+      return res
+        .status(400)
+        .json({ error: 'You cannot delete your own admin account' });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prisma's onDelete: Cascade on related models will remove all dependent
+    // records (subscription, billing history, projects, tasks, comments,
+    // attachments, customers, time entries, events, marketing events, etc.)
+    await prisma.user.delete({
+      where: { id: targetUserId },
+    });
+
+    res.json({
+      success: true,
+      message: `User ${targetUser.email} deleted`,
+    });
+  } catch (error: any) {
+    console.error('Error deleting user:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res
+      .status(500)
+      .json({ error: 'Failed to delete user', details: error.message });
   }
 });
 

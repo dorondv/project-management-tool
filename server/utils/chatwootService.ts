@@ -8,6 +8,11 @@ const CHATWOOT_API_ACCESS_TOKEN = process.env.CHATWOOT_API_ACCESS_TOKEN || '';
 const CHATWOOT_ACCOUNT_ID = process.env.CHATWOOT_ACCOUNT_ID || '';
 const CHATWOOT_INBOX_ID = process.env.CHATWOOT_INBOX_ID || '';
 
+/** Token + account id are required for any account-scoped API call */
+export function isChatwootConfigured(): boolean {
+  return !!(CHATWOOT_API_ACCESS_TOKEN && CHATWOOT_ACCOUNT_ID);
+}
+
 interface ChatwootContact {
   id?: number;
   name: string;
@@ -278,6 +283,9 @@ export async function getConversation(
  * Get active conversations count
  */
 export async function getActiveConversationsCount(): Promise<number> {
+  if (!isChatwootConfigured()) {
+    return 0;
+  }
   try {
     const response = await chatwootRequest<{ payload: ChatwootConversation[] }>(
       `/accounts/${CHATWOOT_ACCOUNT_ID}/conversations?status=open&inbox_id=${CHATWOOT_INBOX_ID}`
@@ -312,6 +320,9 @@ export async function syncUserToChatwoot(
   userRole?: string,
   userAvatar?: string
 ): Promise<ChatwootContact | null> {
+  if (!isChatwootConfigured()) {
+    return null;
+  }
   try {
     const contact: ChatwootContact = {
       name: userName,

@@ -524,7 +524,14 @@ export function getUserStatus(subscription: {
   paypalSubscriptionId: string | null;
   isFreeAccess: boolean;
   isTrialCoupon: boolean;
-} | null): 'Free trial' | 'Active user (Paid)' | 'Churned' | 'Free access' {
+  couponCode?: string | null;
+} | null): 'Free trial' | 'Active user (Paid)' | 'Churned' | 'Free access' | 'Coupon trial' {
+
+  const isTrialFromCoupon =
+    subscription != null &&
+    subscription.planType === 'trial' &&
+    !!(subscription.isTrialCoupon || subscription.couponCode);
+
   if (!subscription) {
     return 'Churned';
   }
@@ -541,12 +548,12 @@ export function getUserStatus(subscription: {
     return isExpired ? 'Churned' : 'Free access';
   }
 
-  // Trial coupon subscription
-  if (subscription.isTrialCoupon && subscription.planType === 'trial') {
+  // Trial coupon subscription (flag and/or leftover coupon_code on older rows)
+  if (isTrialFromCoupon) {
     const isExpired = subscription.endDate 
       ? new Date() > subscription.endDate
       : false;
-    return isExpired ? 'Churned' : 'Free trial';
+    return isExpired ? 'Churned' : 'Coupon trial';
   }
 
   // Suspended subscription - treat as churned
