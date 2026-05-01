@@ -7,7 +7,15 @@ import { getPayPalPlanId } from './paypalService.js';
  */
 
 export type PlanType = 'monthly' | 'annual' | 'free' | 'trial';
-export type SubscriptionStatus = 'trial' | 'active' | 'cancelled' | 'expired' | 'churned' | 'free';
+export type SubscriptionStatus =
+  | 'trial'
+  | 'trialing'
+  | 'active'
+  | 'cancelled'
+  | 'expired'
+  | 'churned'
+  | 'free'
+  | 'suspended';
 
 /**
  * Create a subscription record
@@ -48,7 +56,8 @@ export async function createSubscription(
   if (planType === 'free' || planType === 'trial') {
     status = planType === 'free' ? 'free' : 'trial';
   } else if (paypalSubscriptionId) {
-    status = 'active';
+    status =
+      trialEndDate && new Date(trialEndDate) > new Date() ? 'trialing' : 'active';
   }
 
   // Get PayPal plan ID if not provided
@@ -218,8 +227,10 @@ export async function linkPayPalSubscription(
   // For new subscriptions, ensure 5-day trial period
   let finalTrialEndDate = trialEndDate;
   
-  // If no trial end date from PayPal and this is a new subscription, set 5-day trial
-  if (!finalTrialEndDate && !existingSubscription) {
+  // If PayPal did not return trial dates: first PayPal link on this row (or brand-new row) gets the 5-day fallback
+  const isFirstPayPalLink =
+    !existingSubscription || existingSubscription.paypalSubscriptionId == null;
+  if (!finalTrialEndDate && isFirstPayPalLink) {
     finalTrialEndDate = calculateTrialEndDate(5); // 5 days trial for new users
     console.log(`📅 Setting 5-day trial period for new subscription (ends: ${finalTrialEndDate.toISOString()})`);
   }

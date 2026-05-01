@@ -175,7 +175,7 @@ const translations: Record<Locale, {
     upgradeFromTrialToAnnual: 'שדרג לתוכנית שנתית',
     upgradeConfirmTitle: 'שדרוג מנוי',
     upgradeConfirmMessage: 'שדרוג לתוכנית שנתית יבטל את המנוי החודשי שלך. תקבל ערך טוב יותר עם חיסכון של 30%!',
-    upgradeConfirmMessageTrial: 'שדרוג יהמיר את תקופת הניסיון שלך למנוי בתשלום. התוכנית כוללת תקופת ניסיון וערך טוב יותר!',
+    upgradeConfirmMessageTrial: 'שדרוג ימיר את תקופת הניסיון שלך למנוי בתשלום. התוכנית כוללת תקופת ניסיון וערך טוב יותר!',
     upgradeConfirm: 'כן, שדרג',
     upgradeCancel: 'ביטול',
     currentPlan: 'תוכנית נוכחית',
@@ -445,6 +445,28 @@ function isCouponTrialAccess(sub: {
   return sub.planType === 'trial' && !!(sub.isTrialCoupon || sub.couponCode);
 }
 
+/** PayPal-funded trial: trialing status, or active with no payments and trial/rebilling end still in the future */
+function isPayPalSubscriptionTrialPhase(sub: SubscriptionData['subscription']): boolean {
+  if (!sub?.paypalSubscriptionId) return false;
+  if (sub.planType !== 'monthly' && sub.planType !== 'annual') return false;
+  if (sub.status === 'cancelled' || sub.status === 'expired' || sub.status === 'suspended') {
+    return false;
+  }
+  const hasPayments = sub.billingHistory && sub.billingHistory.length > 0;
+  if (hasPayments) return false;
+  if (sub.status === 'trialing') return true;
+  const trialEnd = sub.trialEndDate || sub.endDate;
+  return !!(trialEnd && new Date(trialEnd) > new Date());
+}
+
+/** Coupon / free rows without PayPal — show “upgrade to monthly or annual” */
+function showCouponTrialPaidPlanChoice(sub: SubscriptionData['subscription']): boolean {
+  if (!sub) return false;
+  if (isCouponTrialAccess(sub)) return true;
+  if ((sub.planType === 'trial' || sub.planType === 'free') && !sub.paypalSubscriptionId) return true;
+  return false;
+}
+
 export function SubscriptionStatus() {
   const navigate = useNavigate();
   const { state } = useApp();
@@ -527,7 +549,13 @@ export function SubscriptionStatus() {
   useEffect(() => {
     if (!subscriptionData?.subscription) return;
 
-    const endDate = subscriptionData.subscription.endDate || subscriptionData.subscription.trialEndDate;
+    const sub = subscriptionData.subscription;
+    if (sub.status === 'cancelled' || sub.status === 'expired' || sub.status === 'suspended') {
+      setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
+
+    const endDate = sub.endDate || sub.trialEndDate;
     if (!endDate) return;
 
     const updateCountdown = () => {
@@ -625,24 +653,9 @@ export function SubscriptionStatus() {
     return isMonthlyOrAnnual && isActive && hasPayPalSubscription;
   };
 
-  const isTrialPeriod = () => {
-    if (!subscriptionData?.subscription) return false;
-    const subscription = subscriptionData.subscription;
-    // Check if it's a trial (no payments yet or status is trialing)
-    // billingHistory might not be included in the response, so check status and paypalSubscriptionId
-    const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
-    return !hasPayments && subscription.paypalSubscriptionId && 
-           (subscription.status === 'active' || subscription.status === 'trialing');
-  };
-
-  const canUpgradeFromTrial = () => {
-    if (!subscriptionData?.subscription) return false;
-    const subscription = subscriptionData.subscription;
-    const hasPayments = subscription.billingHistory && subscription.billingHistory.length > 0;
-    // Can upgrade if: trial (no payments) and has PayPal subscription ID
-    return !hasPayments && subscription.paypalSubscriptionId && 
-           (subscription.status === 'active' || subscription.status === 'trialing');
-  };
+  const isTrialPeriod = () =>
+    !!subscriptionData?.subscription &&
+    isPayPalSubscriptionTrialPhase(subscriptionData.subscription);
 
   const canUpgradeFromMonthlyToAnnual = () => {
     if (!subscriptionData?.subscription) return false;
@@ -659,8 +672,11 @@ export function SubscriptionStatus() {
     // Show confirmation if upgrading from monthly to annual
     if (canUpgradeFromMonthlyToAnnual() && plan === 'annual') {
       setShowUpgradeConfirm(true);
-    } else if (canUpgradeFromTrial() && plan === 'annual') {
-      // Show confirmation for trial to annual upgrade
+    } else if (
+      subscriptionData?.subscription &&
+      showCouponTrialPaidPlanChoice(subscriptionData.subscription) &&
+      plan === 'annual'
+    ) {
       setShowUpgradeConfirm(true);
     } else {
       // Direct upgrade for trial to monthly (no confirmation needed)
@@ -714,6 +730,13 @@ export function SubscriptionStatus() {
     const subscription = subscriptionData.subscription;
     const status = subscription.status;
 
+    if (
+      isPayPalSubscriptionTrialPhase(subscription) &&
+      !isCouponTrialAccess(subscription)
+    ) {
+      return t.trialDays;
+    }
+
     // Coupon-based trial: avoid "trial days" wording in the Status row
     if ((status === 'trialing' || status === 'trial') && isCouponTrialAccess(subscription)) {
       return locale === 'he' ? 'פעיל' : 'Active';
@@ -752,6 +775,36 @@ export function SubscriptionStatus() {
     const status = subscription.status;
     const planType = subscription.planType;
 
+    if (status === 'cancelled') {
+      return {
+        title: t.cancelledSubscription,
+        icon: <Zap size={20} className="text-gray-500" />,
+        badgeVariant: 'error' as const,
+        description: t.cancelledDescription,
+        showCountdown: false,
+      };
+    }
+
+    if (status === 'suspended') {
+      return {
+        title: t.suspendedSubscription,
+        icon: <Zap size={20} className="text-orange-500" />,
+        badgeVariant: 'warning' as const,
+        description: t.suspendedDescription,
+        showCountdown: false,
+      };
+    }
+
+    if (status === 'expired') {
+      return {
+        title: t.expiredSubscription,
+        icon: <Zap size={20} className="text-gray-500" />,
+        badgeVariant: 'error' as const,
+        description: t.expiredDescription,
+        showCountdown: false,
+      };
+    }
+
     if (subscription.isFreeAccess && planType === 'free') {
       const isExpired = subscription.endDate ? new Date() > new Date(subscription.endDate) : false;
       return {
@@ -775,8 +828,7 @@ export function SubscriptionStatus() {
     }
 
     // PayPal trial period (user purchased a plan but is still within the trial window)
-    // Subscription will auto-activate at trial end - no need to "upgrade to continue"
-    if (status === 'trialing' && subscription.paypalSubscriptionId) {
+    if (isPayPalSubscriptionTrialPhase(subscription)) {
       const trialEnd = subscription.trialEndDate || subscription.endDate;
       const isExpired = trialEnd ? new Date() > new Date(trialEnd) : false;
       const icon = planType === 'annual'
@@ -809,36 +861,6 @@ export function SubscriptionStatus() {
           showCountdown: false,
         };
       }
-    }
-
-    if (status === 'cancelled') {
-      return {
-        title: t.cancelledSubscription,
-        icon: <Zap size={20} className="text-gray-500" />,
-        badgeVariant: 'error' as const,
-        description: t.cancelledDescription,
-        showCountdown: false,
-      };
-    }
-
-    if (status === 'suspended') {
-      return {
-        title: t.suspendedSubscription,
-        icon: <Zap size={20} className="text-orange-500" />,
-        badgeVariant: 'warning' as const,
-        description: t.suspendedDescription,
-        showCountdown: false,
-      };
-    }
-
-    if (status === 'expired') {
-      return {
-        title: t.expiredSubscription,
-        icon: <Zap size={20} className="text-gray-500" />,
-        badgeVariant: 'error' as const,
-        description: t.expiredDescription,
-        showCountdown: false,
-      };
     }
 
     return {
@@ -933,7 +955,9 @@ export function SubscriptionStatus() {
               {t.upgradeConfirmTitle}
             </h3>
             <p className={`text-gray-600 dark:text-gray-400 mb-6 ${alignStart}`}>
-              {canUpgradeFromTrial() ? t.upgradeConfirmMessageTrial : t.upgradeConfirmMessage}
+              {showCouponTrialPaidPlanChoice(subscriptionData?.subscription ?? null)
+                ? t.upgradeConfirmMessageTrial
+                : t.upgradeConfirmMessage}
             </p>
             <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <Button
@@ -1002,7 +1026,8 @@ export function SubscriptionStatus() {
 
       <div className={`space-y-3 ${alignStart}`}>
         {/* Upgrade Options */}
-        {canUpgradeFromTrial() && (
+        {subscriptionData?.subscription &&
+          showCouponTrialPaidPlanChoice(subscriptionData.subscription) && (
           <div className={`flex flex-col sm:flex-row gap-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
             <Button
               variant="primary"
@@ -1052,7 +1077,10 @@ export function SubscriptionStatus() {
             onClick={() => navigate('/pricing')}
             className={`w-full sm:min-w-[240px] sm:w-[240px] ${isRTL ? 'flex-row-reverse' : ''}`}
           >
-            {subscriptionData?.subscription?.status === 'active' || subscriptionData?.subscription?.status === 'trialing' ? (
+            {subscriptionData?.subscription &&
+            (subscriptionData.subscription.status === 'active' ||
+              subscriptionData.subscription.status === 'trialing' ||
+              isPayPalSubscriptionTrialPhase(subscriptionData.subscription)) ? (
               <>
                 {isRTL ? <ArrowLeft size={16} /> : null}
                 {t.manageSubscription}
