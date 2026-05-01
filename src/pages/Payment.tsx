@@ -322,7 +322,7 @@ export default function Payment() {
         );
         // Reload subscription status and redirect to dashboard
         setTimeout(() => {
-          navigate('/');
+          window.location.assign('/');
         }, 1500);
       }
     });
@@ -498,10 +498,11 @@ export default function Payment() {
               : 'Payment completed successfully! Welcome to the sollo family!'
           );
 
-          // Small delay before redirect to ensure toast is visible
+          setProcessing(false);
+          // Full navigation is reliable after PayPal pop-up / in-app browser closes (SPA navigate alone can appear to "do nothing")
           setTimeout(() => {
-            navigate('/');
-          }, 1000);
+            window.location.assign('/');
+          }, 600);
         } catch (error: any) {
           console.error('Error linking subscription:', error);
           console.error('Error details:', {
